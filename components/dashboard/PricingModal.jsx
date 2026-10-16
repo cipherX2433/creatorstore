@@ -19,20 +19,6 @@ import {
   trackPurchase,
 } from '@/lib/analytics'
 
-function loadRazorpayScript() {
-  return new Promise((resolve) => {
-    if (typeof window !== 'undefined' && window.Razorpay) {
-      resolve(true)
-      return
-    }
-    const script = document.createElement('script')
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-    script.onload = () => resolve(true)
-    script.onerror = () => resolve(false)
-    document.body.appendChild(script)
-  })
-}
-
 export default function PricingModal({ isOpen, onClose, defaultPlan = 'PRO', defaultInterval = 'monthly', isTrialExpired = false }) {
   const router = useRouter()
   const { subscription } = useAuth()
@@ -88,132 +74,14 @@ export default function PricingModal({ isOpen, onClose, defaultPlan = 'PRO', def
         return
       }
 
-      // 2. OUTSIDE INDIA: Direct PayPal Integration (bypassing Razorpay)
-      if (checkoutRes.provider === 'paypal' || region === BILLING_REGIONS.INTERNATIONAL) {
-        console.log('[PayPal] Initiating direct PayPal checkout for international customer:', checkoutRes.approvalUrl || checkoutRes.orderId)
-        if (checkoutRes.approvalUrl) {
-          window.location.href = checkoutRes.approvalUrl
-          return
-        }
-        toast.error(checkoutRes.message || checkoutRes.error || 'Failed to initiate secure PayPal subscription session. Please check payment configuration.')
-        setLoadingPlan(null)
+      // 2. Dodo Payments Hosted Checkout (Sole Active Payment Provider)
+      if (checkoutRes.checkoutUrl) {
+        console.log('[Dodo Payments] Redirecting to secure hosted checkout:', checkoutRes.checkoutUrl)
+        window.location.href = checkoutRes.checkoutUrl
         return
       }
 
-      // 3. INDIA: Razorpay Checkout
-      const loaded = await loadRazorpayScript()
-      if (!loaded) {
-        toast.error('Failed to load secure payment gateway. Please check your internet connection.')
-        setLoadingPlan(null)
-        return
-      }
-
-      const { subscriptionId, orderId, amount, currency: resCurrency, key, flowType } = checkoutRes
-
-      // User prefill
-      const me = await api.get('/me').catch(() => null)
-
-      const isSub = Boolean(subscriptionId && flowType === 'subscription')
-      const targetSessionId = isSub ? subscriptionId : orderId
-
-      const options = {
-        key: key || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TU5aYIMJinylzM',
-        amount: amount,
-        currency: resCurrency || (region === BILLING_REGIONS.INTERNATIONAL ? 'USD' : 'INR'),
-        name: 'CreatorStore',
-        description: `CreatorStore ${planId === 'CREATOR' ? 'Creator' : 'Pro'} Plan (${isAnnual ? 'Annual' : 'Monthly'})`,
-        ...(isSub ? { subscription_id: subscriptionId } : { order_id: orderId }),
-        prefill: {
-          name: me?.profile?.name || me?.user?.name || 'Creator',
-          email: me?.user?.email || '',
-          contact: me?.profile?.phone || '',
-        },
-        theme: {
-          color: "#1F1F1F",
-        },
-        handler: async function (response) {
-          console.log('[Razorpay] Checkout success received in PricingModal:', response)
-          setLoadingPlan(planId)
-          const toastId = toast.loading('Confirming your subscription...')
-          try {
-            const verifyRes = await api.post('/creator/subscription/verify', {
-              razorpaySubscriptionId: response.razorpay_subscription_id || subscriptionId,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-              razorpayOrderId: response.razorpay_order_id || orderId,
-              region: region,
-            })
-
-            if (verifyRes.status === 'ACTIVE') {
-              const txId = response.razorpay_order_id || orderId || response.razorpay_subscription_id || subscriptionId
-              trackPaymentCompleted({
-                transaction_id: txId,
-                value: amount,
-                currency: resCurrency || (region === BILLING_REGIONS.INTERNATIONAL ? 'USD' : 'INR'),
-              })
-              trackPurchase({
-                transaction_id: txId,
-                value: amount,
-                currency: resCurrency || (region === BILLING_REGIONS.INTERNATIONAL ? 'USD' : 'INR'),
-                items: [{
-                  item_id: planId,
-                  item_name: `CreatorStore ${planId} Plan`,
-                  price: amount,
-                  quantity: 1,
-                }],
-              })
-              toast.dismiss(toastId)
-              toast.success('Subscription activated successfully!')
-              console.log('[Razorpay] Closing modal and refreshing page state')
-              setRegionModalOpen(false)
-              onClose()
-              router.refresh()
-              if (typeof window !== 'undefined') {
-                window.location.reload()
-              }
-            } else {
-              toast.dismiss(toastId)
-              toast.error("Payment received, but we're still confirming your subscription. Please don't pay again.")
-              setLoadingPlan(null)
-            }
-          } catch (err) {
-            console.error('[Razorpay] Verification error in modal:', err)
-            trackPaymentFailed({
-              product_id: planId,
-              reason: err.message || 'subscription_verification_failed',
-            })
-            toast.dismiss(toastId)
-            toast.error("Payment received, but we're still confirming your subscription. Please don't pay again.")
-            setLoadingPlan(null)
-          }
-        },
-        modal: {
-          ondismiss: function () {
-            toast.info('Payment checkout closed.')
-            setLoadingPlan(null)
-          },
-        },
-      }
-
-      const rzp = new window.Razorpay(options)
-      rzp.on('payment.failed', function (resp) {
-        trackPaymentFailed({
-          product_id: planId,
-          reason: resp?.error?.description || 'Payment failed',
-        })
-        toast.error(resp.error?.description || 'Payment failed. Please try again.')
-        setLoadingPlan(null)
-      })
-      trackPaymentInitiated({
-        product_id: planId,
-        product_type: 'subscription',
-        value: amount,
-        currency: resCurrency || (region === BILLING_REGIONS.INTERNATIONAL ? 'USD' : 'INR'),
-      })
-
-      // Close region modal and open Razorpay
-      setRegionModalOpen(false)
-      rzp.open()
+      throw new Error(checkoutRes.error || checkoutRes.message || 'Failed to generate secure checkout session. Please try again.')
     } catch (err) {
       toast.error(err.message || 'Failed to start subscription checkout')
       setLoadingPlan(null)
@@ -486,7 +354,7 @@ export default function PricingModal({ isOpen, onClose, defaultPlan = 'PRO', def
                 : '0% CreatorStore platform fee. Payment processor fees may still apply. Cancel anytime.'}
             </p>
             <p className="text-[11px] text-[#8E8E89]">
-              Accepts Indian UPI &amp; Cards (INR) and International Cards &amp; connected PayPal (USD) via Razorpay.
+              Accepts UPI, Debit/Credit Cards (India &amp; International), Apple Pay &amp; Google Pay via Dodo Payments.
             </p>
           </div>
 

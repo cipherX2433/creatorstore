@@ -315,16 +315,14 @@ export default function ProductPurchaseModalFlow({
         return
       }
 
-      // Ensure Razorpay script is loaded dynamically
-      if (typeof window !== 'undefined' && !window.Razorpay) {
-        await new Promise((resolve) => {
-          const script = document.createElement('script')
-          script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-          script.async = true
-          script.onload = () => resolve(true)
-          script.onerror = () => resolve(false)
-          document.body.appendChild(script)
-        })
+      // Dodo Payments Hosted Checkout Redirection
+      if (data.checkoutUrl || data.url) {
+        setIsSubmitting(false)
+        window.location.href = data.checkoutUrl || data.url
+        return
+      }
+      if (!data.razorpayOrderId && !data.checkoutUrl && !data.url) {
+        throw new Error('Payment order could not be created.')
       }
 
       const rzpOrderId = data.razorpayOrderId || data.order?.razorpayOrderId
