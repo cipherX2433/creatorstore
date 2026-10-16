@@ -43,11 +43,11 @@ export default function CreatorBillingSettingsPage() {
   const isAnnual = Boolean(sub?.isAnnual || sub?.billingInterval === 'ANNUAL')
   const currentPlanId = isSubscribed ? (sub?.planId || 'PRO') : 'UNSUBSCRIBED'
   const planConfig = getPlanConfig(currentPlanId, sub?.status, isAnnual ? 'annual' : 'monthly')
-  const subCurrency = (sub?.currency || 'INR').toUpperCase()
+  const subCurrency = (sub?.currency || 'USD').toUpperCase()
   const priceDisplay = isTrial
     ? 'Free (7-Day Trial)'
     : (isPaidSub
-      ? (sub?.priceFormatted || (sub?.price ? (subCurrency === 'USD' ? `$${sub.price}` : `₹${Number(sub.price).toLocaleString('en-IN')}`) : planConfig.priceFormatted))
+      ? (sub?.priceFormatted || (sub?.price ? (subCurrency === 'INR' ? `₹${Number(sub.price).toLocaleString('en-IN')}` : `$${sub.price}`) : planConfig.priceFormatted))
       : 'Free Account')
 
   return (

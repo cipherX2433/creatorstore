@@ -1,33 +1,29 @@
-import { Manrope, Orbitron, Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
 import { Providers } from './providers'
 import { Toaster } from '@/components/ui/sonner'
 import { getAppUrl } from '@/config/site'
 
-const manrope = Manrope({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
+const manrope = localFont({
+  src: '../public/fonts/manrope-latin.woff2',
   variable: '--font-manrope',
   display: 'swap',
 })
 
-const orbitron = Orbitron({
-  subsets: ['latin'],
-  weight: ['600', '700', '800', '900'],
+const orbitron = localFont({
+  src: '../public/fonts/orbitron-latin.woff2',
   variable: '--font-orbitron',
   display: 'swap',
 })
 
-const brandFont = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['700', '800'],
+const brandFont = localFont({
+  src: '../public/fonts/plus-jakarta-sans-latin.woff2',
   variable: '--font-brand',
   display: 'swap',
 })
 
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  weight: ['700', '800', '900'],
+const playfair = localFont({
+  src: '../public/fonts/playfair-display-latin.woff2',
   variable: '--font-playfair',
   display: 'swap',
 })

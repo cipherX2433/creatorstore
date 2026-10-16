@@ -24,46 +24,26 @@ export default function PublicPricingPage() {
   const { isAuthenticated } = useAuth()
   const [checkoutPlan, setCheckoutPlan] = useState(null)
   const [billingInterval, setBillingInterval] = useState('monthly') // 'monthly' | 'annual'
-  const [currency, setCurrency] = useState('INR')
   const [showFullComparison, setShowFullComparison] = useState(false)
-
   const isAnnual = billingInterval === 'annual'
 
   useEffect(() => {
     trackPricingViewed('pricing_page')
   }, [])
 
-  useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem('creatorstore_pref_currency')
-      if (saved && (saved === 'INR' || saved === 'USD')) {
-        setCurrency(saved)
-      }
-    } catch { }
-  }, [])
+  const pricing = getSubscriptionPricing('USD', billingInterval)
 
-  function handleCurrencyChange(newCurr) {
-    setCurrency(newCurr)
-    try {
-      sessionStorage.setItem('creatorstore_pref_currency', newCurr)
-    } catch { }
-  }
-
-  const pricing = getSubscriptionPricing(currency, billingInterval)
-
-  // Scale plan calculations
-  const scaleMonthlyPrice = currency === 'USD' ? 29 : 2499
-  const scaleAnnualPrice = currency === 'USD' ? 279 : 23990
-  const scaleDisplayPrice = isAnnual
-    ? (currency === 'USD' ? `$${scaleAnnualPrice}` : `₹${scaleAnnualPrice.toLocaleString('en-IN')}`)
-    : (currency === 'USD' ? `$${scaleMonthlyPrice}` : `₹${scaleMonthlyPrice.toLocaleString('en-IN')}`)
-  const scaleOriginalAnnual = currency === 'USD' ? `$${scaleMonthlyPrice * 12}` : `₹${(scaleMonthlyPrice * 12).toLocaleString('en-IN')}`
+  // Scale plan calculations (USD)
+  const scaleMonthlyPrice = 29
+  const scaleAnnualPrice = 279
+  const scaleDisplayPrice = isAnnual ? `$${scaleAnnualPrice}` : `$${scaleMonthlyPrice}`
+  const scaleOriginalAnnual = `$${scaleMonthlyPrice * 12}`
 
   function handleSelectPlan(planId) {
     trackPricingPlanSelected({
       plan_id: planId,
       interval: billingInterval,
-      currency,
+      currency: 'USD',
     })
     if (!isAuthenticated) {
       const targetPlan = planId === 'SCALE' ? 'PRO' : planId
@@ -93,7 +73,7 @@ export default function PublicPricingPage() {
             </p>
           </div>
 
-          {/* Right Controls: Billing Interval & Currency Switcher */}
+          {/* Right Controls: Billing Interval */}
           <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
             {/* Monthly / Annual Toggle */}
             <div className="inline-flex items-center p-1 rounded-full bg-white border border-[#DCDCE0] shadow-2xs">
@@ -123,32 +103,6 @@ export default function PublicPricingPage() {
                 }`}>
                   -20%
                 </span>
-              </button>
-            </div>
-
-            {/* Currency Selector */}
-            <div className="inline-flex items-center p-1 rounded-full bg-white border border-[#DCDCE0] shadow-2xs text-xs font-semibold">
-              <button
-                type="button"
-                onClick={() => handleCurrencyChange('INR')}
-                className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
-                  currency === 'INR'
-                    ? 'bg-[#111111] text-white shadow-xs'
-                    : 'text-[#666666] hover:text-[#111111]'
-                }`}
-              >
-                ₹ INR
-              </button>
-              <button
-                type="button"
-                onClick={() => handleCurrencyChange('USD')}
-                className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
-                  currency === 'USD'
-                    ? 'bg-[#111111] text-white shadow-xs'
-                    : 'text-[#666666] hover:text-[#111111]'
-                }`}
-              >
-                $ USD
               </button>
             </div>
           </div>
