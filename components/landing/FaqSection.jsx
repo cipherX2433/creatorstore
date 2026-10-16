@@ -33,7 +33,7 @@ const FAQ_ITEMS = [
     id: '04',
     question: 'How do payments and payouts work?',
     answer:
-      'Payments are processed securely via direct gateway integration (including Razorpay supporting UPI, credit/debit cards, and net banking). Earnings settle directly into your bank account on standard processing schedules with zero artificial holds.',
+      'Payments are processed securely via Dodo Payments (supporting UPI, credit/debit cards, Apple Pay, and Google Pay for India and international buyers). Earnings settle on standard processing schedules with zero artificial holds.',
   },
   {
     id: '05',

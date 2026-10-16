@@ -13,19 +13,6 @@ import { BILLING_REGIONS, resolveBillingConfig } from '@/lib/billing/config'
 import RegionSelectionModal from '@/components/dashboard/RegionSelectionModal'
 import CreatorStoreBrand from '@/components/brand/CreatorStoreBrand'
 
-function loadRazorpayScript() {
-  return new Promise((resolve) => {
-    if (typeof window !== 'undefined' && window.Razorpay) {
-      resolve(true)
-      return
-    }
-    const script = document.createElement('script')
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-    script.onload = () => resolve(true)
-    script.onerror = () => resolve(false)
-    document.body.appendChild(script)
-  })
-}
 
 export default function CreatorSubscribePage() {
   const router = useRouter()
@@ -85,104 +72,18 @@ export default function CreatorSubscribePage() {
         return
       }
 
-      // OUTSIDE INDIA: Direct PayPal Integration (bypassing Razorpay)
-      if (checkoutRes.provider === 'paypal' || region === BILLING_REGIONS.INTERNATIONAL) {
-        console.log('[PayPal] Initiating direct PayPal checkout for international customer:', checkoutRes.approvalUrl || checkoutRes.orderId)
-        if (checkoutRes.approvalUrl) {
-          window.location.href = checkoutRes.approvalUrl
-          return
-        }
-        toast.error(checkoutRes.message || checkoutRes.error || 'Failed to initiate secure PayPal subscription session. Please verify payment configuration.')
-        setPaying(false)
+      // Dodo Payments Hosted Checkout (Sole Active Payment Provider)
+      if (checkoutRes.checkoutUrl) {
+        console.log('[Dodo Payments] Redirecting to secure hosted checkout:', checkoutRes.checkoutUrl)
+        window.location.href = checkoutRes.checkoutUrl
         return
       }
 
-      // INDIA: Razorpay Checkout
-      const loaded = await loadRazorpayScript()
-      if (!loaded) {
-        toast.error('Failed to load secure payment gateway. Please check your internet connection.')
-        setPaying(false)
-        return
-      }
-
-      const { subscriptionId, orderId, amount, currency, key, flowType } = checkoutRes
-
-      const isSub = Boolean(subscriptionId && flowType === 'subscription')
-
-      const options = {
-        key: key || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TU5aYIMJinylzM',
-        amount: amount,
-        currency: currency || (region === BILLING_REGIONS.INTERNATIONAL ? 'USD' : 'INR'),
-        name: 'CreatorStore',
-        description: `CreatorStore ${plan === 'CREATOR' ? 'Creator' : 'Pro'} Plan (${isAnnual ? 'Annual' : 'Monthly'})`,
-        ...(isSub ? { subscription_id: subscriptionId } : { order_id: orderId }),
-        prefill: {
-          name: meData?.profile?.name || meData?.user?.name || 'Creator',
-          email: meData?.user?.email || '',
-          contact: meData?.profile?.phone || '',
-        },
-        theme: { color: 'var(--primary)' },
-        handler: async function (response) {
-          console.log('[Razorpay] Checkout success received:', response)
-          setVerifyingStatus('Confirming your subscription...')
-          const toastId = toast.loading('Confirming your subscription...')
-          try {
-            const verifyRes = await api.post('/creator/subscription/verify', {
-              razorpaySubscriptionId: response.razorpay_subscription_id || subscriptionId,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-              razorpayOrderId: response.razorpay_order_id || orderId,
-              region,
-            })
-
-            if (verifyRes.status === 'ACTIVE') {
-              toast.dismiss(toastId)
-              toast.success('Subscription activated successfully!')
-              setVerifyingStatus('Subscription activated successfully')
-              console.log('[Razorpay] Redirecting user to dashboard...')
-              setRegionModalOpen(false)
-              const me = await api.get('/me').catch(() => null)
-              setTimeout(() => {
-                if (!me?.profile?.onboardingComplete) {
-                  router.push('/onboarding')
-                } else {
-                  router.push('/dashboard/store')
-                }
-              }, 600)
-            } else {
-              toast.dismiss(toastId)
-              toast.error("Payment received, but we're still confirming your subscription. Please don't pay again.")
-              setPaying(false)
-              setVerifyingStatus('')
-            }
-          } catch (err) {
-            console.error('[Razorpay] Verification error:', err)
-            toast.dismiss(toastId)
-            toast.error("Payment received, but we're still confirming your subscription. Please don't pay again.")
-            setPaying(false)
-            setVerifyingStatus('')
-          }
-        },
-        modal: {
-          ondismiss: function () {
-            toast.info('Payment checkout closed.')
-            setPaying(false)
-            setVerifyingStatus('')
-          },
-        },
-      }
-
-      const rzp = new window.Razorpay(options)
-      rzp.on('payment.failed', function (resp) {
-        toast.error(resp.error?.description || 'Payment failed. Please try again.')
-        setPaying(false)
-        setVerifyingStatus('')
-      })
-
-      setRegionModalOpen(false)
-      rzp.open()
+      toast.error(checkoutRes.message || checkoutRes.error || 'Failed to initiate secure checkout session. Please try again.')
+      setPaying(false)
+      setVerifyingStatus('')
     } catch (err) {
-      toast.error(err.message || 'Subscription activation failed')
+      toast.error(err.message || 'Subscription checkout failed')
       setPaying(false)
       setVerifyingStatus('')
     }

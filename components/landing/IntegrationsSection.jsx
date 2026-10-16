@@ -5,7 +5,7 @@ import { Instagram, CreditCard, ShieldCheck, Mail, HardDrive, Lock } from 'lucid
 export default function IntegrationsSection() {
   const tools = [
     { name: 'Instagram Graph API', icon: Instagram, note: 'Official API' },
-    { name: 'Razorpay', icon: CreditCard, note: 'Direct Settlement' },
+    { name: 'Dodo Payments', icon: CreditCard, note: 'Global & UPI Checkout' },
     { name: 'UPI & Cards', icon: Lock, note: 'Instant Checkout' },
     { name: 'Resend', icon: Mail, note: 'Automated Email' },
     { name: 'Cloud Storage', icon: HardDrive, note: 'Encrypted Delivery' },

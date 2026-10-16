@@ -100,10 +100,10 @@ export default function RegionSelectionModal({
                     <span className="font-bold text-base text-[#1F1F1F]">India</span>
                   </div>
                   <p className="text-xs text-[#6F6F6B]">
-                    Pay in INR using Razorpay
+                    Pay in INR via Dodo Payments
                   </p>
                   <p className="text-[11px] text-[#8E8E89]">
-                    UPI · Credit/Debit Cards · Netbanking
+                    UPI · Cards · Netbanking
                   </p>
                 </div>
 
@@ -132,10 +132,10 @@ export default function RegionSelectionModal({
                     <span className="font-bold text-base text-[#1F1F1F]">Outside India</span>
                   </div>
                   <p className="text-xs text-[#6F6F6B]">
-                    Pay using PayPal in USD
+                    Pay in USD via Dodo Payments
                   </p>
                   <p className="text-[11px] text-[#8E8E89]">
-                    PayPal · International Cards
+                    Credit/Debit Cards · Apple Pay · Google Pay
                   </p>
                 </div>
 
@@ -155,7 +155,7 @@ export default function RegionSelectionModal({
 
             <p className="text-[11px] text-center text-[#8E8E89] flex items-center justify-center gap-1">
               <ShieldCheck className="h-3.5 w-3.5 text-[#16A34A]" />
-              Secure 256-bit encrypted checkout · 0% platform fee
+              Secure 256-bit encrypted checkout via Dodo Payments · 0% platform fee
             </p>
           </div>
         ) : (
@@ -183,9 +183,7 @@ export default function RegionSelectionModal({
                 Confirm your subscription
               </h2>
               <p className="text-xs text-[#6F6F6B]">
-                {selectedRegion === BILLING_REGIONS.INTERNATIONAL
-                  ? 'Review your plan details before proceeding to PayPal checkout.'
-                  : 'Review your plan details before proceeding to Razorpay checkout.'}
+                Review your plan details before proceeding to Dodo Payments checkout.
               </p>
             </div>
 
@@ -200,9 +198,7 @@ export default function RegionSelectionModal({
                     {activeConfig.planName} ({isAnnual ? 'Annual' : 'Monthly'})
                   </h3>
                   <p className="text-xs text-[#6F6F6B]">
-                    {selectedRegion === BILLING_REGIONS.INTERNATIONAL
-                      ? (isAnnual ? '365-day access · 20% discount · Manual renewal' : '30-day access · Manual renewal')
-                      : (isAnnual ? 'Billed annually with 20% discount · Auto-renews' : 'Billed monthly · Auto-renews · Cancel anytime')}
+                    {isAnnual ? 'Billed annually with 20% discount · Auto-renews · Cancel anytime' : 'Billed monthly · Auto-renews · Cancel anytime'}
                   </p>
                 </div>
                 <div className="text-right">
@@ -221,7 +217,7 @@ export default function RegionSelectionModal({
                 <div className="flex items-center justify-between text-[#6F6F6B]">
                   <span>Payment Gateway</span>
                   <span className="font-bold text-[#1F1F1F]">
-                    {selectedRegion === BILLING_REGIONS.INTERNATIONAL ? 'PayPal' : 'Razorpay Secure'}
+                    Dodo Payments Secure
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[#6F6F6B]">
@@ -249,23 +245,19 @@ export default function RegionSelectionModal({
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    {selectedRegion === BILLING_REGIONS.INTERNATIONAL ? 'Redirecting to PayPal...' : 'Opening Razorpay Checkout...'}
+                    Opening Dodo Payments Checkout...
                   </>
                 ) : (
                   <>
                     <CreditCard className="h-4 w-4" />
-                    {selectedRegion === BILLING_REGIONS.INTERNATIONAL
-                      ? `Continue to PayPal (${activeConfig.priceFormatted}${activeConfig.periodLabel})`
-                      : `Continue to Razorpay (${activeConfig.priceFormatted}${activeConfig.periodLabel})`}
+                    Continue to Dodo Payments ({activeConfig.priceFormatted}{activeConfig.periodLabel})
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
               </Button>
 
               <p className="text-[11px] text-center text-[#8E8E89]">
-                {selectedRegion === BILLING_REGIONS.INTERNATIONAL
-                  ? 'International payments are processed in USD directly via PayPal with credit/debit card and PayPal balance support.'
-                  : 'Domestic payments are processed in INR via Razorpay with UPI and card support.'}
+                Payments are processed securely via Dodo Payments with support for UPI, Credit/Debit Cards, Apple Pay, and Google Pay.
               </p>
             </div>
           </div>

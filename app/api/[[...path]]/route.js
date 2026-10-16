@@ -3,8 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { Readable } from 'stream'
 import { supabaseAdmin, ensureBucket, resolveDigitalProductStoragePath } from '@/lib/supabase'
 import { SESSION_COOKIE } from '@/lib/auth'
-import { getPaymentProvider } from '@/lib/payments'
-import { paypalProvider } from '@/lib/paypal'
+import { dodoProvider } from '@/lib/dodo'
 import { productsRepo, ordersRepo, customersRepo, lessonsRepo, coursesRepo, entitlementsRepo, webhookEventsRepo, automationEventsRepo, profilesRepo, storesRepo, creatorSubscriptionsRepo } from '@/lib/repos'
 import {
   authService, meService, storeService, storeSectionsService, productService, publicService,
@@ -84,47 +83,29 @@ async function processRoute(request, context = {}) {
   const path = rawPath.map(p => decodeURIComponent(p))
   const method = request.method
 
-  // ===== RAZORPAY WEBHOOK (raw body, must be first, no JSON parsing) =====
-  if ((normalizedRoute === '/webhooks/razorpay' || normalizedRoute === '/payments/webhook') && method === 'POST') {
+  // ===== DODO PAYMENTS WEBHOOK (raw body, verifies Dodo signature via standardwebhooks) =====
+  if ((normalizedRoute === '/webhooks/dodo' || normalizedRoute === '/payments/dodo/webhook') && method === 'POST') {
     const rawBody = await request.text()
-    const signature = request.headers.get('x-razorpay-signature')
-    const provider = getPaymentProvider()
-    if (!provider.isConfigured() || !signature) {
-      return new NextResponse('Webhook not configured', { status: 400 })
-    }
-    let event
+    const headers = Object.fromEntries(request.headers.entries())
+    let verifiedEvent
     try {
-      event = provider.verifyWebhook(rawBody, signature)
+      verifiedEvent = dodoProvider.verifyWebhook({ rawBody, headers })
     } catch (e) {
-      console.error('Webhook signature verification failed:', e.message)
-      return new NextResponse('Invalid signature', { status: 400 })
+      console.error('[Dodo Webhook] Signature verification failed:', e.message)
+      return NextResponse.json({ error: 'invalid_signature' }, { status: 400 })
     }
     try {
-      await webhookService.handle(event)
+      await webhookService.handle(verifiedEvent)
       return NextResponse.json({ received: true })
     } catch (e) {
+      console.error('[Dodo Webhook] Processing error:', e.message)
       return NextResponse.json({ error: 'processing_failed' }, { status: 500 })
     }
   }
 
-  // ===== PAYPAL WEBHOOK (raw body, verifies PayPal transmission headers) =====
-  if ((normalizedRoute === '/webhooks/paypal' || normalizedRoute === '/payments/paypal/webhook') && method === 'POST') {
-    const rawBody = await request.text()
-    const headers = Object.fromEntries(request.headers.entries())
-    let verifiedResult
-    try {
-      verifiedResult = await paypalProvider.verifyWebhook({ headers, rawBody })
-    } catch (e) {
-      console.error('[PayPal Webhook] Signature verification failed:', e.message)
-      return NextResponse.json({ error: 'invalid_signature' }, { status: 400 })
-    }
-    try {
-      await webhookService.handle(verifiedResult.event)
-      return NextResponse.json({ received: true })
-    } catch (e) {
-      console.error('[PayPal Webhook] Processing error:', e.message)
-      return NextResponse.json({ error: 'processing_failed' }, { status: 500 })
-    }
+  // ===== LEGACY WEBHOOK DECOMMISSION (Dodo Payments is now the active provider) =====
+  if ((normalizedRoute === '/webhooks/razorpay' || normalizedRoute === '/payments/webhook' || normalizedRoute === '/webhooks/paypal' || normalizedRoute === '/payments/paypal/webhook') && method === 'POST') {
+    return NextResponse.json({ message: 'Legacy webhook decommissioned. Use /api/webhooks/dodo' }, { status: 410 })
   }
 
   // ===== META INSTAGRAM WEBHOOK (raw body / challenge verification) =====
@@ -788,9 +769,29 @@ async function processRoute(request, context = {}) {
       return res
     }
 
+    if ((route === '/checkout/dodo/return' || (path[0] === 'checkout' && path[1] === 'dodo' && path[2] === 'return')) && method === 'GET') {
+      const orderId = url.searchParams.get('order_id')
+      const sessionId = url.searchParams.get('session_id')
+      const paymentId = url.searchParams.get('payment_id')
+      if (orderId || sessionId) {
+        try {
+          await checkoutService.verifyPayment({ orderId, sessionId, paymentId })
+        } catch (e) {
+          console.warn('[Dodo Product Return] Verification note:', e.message)
+        }
+      }
+      const redirectBase = getAppUrl().replace(/0\.0\.0\.0/g, 'localhost')
+      const targetOrder = orderId ? await ordersRepo.getById(orderId) : (sessionId ? await ordersRepo.getByDodoSessionId(sessionId) : null)
+      const destination = new URL(targetOrder ? `/checkout/success?order_id=${targetOrder.id}` : '/dashboard', redirectBase)
+      return NextResponse.redirect(destination)
+    }
+
     if ((route === '/checkout/verify' || route === '/payments/verify') && method === 'POST') {
       const body = await request.json()
       const result = await checkoutService.verifyPayment({
+        orderId: body.orderId || body.order_id,
+        sessionId: body.sessionId || body.session_id,
+        paymentId: body.paymentId || body.payment_id,
         razorpayOrderId: body.razorpay_order_id || body.razorpayOrderId,
         razorpayPaymentId: body.razorpay_payment_id || body.razorpayPaymentId,
         razorpaySignature: body.razorpay_signature || body.razorpaySignature,
@@ -1731,11 +1732,12 @@ async function processRoute(request, context = {}) {
 
     // ===== Creator Subscription Endpoints =====
     if (path[0] === 'creator' && path[1] === 'subscription') {
-      if (path[2] === 'paypal' && path[3] === 'return' && method === 'GET') {
-        const token = url.searchParams.get('token')
+      // ===== Dodo Subscription Return Callback =====
+      if (path[2] === 'dodo' && path[3] === 'return' && method === 'GET') {
+        const sessionId = url.searchParams.get('session_id')
         const subscriptionId = url.searchParams.get('subscription_id')
-        const payerId = url.searchParams.get('PayerID') || url.searchParams.get('ba_token')
-        const effectiveId = subscriptionId || token
+        const paymentId = url.searchParams.get('payment_id')
+        const effectiveId = subscriptionId || sessionId
         let authUser = null
         try { authUser = await requireAuth(request) } catch (e) { }
         const targetSub = effectiveId ? await creatorSubscriptionsRepo.getByProviderSubscriptionId(effectiveId) : null
@@ -1747,14 +1749,14 @@ async function processRoute(request, context = {}) {
         if (targetCreatorId && effectiveId) {
           try {
             const result = await creatorSubscriptionService.verifySubscriptionPayment(targetCreatorId, {
-              provider: 'paypal',
-              orderId: effectiveId,
-              razorpaySubscriptionId: subscriptionId,
-              paymentId: payerId,
+              provider: 'dodo',
+              sessionId,
+              subscriptionId,
+              paymentId,
             })
             verifySuccess = Boolean(result && result.status === 'ACTIVE')
           } catch (err) {
-            console.error('[PayPal Return] Verification error:', err.message)
+            console.error('[Dodo Return] Verification error:', err.message)
             verifySuccess = false
             errorReason = err.message
           }
@@ -1762,19 +1764,19 @@ async function processRoute(request, context = {}) {
           errorReason = 'Missing subscription identifier or creator session'
         }
 
-        // Never redirect to 0.0.0.0; resolve canonical application base
         const redirectBase = getAppUrl().replace(/0\.0\.0\.0/g, 'localhost')
         const destination = new URL('/dashboard/settings/billing', redirectBase)
         if (verifySuccess) {
           destination.searchParams.set('success', 'true')
         } else {
-          destination.searchParams.set('error', 'paypal_verification_failed')
+          destination.searchParams.set('error', 'dodo_verification_failed')
           if (errorReason) {
             destination.searchParams.set('reason', encodeURIComponent(errorReason.slice(0, 100)))
           }
         }
         return NextResponse.redirect(destination)
       }
+
 
       const user = await requireAuth(request)
       if (path[2] === 'status' && method === 'GET') {
@@ -1795,6 +1797,9 @@ async function processRoute(request, context = {}) {
       if (path[2] === 'verify' && method === 'POST') {
         const body = await request.json().catch(() => ({}))
         return json(await creatorSubscriptionService.verifySubscriptionPayment(user.id, body))
+      }
+      if (path[2] === 'cancel' && method === 'POST') {
+        return json(await creatorSubscriptionService.cancelSubscription(user.id))
       }
     }
 

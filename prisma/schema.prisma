@@ -148,8 +148,11 @@ model CreatorSubscription {
   billingInterval        String?   @default("MONTHLY") @map("billing_interval")
   amount                 Decimal?  @default(0) @db.Decimal
   currency               String?   @default("INR")
-  provider               String?   @default("RAZORPAY")
+  provider               String?   @default("DODO")
   providerSubscriptionId String?   @map("provider_subscription_id")
+  dodoSubscriptionId     String?   @unique @map("dodo_subscription_id")
+  dodoPaymentId          String?   @map("dodo_payment_id")
+  dodoCustomerId         String?   @map("dodo_customer_id")
   razorpayOrderId        String?   @unique @map("razorpay_order_id")
   razorpayPaymentId      String?   @map("razorpay_payment_id")
   currentPeriodStart     DateTime? @map("current_period_start") @db.Timestamptz
@@ -375,6 +378,9 @@ model Order {
   amount            Decimal   @db.Decimal
   currency          String?   @default("INR")
   status            String    @default("PENDING")
+  paymentProvider   String?   @default("dodo") @map("payment_provider")
+  dodoPaymentId     String?   @unique @map("dodo_payment_id")
+  dodoSessionId     String?   @map("dodo_session_id")
   razorpayOrderId   String?   @unique @map("razorpay_order_id")
   razorpayPaymentId String?   @map("razorpay_payment_id")
   createdAt         DateTime? @default(now()) @map("created_at") @db.Timestamptz

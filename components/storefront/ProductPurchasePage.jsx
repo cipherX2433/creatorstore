@@ -440,8 +440,9 @@ export default function ProductPurchasePage({ username, slug, productId }) {
         return
       }
 
-      if (res.url) {
-        window.location.href = res.url
+      if (res.checkoutUrl || res.url) {
+        setBuyingStep('redirecting')
+        window.location.href = res.checkoutUrl || res.url
         return
       }
 
