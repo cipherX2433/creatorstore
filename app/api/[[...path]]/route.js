@@ -2710,32 +2710,4 @@ export const POST = handleRoute
 export const PUT = handleRoute
 export const PATCH = handleRoute
 export const DELETE = handleRoute
-return json({ customers: res.items, ...res })
-      }
-return json({ customers: await customersRepo.list(creatorId) })
-    }
-if (route === '/analytics/overview' && method === 'GET') {
-  const days = parseInt(url.searchParams.get('days') || '30', 10)
-  return json(await analyticsService.overview(creatorId, days))
-}
 
-return json({ error: `Route ${route} not found` }, 404)
-  } catch (e) {
-  return errorResponse(e)
-}
-}
-
-async function handleRoute(request, context = {}) {
-  try {
-    const res = await processRoute(request, context)
-    return applyCors(res, request)
-  } catch (e) {
-    return applyCors(errorResponse(e), request)
-  }
-}
-
-export const GET = handleRoute
-export const POST = handleRoute
-export const PUT = handleRoute
-export const PATCH = handleRoute
-export const DELETE = handleRoute
