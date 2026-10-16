@@ -1,0 +1,694 @@
+// ==============================================================================
+// CREATORZERO PLATFORM — PRISMA SCHEMA FOR SUPABASE POSTGRESQL
+// ==============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ------------------------------------------------------------------------------
+// 1. Identity & Profiles
+// ------------------------------------------------------------------------------
+
+model User {
+  id                        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                     String    @unique
+  passwordHash              String    @map("password_hash")
+  role                      String    @default("CREATOR")
+  emailVerified             Boolean?  @default(false) @map("email_verified")
+  resetTokenHash            String?   @map("reset_token_hash")
+  resetTokenExpires         DateTime? @map("reset_token_expires") @db.Timestamptz
+  verificationTokenHash     String?   @map("verification_token_hash")
+  verificationTokenExpires  DateTime? @map("verification_token_expires") @db.Timestamptz
+  createdAt                 DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                 DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creatorProfile      CreatorProfile?
+  customers           Customer[]
+  store               Store?
+  storeSections       StoreSection[]
+  creatorSubscription CreatorSubscription?
+  products            Product[]
+  checkoutFields      CheckoutFields[]
+  courses             Course[]
+  courseModules       CourseModule[]
+  courseLessons       CourseLesson[]
+  orders              Order[]
+  coupons             Coupon[]
+  instagramAccount    InstagramAccount?
+  automations         Automation[]
+  automationEvents    AutomationEvent[]
+  payoutProfile       PayoutProfile?
+  payoutAuditLogs     PayoutAuditLog[]
+
+  @@map("users")
+}
+
+model CreatorProfile {
+  creatorId          String    @id @map("creator_id") @db.Uuid
+  name               String?
+  phone              String?
+  bio                String?
+  category           String?
+  avatarUrl          String?   @map("avatar_url")
+  socialLinks        Json?     @default("{}") @map("social_links")
+  onboardingStatus   String?   @default("SOCIAL_SETUP") @map("onboarding_status")
+  onboardingComplete Boolean?  @default(false) @map("onboarding_complete")
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@map("creator_profiles")
+}
+
+model Customer {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId  String?   @map("creator_id") @db.Uuid
+  email      String
+  name       String?
+  phone      String?
+  totalSpent Decimal?  @default(0) @map("total_spent") @db.Decimal
+  ordersCount Int?     @default(0) @map("orders_count")
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creator          User?               @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  orders           Order[]
+  entitlements     Entitlement[]
+  courseProgress   CourseProgress[]
+  certificates     CourseCertificate[]
+
+  @@unique([creatorId, email])
+  @@map("customers")
+}
+
+// ------------------------------------------------------------------------------
+// 2. Stores & Layouts
+// ------------------------------------------------------------------------------
+
+model Store {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId   String    @unique @map("creator_id") @db.Uuid
+  username    String    @unique
+  storeName   String?   @map("store_name")
+  slug        String?   @unique @map("slug")
+  bio         String?
+  avatarUrl   String?   @map("avatar_url")
+  coverUrl    String?   @map("cover_url")
+  published   Boolean?  @default(false)
+  theme       Json?     @default("{}")
+  socialLinks Json?     @default("{}") @map("social_links")
+  pages       Json?     @default("[]")  // Array of { id, name, slug, isDefault, position }
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@map("stores")
+}
+
+model StoreSection {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId String    @map("creator_id") @db.Uuid
+  pageId    String?   @map("page_id") @db.Uuid  // null = default Home page
+  type      String
+  position  Int
+  hidden    Boolean?  @default(false)
+  props     Json?     @default("{}")
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId, pageId], map: "idx_store_sections_creator_page")
+  @@map("store_sections")
+}
+
+// ------------------------------------------------------------------------------
+// 3. Subscriptions & Monetization
+// ------------------------------------------------------------------------------
+
+model CreatorSubscription {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId              String    @unique @map("creator_id") @db.Uuid
+  plan                   String    @default("CREATOR_PRO")
+  status                 String    @default("ACTIVE")
+  billingInterval        String?   @default("MONTHLY") @map("billing_interval")
+  amount                 Decimal?  @default(0) @db.Decimal
+  currency               String?   @default("INR")
+  provider               String?   @default("RAZORPAY")
+  providerSubscriptionId String?   @map("provider_subscription_id")
+  razorpayOrderId        String?   @unique @map("razorpay_order_id")
+  razorpayPaymentId      String?   @map("razorpay_payment_id")
+  currentPeriodStart     DateTime? @map("current_period_start") @db.Timestamptz
+  currentPeriodEnd       DateTime? @map("current_period_end") @db.Timestamptz
+  canceledAt             DateTime? @map("canceled_at") @db.Timestamptz
+  trialStartedAt         DateTime? @map("trial_started_at") @db.Timestamptz
+  trialEndsAt            DateTime? @map("trial_ends_at") @db.Timestamptz
+  trialStatus            String?   @default("NOT_STARTED") @map("trial_status")
+  createdAt              DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@map("creator_subscriptions")
+}
+
+// ------------------------------------------------------------------------------
+// 4. Products & Catalog
+// ------------------------------------------------------------------------------
+
+model Product {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId            String    @map("creator_id") @db.Uuid
+  title                String
+  slug                 String
+  type                 String
+  status               String    @default("DRAFT")
+  price                Decimal   @default(0) @db.Decimal
+  currency             String    @default("INR")
+  shortDescription     String?   @map("short_description")
+  description          String?
+  coverImage           String?   @map("cover_image")
+  thumbnail            String?
+  fileId               String?   @map("file_id")
+  fileName             String?   @map("file_name")
+  fileSize             Int?      @map("file_size")
+  fileMime             String?   @map("file_mime")
+  storePublished       Boolean?  @default(true) @map("store_published")
+  marketplacePublished Boolean?  @default(false) @map("marketplace_published")
+  displayMode          String?   @default("classic") @map("display_mode")
+  redirectUrl          String?   @map("redirect_url")
+  createdAt            DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creator          User              @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  checkoutFields   CheckoutFields?
+  course           Course?
+  orders           Order[]
+  entitlements     Entitlement[]
+  accessTokens     ProductAccessToken[]
+  automations      Automation[]
+  automationEvents AutomationEvent[]
+  coupons          Coupon[]
+
+  @@unique([creatorId, slug])
+  @@index([creatorId, slug], map: "idx_products_creator_slug")
+  @@map("products")
+}
+
+model Coupon {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId     String    @map("creator_id") @db.Uuid
+  code          String
+  type          String    @default("PERCENTAGE")
+  discount      Decimal   @default(0) @db.Decimal
+  scope         String    @default("ALL")
+  productIds    Json?     @default("[]") @map("product_ids")
+  productId     String?   @map("product_id") @db.Uuid
+  minOrderPrice Decimal?  @default(0) @map("min_order_price") @db.Decimal
+  validityHours Int?      @default(24) @map("validity_hours")
+  expiresAt     DateTime? @map("expires_at") @db.Timestamptz
+  expiryDate    DateTime? @map("expiry_date") @db.Timestamptz
+  usageLimit    Int?      @default(0) @map("usage_limit")
+  usedCount     Int?      @default(0) @map("used_count")
+  status        String    @default("ACTIVE")
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creator User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@unique([creatorId, code])
+  @@index([creatorId, status], map: "idx_coupons_creator_status")
+  @@map("coupons")
+}
+
+model CheckoutFields {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId      String    @unique @map("product_id") @db.Uuid
+  creatorId      String    @map("creator_id") @db.Uuid
+  collectPhone   Boolean?  @default(false) @map("collect_phone")
+  collectAddress Boolean?  @default(false) @map("collect_address")
+  customFields   Json?     @default("[]") @map("custom_fields")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  creator User    @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@map("checkout_fields")
+}
+
+// ------------------------------------------------------------------------------
+// 5. Courses
+// ------------------------------------------------------------------------------
+
+model Course {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId    String?   @unique @map("product_id") @db.Uuid
+  creatorId    String    @map("creator_id") @db.Uuid
+  title        String
+  slug         String?
+  description  String?
+  coverImage   String?   @map("cover_image")
+  lessonsCount Int?      @default(0) @map("lessons_count")
+  published    Boolean?  @default(false)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  product      Product?            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  creator      User                @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  modules      CourseModule[]
+  lessons      CourseLesson[]
+  progress     CourseProgress[]
+  certificates CourseCertificate[]
+
+  @@map("courses")
+}
+
+model CourseModule {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  courseId  String    @map("course_id") @db.Uuid
+  creatorId String    @map("creator_id") @db.Uuid
+  title     String
+  position  Int       @default(0)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  creator User           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  lessons CourseLesson[]
+
+  @@map("course_modules")
+}
+
+model CourseLesson {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  courseId      String    @map("course_id") @db.Uuid
+  moduleId      String    @map("module_id") @db.Uuid
+  creatorId     String    @map("creator_id") @db.Uuid
+  title         String
+  type          String?   @default("VIDEO")
+  content       String?
+  videoUrl      String?   @map("video_url")
+  attachmentUrl String?   @map("attachment_url")
+  freePreview   Boolean?  @default(false) @map("free_preview")
+  position      Int       @default(0)
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module   CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  creator  User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  progress CourseProgress[]
+
+  @@index([courseId, position], map: "idx_course_lessons_course_pos")
+  @@map("course_lessons")
+}
+
+model CourseProgress {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId  String    @map("customer_id") @db.Uuid
+  courseId    String    @map("course_id") @db.Uuid
+  lessonId    String    @map("lesson_id") @db.Uuid
+  completed   Boolean?  @default(true)
+  completedAt DateTime? @default(now()) @map("completed_at") @db.Timestamptz
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  customer Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  course   Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson   CourseLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, courseId, lessonId])
+  @@map("course_progress")
+}
+
+model CourseCertificate {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  certificateId String    @unique @map("certificate_id")
+  customerId    String    @map("customer_id") @db.Uuid
+  courseId      String    @map("course_id") @db.Uuid
+  issuedAt      DateTime? @default(now()) @map("issued_at") @db.Timestamptz
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, courseId])
+  @@map("course_certificates")
+}
+
+// ------------------------------------------------------------------------------
+// 6. Orders & Entitlements
+// ------------------------------------------------------------------------------
+
+model Order {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId         String    @map("creator_id") @db.Uuid
+  customerId        String?   @map("customer_id") @db.Uuid
+  productId         String    @map("product_id") @db.Uuid
+  automationId      String?   @map("automation_id") @db.Uuid
+  customerName      String?   @map("customer_name")
+  customerEmail     String    @map("customer_email")
+  amount            Decimal   @db.Decimal
+  currency          String?   @default("INR")
+  status            String    @default("PENDING")
+  razorpayOrderId   String?   @unique @map("razorpay_order_id")
+  razorpayPaymentId String?   @map("razorpay_payment_id")
+  createdAt         DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creator     User        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  customer    Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  automation  Automation? @relation(fields: [automationId], references: [id], onDelete: SetNull)
+  entitlement  Entitlement?
+  accessTokens ProductAccessToken[]
+
+  @@index([creatorId, status], map: "idx_orders_creator_status")
+  @@index([automationId, status], map: "idx_orders_automation_status")
+  @@map("orders")
+}
+
+model Entitlement {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId       String?   @unique @map("order_id") @db.Uuid
+  customerId    String?   @map("customer_id") @db.Uuid
+  customerEmail String    @map("customer_email")
+  productId     String    @map("product_id") @db.Uuid
+  status        String    @default("ACTIVE")
+  startsAt      DateTime? @default(now()) @map("starts_at") @db.Timestamptz
+  expiresAt     DateTime? @map("expires_at") @db.Timestamptz
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  order        Order?               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer     Customer?            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product      Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  accessTokens ProductAccessToken[]
+
+  @@index([customerId, productId], map: "idx_entitlements_customer_product")
+  @@map("entitlements")
+}
+
+model ProductAccessToken {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tokenHash     String    @unique @map("token_hash")
+  orderId       String    @map("order_id") @db.Uuid
+  entitlementId String?   @map("entitlement_id") @db.Uuid
+  productId     String    @map("product_id") @db.Uuid
+  customerEmail String    @map("customer_email")
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz
+  usedAt        DateTime? @map("used_at") @db.Timestamptz
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  entitlement Entitlement? @relation(fields: [entitlementId], references: [id], onDelete: Cascade)
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash], map: "idx_product_access_tokens_hash")
+  @@index([orderId], map: "idx_product_access_tokens_order")
+  @@index([productId], map: "idx_product_access_tokens_product")
+  @@index([customerEmail], map: "idx_product_access_tokens_email")
+  @@index([expiresAt], map: "idx_product_access_tokens_expires")
+  @@map("product_access_tokens")
+}
+
+// ------------------------------------------------------------------------------
+// 7. Instagram Integration & Automations
+// ------------------------------------------------------------------------------
+
+model InstagramAccount {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId      String    @unique @map("creator_id") @db.Uuid
+  platform       String    @default("INSTAGRAM")
+  platformUserId String?   @map("platform_user_id")
+  username       String?
+  accessToken    String?   @map("access_token")
+  tokenExpiresAt DateTime? @map("token_expires_at") @db.Timestamptz
+  status         String    @default("CONNECTED")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@map("instagram_accounts")
+}
+
+model Automation {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId       String    @map("creator_id") @db.Uuid
+  name            String
+  platform        String    @default("INSTAGRAM")
+  triggerType     String    @default("COMMENT_KEYWORD") @map("trigger_type")
+  triggerValue    String    @map("trigger_value")
+  actionType      String    @default("SEND_DM") @map("action_type")
+  productId       String?   @map("product_id") @db.Uuid
+  destinationType String    @default("PRODUCT") @map("destination_type")
+  customUrl       String?   @map("custom_url")
+  message               String
+  mediaId               String?   @map("media_id")
+  mediaType             String?   @default("ALL") @map("media_type")
+  mediaUrl              String?   @map("media_url")
+  mediaCaption          String?   @map("media_caption")
+  keywords              String[]  @default([])
+  commentReply          String?   @map("comment_reply")
+  openingMessageEnabled Boolean   @default(false) @map("opening_message_enabled")
+  openingMessage        String?   @map("opening_message")
+  openingButtonText     String?   @default("Send me the link") @map("opening_button_text")
+  buttonText            String?   @default("Get access") @map("button_text")
+  responses             Json?     @default("[]")
+  status                String    @default("ACTIVE")
+  createdAt             DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creator          User              @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  product          Product?          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  automationEvents AutomationEvent[]
+  orders           Order[]
+
+  @@index([creatorId, status], map: "idx_automations_creator_status")
+  @@index([platform, triggerType, triggerValue], map: "idx_automations_platform_trigger")
+  @@map("automations")
+}
+
+model WebhookEvent {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId     String    @unique @map("event_id")
+  provider    String    @default("META_INSTAGRAM")
+  payload     Json?
+  processedAt DateTime? @default(now()) @map("processed_at") @db.Timestamptz
+
+  @@map("webhook_events")
+}
+
+model AutomationEvent {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId          String    @map("creator_id") @db.Uuid
+  automationId       String?   @map("automation_id") @db.Uuid
+  instagramAccountId String?   @map("instagram_account_id") @db.Uuid
+  productId          String?   @map("product_id") @db.Uuid
+  commentId          String?   @map("comment_id")
+  eventType          String    @map("event_type")
+  status             String    @default("SUCCESS")
+  metadata           Json?     @default("{}")
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  creator    User        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  automation Automation? @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  product    Product?    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId, createdAt], map: "idx_automation_events_creator_created")
+  @@index([automationId, eventType], map: "idx_automation_events_auto_type")
+  @@index([commentId, eventType], map: "idx_automation_events_comment_type")
+  @@map("automation_events")
+}
+
+// ------------------------------------------------------------------------------
+// 8. Coaching & Bookings
+// ------------------------------------------------------------------------------
+
+model CoachingConfig {
+  id                              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId                       String    @unique @map("product_id") @db.Uuid
+  creatorId                       String    @map("creator_id") @db.Uuid
+  durationMinutes                 Int       @default(60) @map("duration_minutes")
+  timezone                        String    @default("Asia/Kolkata")
+  sessionType                     String    @default("Consultation") @map("session_type")
+  deliveryMethod                  String    @default("VIDEO_CALL") @map("delivery_method")
+  meetingType                     String    @default("GOOGLE_MEET") @map("meeting_type")
+  meetingUrl                      String?   @map("meeting_url")
+  locationText                    String?   @map("location_text")
+  calendarProvider                String?   @default("GOOGLE_CALENDAR") @map("calendar_provider")
+  calendarId                      String?   @map("calendar_id")
+  minimumNoticeMinutes            Int       @default(60) @map("minimum_notice_minutes")
+  maximumAdvanceDays              Int       @default(30) @map("maximum_advance_days")
+  bufferMinutes                   Int       @default(15) @map("buffer_minutes")
+  bufferBeforeMinutes             Int       @default(0) @map("buffer_before_minutes")
+  bufferAfterMinutes              Int       @default(15) @map("buffer_after_minutes")
+  maxSessionsPerDay               Int?      @map("max_sessions_per_day")
+  allowRescheduling               Boolean   @default(true) @map("allow_rescheduling")
+  reschedulingDeadlineNoticeHours Int       @default(12) @map("rescheduling_deadline_notice_hours")
+  allowCancellation               Boolean   @default(true) @map("allow_cancellation")
+  cancellationPolicyNoticeHours   Int       @default(24) @map("cancellation_policy_notice_hours")
+  cancellationPolicy              String?   @map("cancellation_policy")
+  discountType                    String?   @map("discount_type") // PERCENTAGE or FIXED
+  discountValue                   Decimal?  @default(0) @map("discount_value") @db.Decimal
+  blockedDates                    Json?     @default("[]") @map("blocked_dates")
+  blockedTimeRanges               Json?     @default("[]") @map("blocked_time_ranges")
+  dateOverrides                   Json?     @default("[]") @map("date_overrides")
+  availability                    Json?     @default("[]")
+  questions                       Json?     @default("[]")
+  customerFields                  Json?     @default("{}") @map("customer_fields")
+  createdAt                       DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                       DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("coaching_configs")
+}
+
+model CoachingBooking {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId          String    @map("product_id") @db.Uuid
+  creatorId          String    @map("creator_id") @db.Uuid
+  orderId            String?   @map("order_id") @db.Uuid
+  customerId         String?   @map("customer_id") @db.Uuid
+  customerEmail      String    @map("customer_email")
+  customerName       String?   @map("customer_name")
+  customerPhone      String?   @map("customer_phone")
+  startTime          DateTime  @map("start_time") @db.Timestamptz
+  endTime            DateTime  @map("end_time") @db.Timestamptz
+  timezone           String    @default("Asia/Kolkata")
+  status             String    @default("PENDING") // PENDING, CONFIRMED, COMPLETED, CANCELLED, RESCHEDULED, NO_SHOW
+  paymentStatus      String?   @default("PENDING") @map("payment_status") // PENDING, PAID, FAILED, REFUNDED
+  paymentId          String?   @map("payment_id")
+  meetingType        String?   @default("GOOGLE_MEET") @map("meeting_type")
+  meetingUrl         String?   @map("meeting_url")
+  calendarEventId    String?   @map("calendar_event_id")
+  locationText       String?   @map("location_text")
+  answers            Json?     @default("[]")
+  cancellationReason String?   @map("cancellation_reason")
+  cancelledAt        DateTime? @map("cancelled_at") @db.Timestamptz
+  rescheduledFrom    Json?     @map("rescheduled_from")
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([creatorId, startTime], map: "idx_coaching_bookings_creator_time")
+  @@index([productId, status], map: "idx_coaching_bookings_product_status")
+  @@index([customerEmail], map: "idx_coaching_bookings_customer_email")
+  @@map("coaching_bookings")
+}
+
+// ------------------------------------------------------------------------------
+// 9. Payouts & Routing
+// ------------------------------------------------------------------------------
+
+model PayoutProfile {
+  id                          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId                   String    @unique @map("creator_id") @db.Uuid
+  payoutMethod                String?   @map("payout_method")
+  legalName                   String?   @map("legal_name")
+  accountHolderName           String?   @map("account_holder_name")
+  verifiedAccountHolderName   String?   @map("verified_account_holder_name")
+  businessType                String?   @default("individual") @map("business_type")
+  phone                       String?
+  email                       String?
+  bankName                    String?   @map("bank_name")
+  accountNumber               String?   @map("account_number")
+  ifscCode                    String?   @map("ifsc_code")
+  bankLast4                   String?   @map("bank_last4")
+  bankIfscMasked              String?   @map("bank_ifsc_masked")
+  ifsc                        String?
+  upiId                       String?   @map("upi_id")
+  payoutSchedule              String?   @default("weekly") @map("payout_schedule")
+  minimumPayoutThreshold      Decimal?  @default(100) @map("minimum_payout_threshold") @db.Decimal
+  isPayoutPaused              Boolean?  @default(false) @map("is_payout_paused")
+  razorpayAccountId           String?   @map("razorpay_account_id")
+  razorpayContactId           String?   @map("razorpay_contact_id")
+  razorpayFundAccountId       String?   @map("razorpay_fund_account_id")
+  razorpayValidationId        String?   @map("razorpay_validation_id")
+  provider                    String?   @default("RAZORPAY_ROUTE")
+  status                      String?   @default("NOT_CONFIGURED")
+  onboardingStatus            String?   @default("NOT_CONFIGURED") @map("onboarding_status")
+  verificationStatus          String?   @default("NOT_CONFIGURED") @map("verification_status")
+  verificationMessage         String?   @map("verification_message")
+  verificationStartedAt       DateTime? @map("verification_started_at") @db.Timestamptz
+  verificationCompletedAt     DateTime? @map("verification_completed_at") @db.Timestamptz
+  currentStep                 Int?      @default(1) @map("current_step")
+  createdAt                   DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                   DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId], map: "idx_payout_profiles_creator")
+  @@index([razorpayAccountId], map: "idx_payout_profiles_rzp_account")
+  @@index([razorpayFundAccountId], map: "idx_payout_profiles_fund")
+  @@map("payout_profiles")
+}
+
+model PayoutAuditLog {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId String?   @map("creator_id") @db.Uuid
+  event     String?
+  metadata  Json?     @default("{}")
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  creator User? @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId], map: "idx_payout_audit_creator")
+  @@map("payout_audit_logs")
+}
+
+// ------------------------------------------------------------------------------
+// 8. Shared OTP Verification & Rate Limiting (Serverless-Safe)
+// ------------------------------------------------------------------------------
+
+model OtpVerification {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  identifier        String
+  purpose           String
+  otpHash           String?   @map("otp_hash")
+  attempts          Int       @default(0)
+  maxAttempts       Int       @default(5) @map("max_attempts")
+  expiresAt         DateTime  @map("expires_at") @db.Timestamptz
+  resendAvailableAt DateTime  @map("resend_available_at") @db.Timestamptz
+  consumedAt        DateTime? @map("consumed_at") @db.Timestamptz
+  metadata          Json?     @default("{}")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([identifier, purpose], map: "uq_otp_identifier_purpose")
+  @@index([expiresAt], map: "idx_otp_expires_at")
+  @@map("otp_verifications")
+}
+

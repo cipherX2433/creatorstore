@@ -1,0 +1,327 @@
+/* ==========================================================================
+   DESIGN TOKENS — Phase 1 foundation
+   ==========================================================================
+
+   Single source of truth for typography, spacing, colour, radius and
+   elevation. Consumed by `tailwind.config.js`, which exposes each token as a
+   semantic utility class (e.g. `text-page-title`, `p-card`, `rounded-card`,
+   `shadow-modal`, `bg-surface-card`).
+
+   STRUCTURE ------------------------------------------------------------
+   Structural roles follow Linktree's admin conventions (surface ladder,
+   type ramp, 8px grid). Colour VALUES are entirely our own — the existing
+   pink / yellow / black identity. No purple was imported.
+
+   SCOPE ----------------------------------------------------------------
+   Additive only. Every pre-existing shadcn variable in `globals.css`
+   (`--background`, `--primary`, `--radius`, …) is left untouched so no
+   component changes appearance from this file alone. Adopting the tokens in
+   components is Phase 2.
+
+   NAMING ---------------------------------------------------------------
+   Colours are stored as bare HSL triplets (`H S% L%`) rather than hex, which
+   is what lets Tailwind's opacity modifier work: `bg-surface-card/60`.
+   Every triplet below round-trips exactly to the hex noted in its comment.
+   ========================================================================== */
+
+@layer base {
+   :root {
+      /* ======================================================================
+       1. TYPOGRAPHY
+       ======================================================================
+       Manrope, unified platform-wide typeface, loaded via next/font in `app/layout.js`.
+       The ramp is deliberately small: eight roles, no near-duplicates.
+       Headings run tight (1.15–1.3) with negative tracking; body runs open
+       (1.4–1.5) at neutral tracking.
+
+       role         size   weight  line-height  tracking   use
+       ----------------------------------------------------------------------
+       display      32px   700     1.15         -0.02em    marketing hero, empty states
+       page-title   24px   700     1.25         -0.02em    dashboard page H1
+       section      18px   600     1.30         -0.01em    section headers, modal titles
+       card-title   16px   600     1.40         -0.005em   card headings, list item titles
+       body         14px   400     1.50          0         default paragraph / table cell
+       label        14px   500     1.40          0         form labels, nav items, buttons
+       meta         13px   400     1.40          0         timestamps, helper text (muted)
+       micro        12px   500     1.35          0.01em    badges, uppercase eyebrows
+       ---------------------------------------------------------------------- */
+
+      --font-sans: var(--font-manrope), 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+         'Helvetica Neue', Arial, sans-serif;
+
+      --text-display: 2rem;
+      /* 32px */
+      --text-display-leading: 1.15;
+      --text-display-tracking: -0.02em;
+      --text-display-weight: 700;
+
+      --text-page-title: 1.5rem;
+      /* 24px */
+      --text-page-title-leading: 1.25;
+      --text-page-title-tracking: -0.02em;
+      --text-page-title-weight: 700;
+
+      --text-section: 1.125rem;
+      /* 18px */
+      --text-section-leading: 1.3;
+      --text-section-tracking: -0.01em;
+      --text-section-weight: 600;
+
+      --text-card-title: 1rem;
+      /* 16px */
+      --text-card-title-leading: 1.4;
+      --text-card-title-tracking: -0.005em;
+      --text-card-title-weight: 600;
+
+      --text-body: 0.875rem;
+      /* 14px */
+      --text-body-leading: 1.5;
+      --text-body-tracking: 0em;
+      --text-body-weight: 400;
+
+      --text-label: 0.875rem;
+      /* 14px */
+      --text-label-leading: 1.4;
+      --text-label-tracking: 0em;
+      --text-label-weight: 500;
+
+      --text-meta: 0.8125rem;
+      /* 13px */
+      --text-meta-leading: 1.4;
+      --text-meta-tracking: 0em;
+      --text-meta-weight: 400;
+
+      --text-micro: 0.75rem;
+      /* 12px */
+      --text-micro-leading: 1.35;
+      --text-micro-tracking: 0.01em;
+      --text-micro-weight: 500;
+
+      /* ======================================================================
+       2. SPACING — 8px grid
+       ======================================================================
+       Tailwind's numeric scale already lands on these values, so the named
+       steps below map 1:1 onto `p-1 p-2 p-3 p-4 p-6 p-8 p-12 p-16`. They are
+       declared explicitly so the ALLOWED set is unambiguous: any value not
+       listed here is off-system.
+
+       Notably absent, and therefore off-grid: the HALF-STEPS 2px (`p-0.5`),
+       6px (`p-1.5`), 10px (`p-2.5`), 14px (`p-3.5`), plus the integer steps
+       20px (`p-5`), 28px (`p-7`), 36px (`p-9`), 44px (`p-11`).
+
+       Tailwind still generates all of these — 1,588 uses today, of which the
+       half-steps alone are 1,250. That is the bulk of the migration work, and
+       `docs/design-tokens.md` §6a breaks it down. It also raises one open
+       decision: whether 2px should be legitimised as an explicit hairline
+       step for optical nudges rather than migrated away.
+       ---------------------------------------------------------------------- */
+
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-12: 48px;
+      --space-16: 64px;
+
+      /* Semantic layout spacing — the recurring measurements that currently get
+       re-guessed on every page. All resolve to steps on the grid above. */
+      --layout-gutter: var(--space-4);
+      /* 16px — page edge padding, mobile */
+      --layout-gutter-lg: var(--space-6);
+      /* 24px — page edge padding, >=md */
+      --layout-card-padding: var(--space-4);
+      /* 16px — card interior, mobile */
+      --layout-card-padding-lg: var(--space-6);
+      /* 24px — card interior, >=md */
+      --layout-section-gap: var(--space-8);
+      /* 32px — between page sections */
+      --layout-stack-gap: var(--space-4);
+      /* 16px — between sibling cards */
+      --layout-field-gap: var(--space-2);
+      /* 8px  — label to input */
+      --layout-inline-gap: var(--space-3);
+      /* 12px — icon to text, chip rows */
+
+      /* Content measures. Linktree keeps the admin column narrow rather than
+       letting it span the viewport; these cap it the same way. */
+      --layout-max-narrow: 720px;
+      /* single-column forms, settings */
+      --layout-max-content: 1080px;
+      /* standard dashboard content column */
+      --layout-max-wide: 1280px;
+      /* tables, analytics grids */
+
+      /* ======================================================================
+       3. COLOUR SYSTEM — Linktree-Inspired Light Neutral (Single Source of Truth)
+       ====================================================================== */
+
+      --dashboard-bg: #FBFAF9;
+      --sidebar-bg: #F2F1EF;
+      --surface: #FFFFFF;
+      --surface-secondary: #FBFBFB;
+      --surface-hover: #F5F5F3;
+      --border-subtle: #E5E5E3;
+      --text-primary: #1F1F1F;
+      --text-secondary: #6F6F6B;
+      --text-muted: #999995;
+      --button-primary: #1F1F1F;
+      --button-primary-hover: #000000;
+      --button-primary-active: #111111;
+
+      --bg-page: #FBFAF9;
+      --bg-card: #FFFFFF;
+      --bg-muted: #FBFBFB;
+      --bg-hover: #F5F5F3;
+
+      --border: #E5E5E3;
+      --border-hover: #DADAD7;
+
+      --text-primary: #1F1F1F;
+      --text-secondary: #6F6F6B;
+      --text-muted: #999995;
+      --text-disabled: #A8A8A4;
+
+      --accent-primary: #1F1F1F;
+      --accent-primary-hover: #000000;
+      --accent-light: #F5F5F3;
+
+      --success: #16A34A;
+      --success-light: #EAF8EF;
+
+      --warning: #D97706;
+      --warning-light: #FFF5DD;
+
+      --error: #DC2626;
+      --error-light: #FDECEC;
+
+      --white: #FFFFFF;
+      --black: #1F1F1F;
+
+      --bg-sidebar: #F2F1EF;
+      --bg-surface: #FFFFFF;
+      --bg-surface-secondary: #FBFBFB;
+      --bg-surface-hover: #F5F5F3;
+
+      --text-heading: #1F1F1F;
+
+      --status-success: #16A34A;
+      --status-warning: #D97706;
+      --status-error: #DC2626;
+
+      /* --- 3a. Primary Button & Accent (Solid Black #1F1F1F) --------------------- */
+      --color-primary: 0 0% 12.2%;
+      /* #1F1F1F base primary */
+      --color-primary-hover: 0 0% 0%;
+      /* #000000 hover */
+      --color-primary-active: 0 0% 6.7%;
+      /* #111111 pressed */
+      --color-primary-fg: 0 0% 100%;
+      /* #FFFFFF text on primary */
+
+      /* --- 3b. Secondary Accent (#6F6F6B) ----------------------- */
+      --color-secondary: 60 2% 42.7%;
+      --color-secondary-hover: 60 2% 35%;
+      --color-secondary-active: 60 2% 25%;
+      --color-secondary-fg: 0 0% 100%;
+
+      /* --- 3c. Surfaces (Solid Opaque Neutral Hierarchy) ----------------------------- */
+      --color-surface-base: 30 20% 98%;
+      /* #FBFAF9 page background */
+      --color-surface-raised: 0 0% 100%;
+      /* #FFFFFF card surface */
+      --color-surface-card: 0 0% 100%;
+      /* #FFFFFF card surface */
+      --color-surface-overlay: 0 0% 100%;
+      /* #FFFFFF modals, popovers */
+      --color-surface-hover: 60 8% 95.7%;
+      /* #F5F5F3 hover */
+      --color-sidebar-bg: 40 10% 94.3%;
+      /* #F2F1EF sidebar */
+
+      /* --- 3d. Typography Hierarchy --------------------------------------- */
+      --color-text-primary: 0 0% 12.2%;
+      /* #1F1F1F heading & body text */
+      --color-text-secondary: 60 2% 42.7%;
+      /* #6F6F6B secondary text */
+      --color-text-muted: 60 2% 59.2%;
+      /* #999995 helper / muted text */
+      --color-text-subtle: 60 2% 59.2%;
+      --color-text-disabled: 60 3% 65.1%;
+      /* #A8A8A4 disabled text */
+
+      /* --- 3e. Borders --------------------------------------------------- */
+      --color-border-subtle: 60 4% 89.4%;
+      /* #E5E5E3 */
+      --color-border: 60 4% 89.4%;
+      /* #E5E5E3 default border */
+      --color-border-strong: 60 4% 84.9%;
+      /* #DADAD7 */
+      --color-border-focus: 0 0% 12.2%;
+      /* #1F1F1F focus outline */
+
+      /* --- 3f. Status (Reserved strictly for semantic state) --------------------- */
+      --color-success: 142 76% 36%;
+      /* #16A34A */
+      --color-success-fg: 0 0% 100%;
+      --color-success-subtle: 138 52% 95%;
+      /* #EAF8EF */
+
+      --color-warning: 38 92% 50%;
+      /* #D97706 */
+      --color-warning-fg: 0 0% 100%;
+      --color-warning-subtle: 43 100% 93%;
+      /* #FFF5DD */
+
+      --color-error: 0 72% 51%;
+      /* #DC2626 */
+      --color-error-fg: 0 0% 100%;
+      --color-error-subtle: 0 88% 96%;
+      /* #FDECEC */
+
+      --color-info: 221 83% 53%;
+      /* #2563EB */
+      --color-info-fg: 0 0% 100%;
+      --color-info-subtle: 224 100% 96%;
+      /* #EEF3FF */
+
+      /* --- 3g. Disabled -------------------------------------------------- */
+      --color-disabled-surface: 60 6% 92%;
+      /* #ECECE9 */
+      --color-disabled-border: 60 4% 89.4%;
+      /* #E5E5E3 */
+      --color-disabled-text: 60 3% 65.1%;
+      /* #A8A8A4 */
+
+      /* ======================================================================
+       4. BORDER RADIUS
+       ====================================================================== */
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --radius-2xl: 24px;
+      --radius-pill: 9999px;
+
+      --radius-chip: 8px;
+      --radius-control: 12px;
+      --radius-card: 20px;
+      --radius-modal: 24px;
+      --radius-sheet: 24px;
+
+      /* ======================================================================
+       5. ELEVATION (Subtle Light Neutral Shadows)
+       ====================================================================== */
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.04);
+      --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.04);
+
+      --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.04);
+      --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.04);
+      --shadow-dropdown: 0 10px 30px rgba(0, 0, 0, 0.08);
+      --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.12);
+      --shadow-focus: 0 0 0 2px #1F1F1F;
+      --shadow-brand: 0 4px 20px rgba(0, 0, 0, 0.06);
+   }
+}
