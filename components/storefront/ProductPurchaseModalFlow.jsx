@@ -17,9 +17,13 @@ import {
   ExternalLink,
   AlertCircle,
   CheckCircle2,
+  Tag,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import PurchaseAccessVerification from '@/components/storefront/PurchaseAccessVerification'
+import CountrySelect from '@/components/ui/CountrySelect'
+import { isValidCountryCode } from '@/lib/countries'
+import { openRazorpayProductCheckout } from '@/lib/razorpayClient'
 import {
   trackProductViewed,
   trackCheckoutStarted,
@@ -52,6 +56,7 @@ export default function ProductPurchaseModalFlow({
   const [step, setStep] = useState(initialStep) // 'preview' | 'customer_info' | 'purchase_detail' | 'payment_result'
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [country, setCountry] = useState('')
   const [mailingListOptIn, setMailingListOptIn] = useState(true)
   const [consentAccepted, setConsentAccepted] = useState(true)
 
@@ -65,7 +70,25 @@ export default function ProductPurchaseModalFlow({
   const [contactOpen, setContactOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
 
+  // Coupon state
+  const [couponCodeInput, setCouponCodeInput] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
+  const [showCouponInput, setShowCouponInput] = useState(false)
+
   const modalRef = useRef(null)
+
+  // Load saved customer name, email, and country from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedEmail = localStorage.getItem('creatorzero_customer_email') || ''
+      const savedName = localStorage.getItem('creatorzero_customer_name') || ''
+      const savedCountry = localStorage.getItem('creatorzero_customer_country') || ''
+      if (savedEmail && !email) setEmail(savedEmail)
+      if (savedName && !name) setName(savedName)
+      if (savedCountry && !country && isValidCountryCode(savedCountry)) setCountry(savedCountry)
+    }
+  }, [])
 
   // Sync initial step when product changes or modal opens
   useEffect(() => {
@@ -103,6 +126,45 @@ export default function ProductPurchaseModalFlow({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
+  // Multi-currency state
+  const rawPrice = Number(product?.price || 0)
+  const isFree = rawPrice <= 0
+  const currency = (product?.currency || 'INR').toUpperCase()
+  const currencySymbol = currency === 'INR' ? '₹' : (currency === 'USD' ? '$' : currency)
+  const formattedPrice = isFree ? 'Free' : `${currencySymbol}${rawPrice}`
+
+  const [selectedCurrency, setSelectedCurrency] = useState(currency || 'USD')
+  const [currencyPreview, setCurrencyPreview] = useState(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+
+  // Sync selectedCurrency when product currency changes
+  useEffect(() => {
+    if (product?.currency) {
+      setSelectedCurrency(product.currency.toUpperCase())
+    }
+  }, [product?.currency])
+
+  // Currency preview fetch
+  useEffect(() => {
+    if (product?.id && rawPrice > 0) {
+      let isMounted = true
+      setPreviewLoading(true)
+      fetch(`/api/checkout/preview-currency?productId=${encodeURIComponent(product.id)}&currency=${encodeURIComponent(selectedCurrency)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (isMounted && data && !data.error) {
+            setCurrencyPreview(data)
+          }
+        })
+        .catch(err => console.warn('Currency preview error:', err.message))
+        .finally(() => {
+          if (isMounted) setPreviewLoading(false)
+        })
+      return () => { isMounted = false }
+    }
+  }, [product?.id, selectedCurrency, rawPrice])
+
+  // Guard early return: ONLY after all hooks have been unconditionally registered
   if (!isOpen || !product) return null
 
   const creatorName = creator?.name || creator?.storeName || 'Creator'
@@ -112,12 +174,6 @@ export default function ProductPurchaseModalFlow({
   const productTitle = product.title || 'Untitled Product'
   const productDescription = product.description || product.shortDescription || 'Enhance your digital presence with this charming digital asset, perfect for profiles and personal branding.'
   const productThumbnail = product.thumbnail || product.coverImage || product.cover || null
-
-  const rawPrice = Number(product.price || 0)
-  const isFree = rawPrice <= 0
-  const currency = (product.currency || 'INR').toUpperCase()
-  const currencySymbol = currency === 'INR' ? '₹' : (currency === 'USD' ? '$' : currency)
-  const formattedPrice = isFree ? 'Free' : `${currencySymbol}${rawPrice}`
 
   // Resolve files list
   const rawFileName = product.fileName || `${product.slug || 'asset'}.jpg`
@@ -190,6 +246,9 @@ export default function ProductPurchaseModalFlow({
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       newErrors.email = 'Please enter a valid email address.'
     }
+    if (!country || !isValidCountryCode(country)) {
+      newErrors.country = 'Please select your country.'
+    }
     if (!consentAccepted) {
       newErrors.consent = 'Please agree to receive email updates and terms.'
     }
@@ -197,7 +256,49 @@ export default function ProductPurchaseModalFlow({
     return Object.keys(newErrors).length === 0
   }
 
-  // Handle Form Submission (Free claim or Paid Razorpay checkout)
+  // Coupon handlers
+  const handleApplyCoupon = async (e) => {
+    e?.preventDefault()
+    const trimmed = couponCodeInput.toUpperCase().trim()
+    if (!trimmed) {
+      toast.error('Please enter a coupon code')
+      return
+    }
+    if (!product?.id) return
+
+    setValidatingCoupon(true)
+    try {
+      const res = await fetch('/api/checkout/validate-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          creatorId: product.creatorId || creator?.id,
+          productId: product.id,
+          code: trimmed,
+          basePrice: rawPrice,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data?.valid) {
+        setAppliedCoupon(data)
+        toast.success(`Coupon '${data.couponCode}' applied!`)
+      } else {
+        toast.error(data?.message || 'Invalid coupon code.')
+      }
+    } catch (err) {
+      toast.error(err.message || 'Invalid or expired coupon code.')
+    } finally {
+      setValidatingCoupon(false)
+    }
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponCodeInput('')
+    toast.info('Coupon removed.')
+  }
+
+  // Handle Form Submission (Free claim or Paid Dodo Payments checkout)
   const handleSubmitCustomerInfo = async (e) => {
     e?.preventDefault()
     if (!validateForm()) return
@@ -208,6 +309,13 @@ export default function ProductPurchaseModalFlow({
 
     const cleanEmail = email.trim().toLowerCase()
     const cleanName = name.trim()
+
+    // Save entered customer details for convenience
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('creatorzero_customer_name', cleanName)
+      localStorage.setItem('creatorzero_customer_email', cleanEmail)
+      if (country) localStorage.setItem('creatorzero_customer_country', country)
+    }
 
     // 1. Mandatory server-side check: Does this email already have access to THIS specific product?
     let checkData = null
@@ -252,6 +360,7 @@ export default function ProductPurchaseModalFlow({
           productId: product.id,
           name: cleanName,
           email: cleanEmail,
+          country: country,
           mailingListOptIn: Boolean(mailingListOptIn),
           consentAccepted: true,
         }
@@ -272,12 +381,7 @@ export default function ProductPurchaseModalFlow({
           product_type: product.type || 'digital',
         })
         toast.success('Your download is ready!')
-        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/notifications') && !window.location.pathname.startsWith('/purchases')) {
-          onClose?.()
-          router.push(`/notifications/settings?listingId=${product.id || product.productId}&openPurchase=true`)
-        } else {
-          setStep('purchase_detail')
-        }
+        setStep('purchase_detail')
       } catch (err) {
         toast.error(err.message || 'Something went wrong. Please try again.')
         setErrors({ form: err.message || 'Submission failed.' })
@@ -288,14 +392,19 @@ export default function ProductPurchaseModalFlow({
     }
 
     // ==========================================
-    // PAID PRODUCT CHECKOUT FLOW (Razorpay)
+    // PAID PRODUCT CHECKOUT FLOW (Razorpay / Dodo Payments)
     // ==========================================
     try {
       const orderPayload = {
         productId: product.id,
+        creatorId: product.creatorId || creator?.id,
+        username: creator?.username,
         name: cleanName,
         customerName: cleanName,
         email: cleanEmail,
+        country: country,
+        currency: selectedCurrency,
+        couponCode: appliedCoupon?.couponCode || null,
       }
 
       const res = await fetch('/api/checkout/create-order', {
@@ -315,127 +424,90 @@ export default function ProductPurchaseModalFlow({
         return
       }
 
-      // Dodo Payments Hosted Checkout Redirection
-      if (data.checkoutUrl || data.url) {
-        setIsSubmitting(false)
-        window.location.href = data.checkoutUrl || data.url
-        return
-      }
-      if (!data.razorpayOrderId && !data.checkoutUrl && !data.url) {
-        throw new Error('Payment order could not be created.')
-      }
-
-      const rzpOrderId = data.razorpayOrderId || data.order?.razorpayOrderId
-      const rzpAmount = data.amount || (data.order && Math.round(Number(data.order.amount) * 100))
-      const rzpKeyId = data.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_mock_key'
-
-      if (!rzpOrderId) {
-        throw new Error('Payment order could not be created.')
-      }
-
-      setIsSubmitting(false)
-
-      const options = {
-        key: rzpKeyId,
-        amount: rzpAmount,
-        currency: data.currency || 'INR',
-        name: creatorName,
-        description: productTitle,
-        order_id: rzpOrderId,
-        prefill: { name: cleanName, email: cleanEmail },
-        theme: { color: '#000000' },
-        handler: async function (response) {
-          setStep('payment_result')
-          setPaymentState('verifying')
-          try {
-            const vRes = await fetch('/api/checkout/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id || rzpOrderId,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              }),
-            })
-
-            const vData = await vRes.json()
-            if (vRes.ok && vData.success) {
-              const confirmedOrderId = vData.orderId || response.razorpay_order_id || rzpOrderId
-              trackPaymentCompleted({
-                transaction_id: confirmedOrderId,
-                value: rzpAmount,
-                currency: data.currency || 'INR',
-              })
-              trackPurchase({
-                transaction_id: confirmedOrderId,
-                value: rzpAmount,
-                currency: data.currency || 'INR',
-                items: [{
-                  item_id: product.id,
-                  item_name: productTitle,
-                  price: rzpAmount,
-                  quantity: 1,
-                }],
-              })
-              setPaymentState('success')
-              toast.success('Payment verified successfully!')
-              if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/notifications') && !window.location.pathname.startsWith('/purchases')) {
-                onClose?.()
-                router.push(`/notifications/settings?listingId=${product.id || product.productId}&openPurchase=true`)
-              } else {
-                setStep('purchase_detail')
-              }
-            } else {
-              trackPaymentFailed({
-                product_id: product.id,
-                reason: 'verification_failed',
-              })
-              setPaymentState('failed')
-              setPaymentError(vData.error || 'Payment verification failed.')
-              toast.error(vData.error || 'Payment verification failed.')
-            }
-          } catch (vErr) {
-            trackPaymentFailed({
-              product_id: product.id,
-              reason: vErr.message || 'verification_failed',
-            })
-            setPaymentState('failed')
-            setPaymentError(vErr.message || 'Payment verification failed.')
-            toast.error(vErr.message || 'Payment verification failed.')
-          }
-        },
-        modal: {
-          ondismiss: function () {
-            setStep('payment_result')
-            setPaymentState('cancelled')
-            toast.info('Payment was cancelled.')
-          },
-        },
-      }
-
-      if (typeof window !== 'undefined' && window.Razorpay) {
-        const rzp = new window.Razorpay(options)
-        rzp.on('payment.failed', function (resp) {
-          setStep('payment_result')
-          setPaymentState('failed')
-          const reason = resp?.error?.description || 'Payment was declined or failed.'
-          trackPaymentFailed({
-            product_id: product.id,
-            reason,
-          })
-          setPaymentError(reason)
-          toast.error(`Payment failed: ${reason}`)
-        })
+      // Route 1: Razorpay Checkout (India)
+      if (data.provider === 'razorpay' || data.razorpayOrderId) {
         trackPaymentInitiated({
           product_id: product.id,
           product_type: product.type || 'digital',
-          value: rzpAmount,
+          value: data.order?.amount || product.price,
           currency: data.currency || 'INR',
         })
-        rzp.open()
-      } else {
-        throw new Error('Payment gateway failed to initialize.')
+
+        try {
+          await openRazorpayProductCheckout({
+            keyId: data.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+            orderId: data.razorpayOrderId || data.orderId,
+            amount: data.amount,
+            currency: data.currency || 'INR',
+            productTitle: product.title,
+            customerEmail: cleanEmail,
+            customerName: cleanName,
+            onSuccess: async (rzpResp) => {
+              try {
+                const verifyRes = await fetch('/api/checkout/verify', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    orderId: data.orderId,
+                    razorpay_order_id: rzpResp.razorpay_order_id,
+                    razorpay_payment_id: rzpResp.razorpay_payment_id,
+                    razorpay_signature: rzpResp.razorpay_signature,
+                  }),
+                })
+                const verifyData = await verifyRes.json()
+                if (!verifyRes.ok || !verifyData?.success) {
+                  throw new Error(verifyData?.error || 'Payment signature verification failed.')
+                }
+                trackPaymentCompleted({
+                  product_id: product.id,
+                  product_type: product.type || 'digital',
+                  value: data.order?.amount || product.price,
+                  currency: data.currency || 'INR',
+                })
+                toast.success('Payment successful! Your order is ready.')
+                setIsSubmitting(false)
+                setStep('purchase_detail')
+              } catch (vErr) {
+                console.error('[Razorpay Verify Error]:', vErr)
+                toast.error(vErr.message || 'Payment verification failed.')
+                setErrors({ form: vErr.message || 'Payment verification failed.' })
+                setIsSubmitting(false)
+              }
+            },
+            onError: (errInfo) => {
+              console.warn('[Razorpay Product Checkout] Payment declined:', errInfo?.customerMessage || errInfo?.code || 'Payment declined')
+              toast.error(errInfo?.customerMessage || 'Payment failed. Please try again.')
+              setErrors({ form: errInfo?.customerMessage || 'Payment failed. Please try again.' })
+              setIsSubmitting(false)
+            },
+            onDismiss: () => {
+              console.log('[Razorpay Modal Dismissed]')
+              setIsSubmitting(false)
+            },
+          })
+        } catch (rzpErr) {
+          console.error('[Razorpay Launch Error]:', rzpErr)
+          toast.error(rzpErr.message || 'Failed to open Razorpay payment window.')
+          setErrors({ form: rzpErr.message || 'Failed to open payment gateway.' })
+          setIsSubmitting(false)
+        }
+        return
       }
+
+      // Route 2: Dodo Payments Hosted Checkout Redirection (Rest of World)
+      if (data.checkoutUrl || data.url) {
+        setIsSubmitting(false)
+        trackPaymentInitiated({
+          product_id: product.id,
+          product_type: product.type || 'digital',
+          value: data.order?.amount || product.price,
+          currency: selectedCurrency || data.currency || 'USD',
+        })
+        window.location.href = data.checkoutUrl || data.url
+        return
+      }
+
+      throw new Error(data.error || 'Payment checkout session could not be created. Please try again.')
     } catch (err) {
       toast.error(err.message || 'Payment failed. Please try again.')
       setErrors({ form: err.message || 'Payment failed.' })
@@ -697,10 +769,32 @@ export default function ProductPurchaseModalFlow({
         {/* ============================================================ */}
         {step === 'customer_info' && (
           <div className="w-full flex flex-col items-center animate-in fade-in duration-200">
-            {/* Top Product Title */}
-            <h2 className="text-sm font-semibold text-zinc-800 mb-3 truncate max-w-[280px] text-center">
-              {productTitle}
-            </h2>
+            {/* Top Navigation Bar: Back | Title | Close */}
+            <div className="w-full flex items-center justify-between border-b border-zinc-100 pb-2.5 mb-3">
+              <button
+                type="button"
+                onClick={() => setStep('preview')}
+                aria-label="Back to overview"
+                title="Back"
+                className="p-1 rounded-full text-zinc-500 hover:text-black hover:bg-zinc-100 transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+
+              <h2 className="text-xs font-semibold text-zinc-600 truncate max-w-[220px] text-center">
+                {productTitle}
+              </h2>
+
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close modal"
+                title="Close"
+                className="p-1 rounded-full text-zinc-500 hover:text-black hover:bg-zinc-100 transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
             {/* Small Product Thumbnail */}
             <div className="w-14 h-14 rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-200/60 shadow-xs relative">
@@ -738,11 +832,35 @@ export default function ProductPurchaseModalFlow({
               <span>{creatorUsername.startsWith('@') ? creatorUsername : `@${creatorUsername}`}</span>
             </div>
 
-            {/* Price Badge */}
-            <div className="mt-1 text-center">
-              <span className={`text-xs font-bold ${isFree ? 'text-zinc-600' : 'text-zinc-950'}`}>
-                {isFree ? 'Free' : formattedPrice}
-              </span>
+            {/* Price & Currency Badge */}
+            <div className="mt-2 text-center flex flex-col items-center gap-1">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <span className={`text-sm font-bold ${isFree ? 'text-zinc-600' : 'text-zinc-950'}`}>
+                  {isFree ? 'Free' : (currencyPreview ? `${currencyPreview.symbol}${currencyPreview.convertedAmount} ${currencyPreview.targetCurrency}` : formattedPrice)}
+                </span>
+                {!isFree && (
+                  <select
+                    value={selectedCurrency}
+                    onChange={(e) => setSelectedCurrency(e.target.value)}
+                    className="text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded-lg px-2 py-0.5 outline-none cursor-pointer transition-colors"
+                  >
+                    {['USD', 'INR', 'EUR', 'GBP', 'CAD', 'AUD', 'AED', 'SGD', 'JPY'].map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              {!isFree && currencyPreview && currencyPreview.targetCurrency !== currencyPreview.originalCurrency && (
+                <div className="text-[11px] text-zinc-500 font-medium">
+                  {currencyPreview.isEstimated ? 'Estimated from ' : 'Original: '}
+                  {currency === 'INR' ? '₹' : (currency === 'USD' ? '$' : '')}{currencyPreview.originalPrice} {currencyPreview.originalCurrency}
+                </div>
+              )}
+              {currencyPreview && !currencyPreview.isValidMinimum && (
+                <div className="text-xs text-red-600 font-medium mt-1">
+                  {currencyPreview.minErrorMessage}
+                </div>
+              )}
             </div>
 
             {/* Form Section */}
@@ -773,7 +891,7 @@ export default function ProductPurchaseModalFlow({
               </div>
 
               {/* Email Field */}
-              <div className="space-y-1 mb-4">
+              <div className="space-y-1 mb-3">
                 <label className="block text-xs font-semibold text-zinc-700">
                   Email (required)
                 </label>
@@ -793,6 +911,24 @@ export default function ProductPurchaseModalFlow({
                 {errors.email && (
                   <p className="text-[11px] font-medium text-red-500">{errors.email}</p>
                 )}
+              </div>
+
+              {/* Country Field */}
+              <div className="space-y-1 mb-3.5">
+                <CountrySelect
+                  id="checkout-country-select"
+                  value={country}
+                  onChange={(c) => {
+                    setCountry(c)
+                    if (errors.country) setErrors(prev => ({ ...prev, country: null }))
+                  }}
+                  error={errors.country}
+                  disabled={isSubmitting}
+                  required={true}
+                  theme="light"
+                  label="Country (required)"
+                  placeholder="Select your country..."
+                />
               </div>
 
               {/* Mailing list opt-in checkbox */}
@@ -828,6 +964,63 @@ export default function ProductPurchaseModalFlow({
               </label>
               {errors.consent && (
                 <p className="text-[11px] font-medium text-red-500 mt-1">{errors.consent}</p>
+              )}
+
+              {/* Have a Coupon Code Section */}
+              {!isFree && (
+                <div className="pt-2.5 border-t border-zinc-100 space-y-2 mt-3 select-none">
+                  {appliedCoupon ? (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-emerald-600 shrink-0" />
+                        <div>
+                          <span className="font-mono font-bold text-emerald-800 tracking-wider">
+                            {appliedCoupon.couponCode}
+                          </span>
+                          <span className="ml-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1 py-0.5 rounded">
+                            {appliedCoupon.discountType === 'PERCENTAGE'
+                              ? `${appliedCoupon.discountValue}% OFF`
+                              : `₹${appliedCoupon.discountValue} OFF`}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-emerald-800 hover:text-red-600 p-1 rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer"
+                        title="Remove Coupon"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : showCouponInput ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="COUPON CODE"
+                        value={couponCodeInput}
+                        onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
+                        className="h-9 px-3 text-xs uppercase font-mono font-bold rounded-xl border border-zinc-200 text-zinc-900 bg-zinc-50 flex-1 outline-none focus:bg-white focus:border-zinc-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        disabled={validatingCoupon || !couponCodeInput.trim()}
+                        className="h-9 px-3.5 text-xs font-bold rounded-xl bg-black text-white hover:bg-zinc-800 shrink-0 cursor-pointer disabled:opacity-50 transition-colors"
+                      >
+                        {validatingCoupon ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Apply'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowCouponInput(true)}
+                      className="text-xs font-bold text-zinc-600 hover:text-zinc-900 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Tag className="h-3.5 w-3.5" /> Have a coupon code?
+                    </button>
+                  )}
+                </div>
               )}
 
               {/* General Form Error */}

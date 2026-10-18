@@ -18,7 +18,6 @@ import {
   MessageSquare,
   Package,
   Video,
-  GraduationCap,
   Layers,
   FileText,
   Instagram,
@@ -48,8 +47,6 @@ export const WIZARD_CATEGORIES = [
   { id: 'contact', label: 'Contact', icon: Contact },
   { id: 'events', label: 'Events', icon: Calendar },
   { id: 'text', label: 'Text', icon: Type },
-  { id: 'document', label: 'Document', icon: FileText, hidden: true },
-  { id: 'forms', label: 'Forms', icon: MessageSquare, hidden: true },
   { id: 'all', label: 'View all', icon: MoreHorizontal },
 ]
 
@@ -127,16 +124,6 @@ export const WIZARD_OPTIONS = [
     keywords: 'coaching bookings 1:1 consultation call meeting calendar session',
   },
   {
-    id: 'courses_suggested',
-    category: 'suggested',
-    title: 'Courses',
-    description: 'Sell online courses and lessons to your audience',
-    icon: GraduationCap,
-    color: '#6366F1',
-    type: 'course',
-    keywords: 'course courses online curriculum lesson academy tutorial class',
-  },
-  {
     id: 'link_suggested',
     category: 'suggested',
     title: 'Link',
@@ -169,17 +156,6 @@ export const WIZARD_OPTIONS = [
     color: '#F97316',
     type: 'digital_product',
     keywords: 'digital product download files guide pdf template ebook',
-  },
-  {
-    id: 'courses_commerce',
-    category: 'ecommerce',
-    section: 'Digital products',
-    title: 'Courses',
-    description: 'Sell online courses and lessons to your audience',
-    icon: GraduationCap,
-    color: '#6366F1',
-    type: 'course',
-    keywords: 'course courses online curriculum lesson academy tutorial class',
   },
   {
     id: 'bundles_commerce',
@@ -327,27 +303,6 @@ export const WIZARD_OPTIONS = [
     keywords: 'audio music podcast sound song mp3 stream spotify',
   },
 
-  // Document category
-  {
-    id: 'pdf_doc',
-    category: 'document',
-    title: 'PDF Display',
-    description: 'Upload a PDF to share with your visitors',
-    icon: FileText,
-    color: '#F59E0B',
-    type: 'pdf',
-    keywords: 'pdf document reader file viewer doc',
-  },
-  {
-    id: 'gallery_doc',
-    category: 'document',
-    title: 'Image Gallery',
-    description: 'Share a gallery of images',
-    icon: Images,
-    color: '#38BDF8',
-    type: 'gallery',
-    keywords: 'image gallery photos pictures carousel',
-  },
 
   // Contact & Forms category
   {
@@ -391,47 +346,6 @@ export const WIZARD_OPTIONS = [
     keywords: 'ask me anything qa question prompt fan',
   },
 
-  // Forms category
-  {
-    id: 'forms_contact_direct',
-    category: 'forms',
-    title: 'Contact form',
-    description: 'Let visitors send direct inquiries to your inbox',
-    icon: Mail,
-    color: '#14B8A6',
-    type: 'form_contact',
-    keywords: 'contact form email message inquiries inbox',
-  },
-  {
-    id: 'forms_newsletter_direct',
-    category: 'forms',
-    title: 'Newsletter signup',
-    description: 'Grow your audience with email list signups',
-    icon: Send,
-    color: '#EC4899',
-    type: 'form_newsletter',
-    keywords: 'newsletter signup email list subscribers lead capture',
-  },
-  {
-    id: 'forms_feedback_direct',
-    category: 'forms',
-    title: 'Feedback form',
-    description: 'Collect ratings, reviews, and testimonials',
-    icon: MessageSquareQuote,
-    color: '#F59E0B',
-    type: 'form_feedback',
-    keywords: 'feedback form review ratings testimonial questions',
-  },
-  {
-    id: 'forms_qa_direct',
-    category: 'forms',
-    title: 'Ask Me Anything',
-    description: 'Collect questions and prompts from fans',
-    icon: HelpCircle,
-    color: '#6366F1',
-    type: 'form_qa',
-    keywords: 'ask me anything qa question prompt fan',
-  },
 
   // Events category
   {
@@ -509,10 +423,20 @@ export default function AddToStoreMenuView({
     )
   }, [isSearching, searchQuery])
 
-  // Filtered options based on search or active category
+  // Filtered existing products for search
+  const filteredProducts = useMemo(() => {
+    if (!Array.isArray(products) || products.length === 0) return []
+    if (!isSearching) return products
+    return products.filter((p) =>
+      p.title?.toLowerCase().includes(searchQuery)
+    )
+  }, [products, isSearching, searchQuery])
+
+  // Filtered options based on search or active category (Courses strictly excluded)
   const filteredOptions = useMemo(() => {
     if (isSearching) {
       return WIZARD_OPTIONS.filter((opt) => {
+        if (opt.category === 'suggested' || opt.type === 'course') return false
         return (
           opt.title.toLowerCase().includes(searchQuery) ||
           opt.description.toLowerCase().includes(searchQuery) ||
@@ -522,17 +446,17 @@ export default function AddToStoreMenuView({
     }
 
     if (category === 'all') {
-      return WIZARD_OPTIONS.filter((opt) => opt.category !== 'suggested')
+      return WIZARD_OPTIONS.filter(
+        (opt) => opt.category !== 'suggested' && opt.type !== 'course'
+      )
     }
 
-    // Map contact/forms or media/document if clicked
-    const targetCat =
-      category === 'contact' ? ['contact', 'forms'] : [category]
-
-    return WIZARD_OPTIONS.filter((opt) => targetCat.includes(opt.category))
+    return WIZARD_OPTIONS.filter(
+      (opt) => opt.category === category && opt.type !== 'course'
+    )
   }, [isSearching, searchQuery, category])
 
-  // Group filtered options by section if applicable
+  // Group filtered options by category and section
   const groupedSections = useMemo(() => {
     if (isSearching) {
       return [{ title: 'Search results', items: filteredOptions }]
@@ -542,11 +466,46 @@ export default function AddToStoreMenuView({
       return [{ title: 'Suggested', items: filteredOptions }]
     }
 
-    // Check if options have subsections
+    // View all: Iterate through all canonical categories and their sub-sections
+    if (category === 'all') {
+      const categoryOrder = [
+        { id: 'ecommerce', label: 'Commerce' },
+        { id: 'social', label: 'Social' },
+        { id: 'media', label: 'Media' },
+        { id: 'contact', label: 'Contact & Forms' },
+        { id: 'events', label: 'Events' },
+        { id: 'text', label: 'Text' },
+      ]
+
+      const groups = []
+      for (const { id: catId, label: catLabel } of categoryOrder) {
+        const catOptions = filteredOptions.filter((opt) => opt.category === catId)
+        if (catOptions.length === 0) continue
+
+        const hasSubsections = catOptions.some((opt) => Boolean(opt.section))
+        if (!hasSubsections) {
+          groups.push({ title: catLabel, items: catOptions })
+        } else {
+          const subMap = new Map()
+          for (const opt of catOptions) {
+            const sName = opt.section ? `${catLabel} — ${opt.section}` : catLabel
+            if (!subMap.has(sName)) {
+              subMap.set(sName, [])
+              groups.push({ title: sName, items: subMap.get(sName) })
+            }
+            subMap.get(sName).push(opt)
+          }
+        }
+      }
+      return groups
+    }
+
+    // Single category selected
     const hasSections = filteredOptions.some((opt) => Boolean(opt.section))
     if (!hasSections) {
       const catObj = WIZARD_CATEGORIES.find((c) => c.id === category)
-      return [{ title: catObj?.label || 'Options', items: filteredOptions }]
+      const title = category === 'contact' ? 'Contact & Forms' : catObj?.label || 'Options'
+      return [{ title, items: filteredOptions }]
     }
 
     const groups = []
@@ -565,9 +524,9 @@ export default function AddToStoreMenuView({
   }, [isSearching, category, filteredOptions])
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-white select-none">
+    <div className="flex flex-col flex-1 min-h-0 h-full bg-white select-none">
       {/* 1. TOP FULL-WIDTH PILL SEARCH BAR */}
-      <div className="px-5 sm:px-8 pt-1 pb-4 shrink-0">
+      <div className="px-4 sm:px-8 pt-1 pb-4 shrink-0">
         <div className="relative flex items-center w-full h-12 rounded-full bg-[#F2F1EF] px-4.5 transition-all focus-within:ring-2 focus-within:ring-[#1F1F1F]/20">
           <Search className="h-4.5 w-4.5 text-[#6F6F6B] shrink-0 mr-3" />
           <input
@@ -575,7 +534,6 @@ export default function AddToStoreMenuView({
             value={search}
             onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder="Paste a link or search..."
-            /* Paste or search a link... */
             className="w-full bg-transparent border-none outline-none text-[#1F1F1F] placeholder:text-[#6F6F6B] text-[15px] font-medium"
             autoFocus={false}
           />
@@ -593,18 +551,15 @@ export default function AddToStoreMenuView({
       </div>
 
       {/* 2. MAIN WIZARD BODY (LEFT CATEGORIES + RIGHT CONTENT) */}
-      <div className="flex flex-col md:grid md:grid-cols-[176px_1fr] flex-1 min-h-[460px] max-h-[520px] overflow-hidden px-5 sm:px-8 pb-6 gap-0">
+      <div className="flex flex-col md:grid md:grid-cols-[176px_1fr] flex-1 min-h-0 overflow-hidden px-4 sm:px-8 pb-4 sm:pb-6 gap-0">
         {/* LEFT COLUMN: CATEGORY NAVIGATION (DESKTOP) & HORIZONTAL BAR (MOBILE) */}
         {!isSearching && (
           <>
             {/* Desktop Left Rail */}
-            <div className="hidden md:flex flex-col space-y-1 pr-3 overflow-y-auto no-scrollbar shrink-0">
+            <div className="hidden md:flex flex-col space-y-1 pr-3 overflow-y-auto shrink-0 min-h-0 h-full overscroll-contain">
               {visibleCategories.map((cat) => {
                 const Icon = cat.icon
-                const isActive =
-                  category === cat.id ||
-                  (cat.id === 'contact' && category === 'forms') ||
-                  (cat.id === 'media' && category === 'document')
+                const isActive = category === cat.id
 
                 return (
                   <button
@@ -629,13 +584,10 @@ export default function AddToStoreMenuView({
             </div>
 
             {/* Mobile Top Horizontal Scrolling Bar */}
-            <div className="flex md:hidden items-center gap-1.5 overflow-x-auto no-scrollbar pb-3 mb-2 shrink-0">
+            <div className="flex md:hidden items-center gap-1.5 overflow-x-auto pb-3 mb-2 shrink-0">
               {visibleCategories.map((cat) => {
                 const Icon = cat.icon
-                const isActive =
-                  category === cat.id ||
-                  (cat.id === 'contact' && category === 'forms') ||
-                  (cat.id === 'media' && category === 'document')
+                const isActive = category === cat.id
 
                 return (
                   <button
@@ -663,8 +615,9 @@ export default function AddToStoreMenuView({
 
         {/* RIGHT COLUMN: CONTENT ROWS & QUICK ACTIONS */}
         <div
+          tabIndex={0}
           className={cn(
-            'overflow-y-auto no-scrollbar flex-1 space-y-4',
+            'overflow-y-auto flex-1 min-h-0 h-full space-y-4 pr-1 overscroll-contain focus:outline-none [-webkit-overflow-scrolling:touch]',
             !isSearching ? 'pl-0 md:pl-4' : 'pl-0'
           )}
         >
@@ -752,50 +705,80 @@ export default function AddToStoreMenuView({
             </div>
           )}
 
-          {/* C. CATEGORY ITEM GROUPS (BORDERLESS ROWS WITH COLORFUL ROUNDED ICONS) */}
+          {/* C. CATEGORY ITEM GROUPS (WITH INLINE EXISTING PRODUCTS) */}
           {groupedSections.map((group, gIdx) => (
-            <div key={gIdx} className="space-y-1.5">
-              {group.title && (
-                <p className="text-sm font-semibold text-[#6F6F6B] px-1 pt-1">
-                  {group.title}
-                </p>
-              )}
+            <React.Fragment key={gIdx}>
+              <div className="space-y-1.5">
+                {group.title && (
+                  <p className="text-sm font-semibold text-[#6F6F6B] px-1 pt-1">
+                    {group.title}
+                  </p>
+                )}
 
-              <div className="flex flex-col space-y-0.5">
-                {group.items.map((opt) => {
-                  let desc = opt.description
-                  if (opt.type === 'instagram') {
-                    desc = igAccount?.connected
-                      ? `Connected as @${igAccount.username} — click to disconnect`
-                      : 'Display your posts and reels'
-                  }
+                <div className="flex flex-col space-y-0.5">
+                  {group.items.map((opt) => {
+                    let desc = opt.description
+                    if (opt.type === 'instagram') {
+                      desc = igAccount?.connected
+                        ? `Connected as @${igAccount.username} — click to disconnect`
+                        : 'Display your posts and reels'
+                    }
 
-                  return (
-                    <AddOptionRow
-                      key={opt.id}
-                      icon={opt.icon}
-                      iconColor={opt.color}
-                      title={opt.title}
-                      description={desc}
-                      onClick={() => onSelectOption?.(opt)}
-                    />
-                  )
-                })}
+                    return (
+                      <AddOptionRow
+                        key={opt.id}
+                        icon={opt.icon}
+                        iconColor={opt.color}
+                        title={opt.title}
+                        description={desc}
+                        onClick={() => onSelectOption?.(opt)}
+                      />
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+
+              {/* Render Existing Products after Affiliate products in Commerce tab or View all tab */}
+              {!isSearching &&
+                (group.title === 'Affiliate products' ||
+                  group.title === 'Commerce — Affiliate products') &&
+                Array.isArray(products) &&
+                products.length > 0 && (
+                  <div className="space-y-1.5 pt-2">
+                    <p className="text-xs font-semibold text-[#6F6F6B] px-1 uppercase tracking-wider">
+                      Add Existing Products
+                    </p>
+                    <div className="flex flex-col space-y-0.5">
+                      {products.slice(0, 10).map((prod) => (
+                        <AddOptionRow
+                          key={prod.id}
+                          icon={Package}
+                          iconColor="#F97316"
+                          title={prod.title}
+                          description={
+                            prod.price != null
+                              ? `${prod.currency ? prod.currency.toUpperCase() : 'INR'} ${prod.price}`
+                              : 'Digital Product'
+                          }
+                          onClick={() => onSelectExistingProduct?.(prod.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </React.Fragment>
           ))}
 
-          {/* D. EXISTING CREATOR PRODUCTS (UNDER COMMERCE TAB) */}
-          {!isSearching &&
-            category === 'ecommerce' &&
-            Array.isArray(products) &&
-            products.length > 0 && (
-              <div className="space-y-1.5 pt-3">
+          {/* D. SEARCH RESULTS FOR EXISTING PRODUCTS */}
+          {isSearching &&
+            Array.isArray(filteredProducts) &&
+            filteredProducts.length > 0 && (
+              <div className="space-y-1.5 pt-2">
                 <p className="text-xs font-semibold text-[#6F6F6B] px-1 uppercase tracking-wider">
                   Add Existing Products
                 </p>
                 <div className="flex flex-col space-y-0.5">
-                  {products.slice(0, 10).map((prod) => (
+                  {filteredProducts.map((prod) => (
                     <AddOptionRow
                       key={prod.id}
                       icon={Package}
@@ -814,17 +797,20 @@ export default function AddToStoreMenuView({
             )}
 
           {/* E. EMPTY SEARCH STATE */}
-          {isSearching && filteredOptions.length === 0 && !isUrlQuery && (
-            <div className="py-16 flex flex-col items-center justify-center text-center">
-              <Search className="h-8 w-8 text-[#A8A8A4] mb-3 stroke-[1.5]" />
-              <p className="text-base font-bold text-[#1F1F1F]">
-                No matching options
-              </p>
-              <p className="text-xs text-[#6F6F6B] mt-1 max-w-xs">
-                Try another search term or paste a link directly into the search bar.
-              </p>
-            </div>
-          )}
+          {isSearching &&
+            filteredOptions.length === 0 &&
+            filteredProducts.length === 0 &&
+            !isUrlQuery && (
+              <div className="py-16 flex flex-col items-center justify-center text-center">
+                <Search className="h-8 w-8 text-[#A8A8A4] mb-3 stroke-[1.5]" />
+                <p className="text-base font-bold text-[#1F1F1F]">
+                  No matching options
+                </p>
+                <p className="text-xs text-[#6F6F6B] mt-1 max-w-xs">
+                  Try another search term or paste a link directly into the search bar.
+                </p>
+              </div>
+            )}
         </div>
       </div>
     </div>

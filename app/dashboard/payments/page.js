@@ -183,20 +183,30 @@ export default function PaymentsPage() {
           </div>
           <div>
             <span className="text-[#6F6F6B] font-bold block mb-0.5">Payout Method</span>
-            <span className="text-[#1F1F1F] font-bold">{status.payoutMethod === 'UPI' ? 'UPI Transfer' : 'Bank Transfer'}</span>
+            <span className="text-[#1F1F1F] font-bold">
+              {status.payoutMethod === 'PAYPAL'
+                ? 'PayPal'
+                : (status.payoutMethod === 'UPI' ? 'UPI Transfer' : 'Bank Transfer')}
+            </span>
           </div>
           <div>
-            <span className="text-[#6F6F6B] font-bold block mb-0.5">Account Holder</span>
-            <span className="text-[#1F1F1F] font-bold">{status.accountHolderName || 'Not configured'}</span>
+            <span className="text-[#6F6F6B] font-bold block mb-0.5">Account / Holder</span>
+            <span className="text-[#1F1F1F] font-bold">
+              {status.payoutMethod === 'PAYPAL'
+                ? (status.paypalEmailMasked || status.paypalEmail || 'PayPal Account')
+                : (status.accountHolderName || 'Not configured')}
+            </span>
           </div>
           <div>
             <span className="text-[#6F6F6B] font-bold block mb-0.5">
-              {status.payoutMethod === 'UPI' ? 'UPI ID' : 'Bank Details'}
+              {status.payoutMethod === 'PAYPAL' ? 'PayPal ID' : (status.payoutMethod === 'UPI' ? 'UPI ID' : 'Bank Details')}
             </span>
             <span className="text-[#1F1F1F] font-bold font-mono">
-              {status.payoutMethod === 'UPI'
-                ? (status.upiIdMasked || status.upiId || 'Not configured')
-                : (status.bankLast4 ? `•••• ${status.bankLast4} (${status.bankIfscMasked || status.ifsc})` : 'Not configured')}
+              {status.payoutMethod === 'PAYPAL'
+                ? (status.paypalEmailMasked || status.paypalEmail || 'Not configured')
+                : (status.payoutMethod === 'UPI'
+                  ? (status.upiIdMasked || status.upiId || 'Not configured')
+                  : (status.bankLast4 ? `•••• ${status.bankLast4} (${status.bankIfscMasked || status.ifsc})` : 'Not configured'))}
             </span>
           </div>
         </div>

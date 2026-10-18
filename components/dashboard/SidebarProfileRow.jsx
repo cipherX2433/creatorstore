@@ -87,7 +87,7 @@ export default function SidebarProfileRow({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center justify-center w-full py-1 rounded-[12px] bg-transparent hover:bg-[#EAE9E6] transition-colors cursor-pointer select-none"
+          className="flex items-center justify-center w-full py-1 rounded-[12px] bg-transparent hover:bg-[#EAE9E6] transition-colors cursor-pointer select-none outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20"
           title={pureUsername}
           aria-expanded={open}
           aria-haspopup="menu"
@@ -108,7 +108,7 @@ export default function SidebarProfileRow({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="group flex items-center justify-between w-full py-1 px-1.5 rounded-[12px] bg-transparent hover:bg-[#EAE9E6] transition-colors duration-150 cursor-pointer select-none min-w-0"
+          className="group flex items-center justify-between w-full h-[46px] px-2 rounded-[12px] bg-transparent hover:bg-[#EAE9E6] transition-colors duration-150 cursor-pointer select-none min-w-0 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20"
           aria-expanded={open}
           aria-haspopup="menu"
         >
@@ -126,15 +126,15 @@ export default function SidebarProfileRow({
               )}
             </div>
 
-            {/* Username 16-18px */}
-            <span className="truncate text-[16px] font-semibold text-[#5F5F5F] group-hover:text-[#1F1F1F] transition-colors">
+            {/* Username */}
+            <span className="truncate text-[16px] font-[500] text-[#1F1F1F] group-hover:text-[#000000] tracking-[-0.01em] transition-colors">
               {pureUsername}
             </span>
           </div>
 
-          {/* Chevron 20px */}
+          {/* Chevron */}
           <ChevronDown
-            className={`h-5 w-5 shrink-0 text-[#999995] group-hover:text-[#1F1F1F] transition-transform duration-200 ${
+            className={`h-4.5 w-4.5 shrink-0 text-[#999995] group-hover:text-[#1F1F1F] transition-transform duration-200 ${
               open ? 'rotate-180 text-[#1F1F1F]' : ''
             }`}
           />

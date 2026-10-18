@@ -12,7 +12,9 @@
         "db:generate": "prisma generate",
         "db:validate": "prisma validate",
         "db:status": "prisma migrate status",
-        "db:studio": "prisma studio"
+        "db:studio": "prisma studio",
+        "cron:expire-stale-payments": "node scripts/expire_stale_payments.js",
+        "cron:cleanup-abandoned-subscriptions": "node scripts/cleanup_abandoned_subscriptions.js"
     },
     "dependencies": {
         "@prisma/client": "^6.19.3",

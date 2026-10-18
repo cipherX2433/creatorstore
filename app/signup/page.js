@@ -32,6 +32,8 @@ import {
   CreatorStoreMark,
 } from '@/components/brand/CreatorStoreBrand'
 import GoogleMark from '@/components/auth/GoogleMark'
+import CountrySelect from '@/components/ui/CountrySelect'
+import { isValidCountryCode } from '@/lib/countries'
 
 const PENDING_USERNAME_KEY = 'creatorstore_pending_username'
 const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
@@ -52,9 +54,10 @@ function SignupContent() {
   const checkTimeoutRef = useRef(null)
   const inputRef = useRef(null)
 
-  // Step 2: Email & Password
+  // Step 2: Email, Password & Country
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [country, setCountry] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [emailFocused, setEmailFocused] = useState(false)
   const [passwordFocused, setPasswordFocused] = useState(false)
@@ -235,7 +238,8 @@ function SignupContent() {
   // Step 2 Form validity
   const emailValid = EMAIL_REGEX.test(email.trim())
   const pwdErr = validatePassword(password)
-  const canSubmitStep2 = emailValid && !pwdErr && !loading && !googleLoading
+  const countryValid = isValidCountryCode(country)
+  const canSubmitStep2 = emailValid && !pwdErr && countryValid && !loading && !googleLoading
 
   // Email Signup submission
   async function onEmailSignup(e) {
@@ -248,6 +252,7 @@ function SignupContent() {
     try {
       const cleanEmail = email.trim().toLowerCase()
       const cleanUsername = username.trim().toLowerCase()
+      const cleanCountry = country.trim().toUpperCase()
 
       // Final pre-flight availability check to prevent race condition
       const checkRes = await api.get(`/store/username/check?u=${encodeURIComponent(cleanUsername)}`)
@@ -265,6 +270,7 @@ function SignupContent() {
         username: cleanUsername,
         slug: cleanUsername,
         storeName: cleanUsername,
+        country: cleanCountry,
         accountType: 'CREATOR',
         role: 'CREATOR',
       })
@@ -711,6 +717,18 @@ function SignupContent() {
                       </p>
                     )}
                   </div>
+
+                  {/* Country Selector */}
+                  <CountrySelect
+                    value={country}
+                    onChange={(val) => {
+                      setCountry(val)
+                      setSubmitError('')
+                    }}
+                    label="Country"
+                    required
+                    placeholder="Select your country..."
+                  />
 
                   {/* Submit Error Banner */}
                   {submitError && (

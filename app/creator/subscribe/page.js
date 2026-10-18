@@ -7,9 +7,12 @@ import { api } from '@/lib/clientApi'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
-import { Check, Sparkles, ShieldCheck, CreditCard, Loader2, ArrowRight } from 'lucide-react'
+import { Check, Sparkles, ShieldCheck, CreditCard, Loader2, ArrowRight, Globe } from 'lucide-react'
 import { getSubscriptionPricing } from '@/lib/plans'
 import CreatorStoreBrand from '@/components/brand/CreatorStoreBrand'
+import CountrySelect from '@/components/ui/CountrySelect'
+import { openRazorpaySubscriptionCheckout } from '@/lib/razorpayClient'
+import { getCountryName } from '@/lib/countries'
 
 export default function CreatorSubscribePage() {
   const router = useRouter()
@@ -19,6 +22,8 @@ export default function CreatorSubscribePage() {
   const [paying, setPaying] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState('PRO') // 'CREATOR' | 'PRO'
   const [billingInterval, setBillingInterval] = useState('monthly') // 'monthly' | 'annual'
+  const [selectedCountry, setSelectedCountry] = useState('')
+  const [isEditingCountry, setIsEditingCountry] = useState(false)
 
   const isAnnual = billingInterval === 'annual'
 
@@ -29,46 +34,148 @@ export default function CreatorSubscribePage() {
     ]).then(([res, me]) => {
       setSubStatus(res)
       setMeData(me)
-      if (res?.status === 'ACTIVE') {
-        toast.success('Your Creator subscription is active!')
-        if (!me?.profile?.onboardingComplete) {
-          router.push('/onboarding')
-        } else {
-          router.push('/dashboard/store')
-        }
+      const userCountry = me?.user?.country || me?.profile?.country || ''
+      if (userCountry) {
+        setSelectedCountry(userCountry)
+      }
+      // If user has not completed onboarding, send to onboarding
+      if (res?.status === 'ACTIVE' && !me?.profile?.onboardingComplete) {
+        router.push('/onboarding')
+        return
+      }
+      // If user is already on PRO, they have the top plan; send to dashboard
+      if (res?.status === 'ACTIVE' && res?.planId === 'PRO' && !res?.hasScheduledChange) {
+        router.push('/dashboard/store')
       }
     }).finally(() => setLoading(false))
   }, [router])
 
+  const isPaidActive = subStatus?.status === 'ACTIVE' && !subStatus?.isTrial
+  const activePlanId = isPaidActive ? (subStatus?.planId || 'PRO') : null
+  const activeInterval = isPaidActive ? String(subStatus?.billingInterval || 'MONTHLY').toLowerCase() : null
+
+  const isCurrentSelection = isPaidActive && selectedPlan === activePlanId && billingInterval === activeInterval
+  const isUpgrade = isPaidActive && activePlanId === 'CREATOR' && selectedPlan === 'PRO'
+  const isDowngrade = isPaidActive && activePlanId === 'PRO' && selectedPlan === 'CREATOR'
+
+  const isIndia = String(selectedCountry || '').toUpperCase().trim() === 'IN'
+  const currency = isIndia ? 'INR' : 'USD'
+  const pricing = getSubscriptionPricing(currency, billingInterval)
+
+  async function handleCountryChange(newCode) {
+    setSelectedCountry(newCode)
+    setIsEditingCountry(false)
+    try {
+      await api.patch('/me/profile', { country: newCode })
+      toast.success(`Country updated to ${getCountryName(newCode)} (${newCode})`)
+    } catch (e) {
+      console.warn('Failed to save country:', e.message)
+    }
+  }
+
   async function handleStartPayment() {
-    if (paying) return
+    if (paying || isCurrentSelection) return
+
+    if (!selectedCountry) {
+      toast.error('Please select your country before continuing.')
+      setIsEditingCountry(true)
+      return
+    }
+
     setPaying(true)
     try {
-      console.log(`[Checkout] Initiating direct Dodo checkout for ${selectedPlan} (${billingInterval})`)
+      console.log(`[Checkout] Initiating plan action for ${selectedPlan} (${billingInterval}) [Country: ${selectedCountry}]`)
       const checkoutRes = await api.post('/creator/subscription/checkout', {
         plan: selectedPlan,
         interval: billingInterval,
-        region: 'INTERNATIONAL',
       })
 
       if (checkoutRes.alreadyActive) {
-        toast.info(checkoutRes.message || 'You already have an active subscription.')
+        toast.info(checkoutRes.message || 'You already have an active subscription for this plan.')
         setPaying(false)
         router.push('/dashboard/store')
         return
       }
 
-      // Dodo Payments Hosted Checkout (Sole Active Payment Provider)
+      // Route A: Razorpay Checkout (India)
+      if (checkoutRes.provider === 'razorpay') {
+        console.log('[Razorpay] Opening checkout modal for subscription:', checkoutRes.subscriptionId)
+        await openRazorpaySubscriptionCheckout({
+          keyId: checkoutRes.keyId,
+          subscriptionId: checkoutRes.subscriptionId,
+          planName: checkoutRes.planName,
+          billingInterval,
+          customerEmail: meData?.user?.email,
+          customerName: meData?.profile?.name || meData?.user?.name || 'Creator',
+          onSuccess: async (rzpResp) => {
+            try {
+              const verifyRes = await api.post('/creator/subscription/verify', {
+                razorpaySubscriptionId: rzpResp.razorpay_subscription_id,
+                razorpayPaymentId: rzpResp.razorpay_payment_id,
+                razorpaySignature: rzpResp.razorpay_signature,
+              })
+              if (verifyRes.status === 'ACTIVE') {
+                toast.success('Subscription activated successfully!')
+                router.push('/dashboard/store')
+              }
+            } catch (err) {
+              toast.error(err.message || 'Subscription verification failed')
+            } finally {
+              setPaying(false)
+            }
+          },
+          onError: (err) => {
+            const userMsg = err?.customerMessage || err?.description || 'Razorpay payment was not completed'
+            toast.error(userMsg)
+            setPaying(false)
+          },
+          onDismiss: () => {
+            toast.info('Checkout was canceled. No charges were made.')
+            setPaying(false)
+          },
+        })
+        return
+      }
+
+      // Route B: Dodo Payments Hosted Checkout (Outside India)
       if (checkoutRes.checkoutUrl) {
         console.log('[Dodo Payments] Redirecting directly to secure hosted checkout:', checkoutRes.checkoutUrl)
         window.location.href = checkoutRes.checkoutUrl
         return
       }
 
+      // Pending payment
+      if (checkoutRes.pending) {
+        toast.info(checkoutRes.message || 'Upgrade payment is processing. Pro entitlements will activate once confirmed.')
+        setPaying(false)
+        router.push('/dashboard/store')
+        return
+      }
+
+      // Verified Instant Upgrade applied
+      if (checkoutRes.upgraded && checkoutRes.status === 'ACTIVE') {
+        toast.success(checkoutRes.message || 'Successfully upgraded to Pro!')
+        setPaying(false)
+        router.push('/dashboard/store')
+        return
+      }
+
+      if (checkoutRes.scheduledDowngrade) {
+        toast.success(checkoutRes.message || 'Downgrade scheduled for your next billing cycle.')
+        setPaying(false)
+        router.push('/dashboard/store')
+        return
+      }
+
       toast.error(checkoutRes.message || checkoutRes.error || 'Failed to initiate secure checkout session. Please try again.')
       setPaying(false)
     } catch (err) {
-      toast.error(err.message || 'Subscription checkout failed')
+      if (err.code === 'COUNTRY_REQUIRED' || err.message?.includes('Country selection is required') || err.message?.includes('Country is required')) {
+        toast.error('Please select your country to continue to checkout.')
+        setIsEditingCountry(true)
+      } else {
+        toast.error(err.message || 'Subscription checkout failed')
+      }
       setPaying(false)
     }
   }
@@ -81,7 +188,6 @@ export default function CreatorSubscribePage() {
     )
   }
 
-  const pricing = getSubscriptionPricing('USD', billingInterval)
   const isPro = selectedPlan === 'PRO'
   const planData = isPro ? pricing.PRO : pricing.CREATOR
   const priceDisplay = planData.priceFormatted
@@ -131,6 +237,35 @@ export default function CreatorSubscribePage() {
               </button>
             </div>
           </div>
+
+          {/* Country Selector */}
+          {(!selectedCountry || isEditingCountry) ? (
+            <div className="pt-3 max-w-sm mx-auto text-left">
+              <CountrySelect
+                value={selectedCountry}
+                onChange={handleCountryChange}
+                label="Billing Country"
+                placeholder="Select your country..."
+                required
+              />
+            </div>
+          ) : (
+            <div className="pt-2 flex items-center justify-center gap-2 text-xs text-[#A1A1AA]">
+              <span className="flex items-center gap-1.5 font-medium">
+                <Globe className="w-3.5 h-3.5 text-[#C7F000]" />
+                <span>Billing Country:</span>
+                <span className="font-semibold text-white">{getCountryName(selectedCountry)} ({selectedCountry})</span>
+                <span className="text-[11px] text-[#A1A1AA]">· {isIndia ? 'Razorpay (INR)' : 'Dodo Payments (USD)'}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsEditingCountry(true)}
+                className="text-[#C7F000] hover:underline font-semibold text-xs cursor-pointer ml-1"
+              >
+                Change
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Plan Selectors */}
@@ -221,12 +356,26 @@ export default function CreatorSubscribePage() {
         <div className="space-y-3">
           <Button
             onClick={handleStartPayment}
-            disabled={paying}
-            className="w-full h-12 font-black text-sm bg-primary hover:bg-primary-hover text-[#000000] rounded-xl gap-2 shadow-lg shadow-primary/25 cursor-pointer"
+            disabled={paying || isCurrentSelection}
+            className={`w-full h-12 font-black text-sm rounded-xl gap-2 shadow-lg transition-all ${
+              isCurrentSelection
+                ? 'bg-white/10 text-white/40 cursor-not-allowed shadow-none'
+                : 'bg-primary hover:bg-primary-hover text-[#000000] shadow-primary/25 cursor-pointer'
+            }`}
           >
             {paying ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" /> Connecting to checkout...
+                <Loader2 className="h-5 w-5 animate-spin" /> Processing...
+              </>
+            ) : isCurrentSelection ? (
+              'Current Plan'
+            ) : isUpgrade ? (
+              <>
+                <Sparkles className="h-5 w-5" /> Upgrade to Pro ({priceDisplay}{periodLabel}) <ArrowRight className="h-4 w-4 ml-1" />
+              </>
+            ) : isDowngrade ? (
+              <>
+                <CreditCard className="h-5 w-5" /> Downgrade to Creator ({priceDisplay}{periodLabel}) <ArrowRight className="h-4 w-4 ml-1" />
               </>
             ) : (
               <>
@@ -235,8 +384,23 @@ export default function CreatorSubscribePage() {
             )}
           </Button>
 
+          {isUpgrade && (
+            <p className="text-[11px] text-center text-[#C7F000] font-semibold">
+              Immediate upgrade • Unused Creator balance is prorated
+            </p>
+          )}
+
+          {isDowngrade && (
+            <p className="text-[11px] text-center text-[#A1A1AA] font-semibold">
+              Downgrade takes effect at your next billing cycle • Maintain Pro until then
+            </p>
+          )}
+
           <p className="text-[11px] text-center text-[#A1A1AA]/80 font-medium flex items-center justify-center gap-1">
-            <ShieldCheck className="h-3.5 w-3.5 text-[#C7F000]" /> Secure checkout via Dodo Payments • 0% platform fee • Global payment methods
+            <ShieldCheck className="h-3.5 w-3.5 text-[#C7F000]" />
+            {isIndia
+              ? 'Secure checkout via Razorpay (UPI, Cards, Netbanking) • 0% platform fee'
+              : 'Secure checkout via Dodo Payments • 0% platform fee • Global payment methods'}
           </p>
         </div>
       </div>

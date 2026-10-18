@@ -1250,14 +1250,14 @@ export default function AddToStoreModal({
         addModalType === 'coaching' || addModalType === 'course'
           ? 'sm:max-w-4xl max-w-4xl w-[95vw] sm:w-full max-h-[90vh] p-0 gap-0 overflow-hidden'
           : addModalType === 'menu'
-          ? 'sm:max-w-[780px] w-[95vw] sm:w-full max-h-[92vh] p-5 sm:p-7 rounded-[28px] bg-white border border-[#E5E5E3] shadow-[0_24px_70px_rgba(0,0,0,0.15)] gap-0 overflow-hidden'
+          ? 'sm:max-w-[780px] w-[95vw] sm:w-full h-[88vh] sm:h-[640px] max-h-[92vh] p-4 sm:p-7 rounded-[28px] bg-white border border-[#E5E5E3] shadow-[0_24px_70px_rgba(0,0,0,0.15)] gap-0 overflow-hidden flex flex-col'
           : 'sm:max-w-[700px]'
       }
       bodyClassName={
         addModalType === 'coaching' || addModalType === 'course'
           ? 'p-0 min-h-[500px] flex flex-col flex-1'
           : addModalType === 'menu'
-          ? 'p-0 flex flex-col flex-1 overflow-hidden'
+          ? 'p-0 flex flex-col flex-1 min-h-0 overflow-hidden'
           : 'pt-5'
       }
       title={
@@ -1380,8 +1380,6 @@ export default function AddToStoreModal({
               openDigitalProductWizard()
             } else if (opt.type === 'coaching') {
               openCoachingCreationFlow()
-            } else if (opt.type === 'course') {
-              openCourseCreationFlow()
             } else if (opt.type === 'link') {
               if (opt.prefillUrl) {
                 handleLinkSubmit({
@@ -1391,6 +1389,11 @@ export default function AddToStoreModal({
               } else {
                 setAddModalType('link')
               }
+            } else if (opt.type === 'link_preset') {
+              handleLinkSubmit({
+                title: opt.title || 'Link',
+                url: opt.presetUrl || 'https://',
+              })
             } else if (opt.type === 'collection') {
               if (onAddSection) {
                 onAddSection('heading', { text: 'Featured Collection' })
@@ -1405,29 +1408,52 @@ export default function AddToStoreModal({
               }
             } else if (opt.type === 'forms_menu') {
               setAddModalType('forms_menu')
-            } else if (opt.type === 'form') {
-              setSelectedFormType(opt.formType || 'contact')
+            } else if (
+              opt.type === 'form' ||
+              opt.type === 'form_contact' ||
+              opt.type === 'form_newsletter' ||
+              opt.type === 'form_feedback' ||
+              opt.type === 'form_qa'
+            ) {
+              const fType =
+                opt.formType ||
+                (opt.type === 'form_newsletter'
+                  ? 'newsletter'
+                  : opt.type === 'form_feedback'
+                  ? 'feedback'
+                  : opt.type === 'form_qa'
+                  ? 'qa'
+                  : 'contact')
+              setSelectedFormType(fType)
               setEditingFormSection(null)
               setAddModalType('form_config')
-            } else if (opt.type === 'media') {
-              setSelectedMediaType(opt.mediaType)
+            } else if (
+              opt.type === 'media' ||
+              opt.type === 'youtube' ||
+              opt.type === 'video' ||
+              opt.type === 'gallery' ||
+              opt.type === 'audio' ||
+              opt.type === 'pdf'
+            ) {
+              const mType = opt.mediaType || opt.type
+              setSelectedMediaType(mType)
               setEditingMediaSection(null)
               setAddModalType('media_config')
-            } else if (opt.type === 'event') {
+            } else if (opt.type === 'event' || opt.type === 'webinar') {
               if (onAddSection) {
                 onAddSection('link', {
-                  title: 'Upcoming Event',
+                  title: opt.title || 'Live Webinar or Event',
                   url: 'https://',
                   display_mode: 'event',
                 })
               }
               closeWizard()
-            } else if (opt.type === 'heading_text') {
+            } else if (opt.type === 'heading_text' || opt.type === 'heading') {
               if (onAddSection) {
                 onAddSection('heading', { text: 'Section Heading' })
               }
               closeWizard()
-            } else if (opt.type === 'text_block') {
+            } else if (opt.type === 'text_block' || opt.type === 'text') {
               if (onAddSection) {
                 onAddSection('text', { content: 'Add your text here...' })
               }

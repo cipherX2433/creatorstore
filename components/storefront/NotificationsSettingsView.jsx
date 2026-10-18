@@ -22,6 +22,7 @@ function NotificationsSettingsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const listingId = searchParams.get('listingId') || searchParams.get('productId')
+  const openPurchase = searchParams.get('openPurchase') === 'true' || searchParams.get('buy') === 'true' || searchParams.get('checkout') === 'true'
 
   const [purchases, setPurchases] = useState([])
   const [loading, setLoading] = useState(true)
@@ -71,12 +72,34 @@ function NotificationsSettingsContent() {
 
   // Auto-open modal if listingId is in URL query parameter
   useEffect(() => {
-    if (listingId && purchases.length > 0) {
+    if (!listingId) return
+
+    // 1. Check if already present in purchases
+    if (purchases.length > 0) {
       const match = purchases.find(p => p.id === listingId || p.productId === listingId)
       if (match) {
         setSelectedProduct(match)
         setIsModalOpen(true)
+        return
       }
+    }
+
+    // 2. If not found in purchases, safely fetch product details for purchase or preview
+    let isMounted = true
+    fetch(`/api/checkout/product?productId=${encodeURIComponent(listingId)}`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (isMounted && data?.product) {
+          setSelectedProduct({ ...data.product, creator: data.creator })
+          setIsModalOpen(true)
+        }
+      })
+      .catch(err => {
+        console.warn('[NotificationsSettings] Could not load listing:', err?.message || err)
+      })
+
+    return () => {
+      isMounted = false
     }
   }, [listingId, purchases])
 
@@ -90,8 +113,14 @@ function NotificationsSettingsContent() {
 
   const handleCloseModal = () => {
     setIsModalOpen(false)
+    setSelectedProduct(null)
     router.replace('/notifications/settings', { scroll: false })
   }
+
+  const isAlreadyPurchased = Boolean(
+    selectedProduct && purchases.some(p => p.id === selectedProduct.id || p.productId === selectedProduct.id)
+  )
+  const modalInitialStep = isAlreadyPurchased ? 'purchase_detail' : (openPurchase ? 'customer_info' : 'preview')
 
   // Derive active creator info from first purchase or fallback
   const firstCreator = purchases[0]?.creator || {
@@ -166,6 +195,16 @@ function NotificationsSettingsContent() {
             />
           </div>
         </main>
+
+        {selectedProduct && isModalOpen && (
+          <ProductPurchaseModalFlow
+            product={selectedProduct}
+            creator={selectedProduct.creator}
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            initialStep={modalInitialStep}
+          />
+        )}
       </div>
     )
   }
@@ -391,7 +430,7 @@ function NotificationsSettingsContent() {
           creator={selectedProduct.creator}
           isOpen={isModalOpen}
           onClose={handleCloseModal}
-          initialStep="purchase_detail"
+          initialStep={modalInitialStep}
         />
       )}
     </div>

@@ -4,7 +4,10 @@ import { Readable } from 'stream'
 import { supabaseAdmin, ensureBucket, resolveDigitalProductStoragePath } from '@/lib/supabase'
 import { SESSION_COOKIE } from '@/lib/auth'
 import { dodoProvider } from '@/lib/dodo'
-import { productsRepo, ordersRepo, customersRepo, lessonsRepo, coursesRepo, entitlementsRepo, webhookEventsRepo, automationEventsRepo, profilesRepo, storesRepo, creatorSubscriptionsRepo } from '@/lib/repos'
+import { productsRepo, ordersRepo, customersRepo, lessonsRepo, coursesRepo, entitlementsRepo, webhookEventsRepo, automationEventsRepo, profilesRepo, storesRepo, creatorSubscriptionsRepo, usersRepo, subscriptionInvoicesRepo } from '@/lib/repos'
+import { isValidCountryCode, normalizeCountryCode } from '@/lib/countries'
+import { auditCustomerSubscriptions } from '@/lib/subscription-reconciliation'
+import { razorpaySubscriptionLifecycleService } from '@/lib/razorpay-subscription-lifecycle'
 import {
   authService, meService, storeService, storeSectionsService, productService, publicService,
 
@@ -16,6 +19,16 @@ import {
 } from '@/lib/services'
 import { purchaseOtpService, PURCHASE_SESSION_COOKIE } from '@/lib/purchaseOtpService'
 import { getAppUrl } from '@/config/site'
+import {
+  SUPPORTED_CURRENCIES,
+  isSupportedCurrency,
+  normalizeCurrency,
+  getCurrencyConfig,
+  getExchangeRate,
+  convertCurrency,
+  validateMinimumAmount,
+  previewDodoPrice,
+} from '@/lib/currencies'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic' // Phase 5 builder updated
@@ -103,9 +116,33 @@ async function processRoute(request, context = {}) {
     }
   }
 
-  // ===== LEGACY WEBHOOK DECOMMISSION (Dodo Payments is now the active provider) =====
-  if ((normalizedRoute === '/webhooks/razorpay' || normalizedRoute === '/payments/webhook' || normalizedRoute === '/webhooks/paypal' || normalizedRoute === '/payments/paypal/webhook') && method === 'POST') {
-    return NextResponse.json({ message: 'Legacy webhook decommissioned. Use /api/webhooks/dodo' }, { status: 410 })
+  // ===== RAZORPAY SUBSCRIPTION WEBHOOK (India) =====
+  if ((normalizedRoute === '/webhooks/razorpay' || normalizedRoute === '/payments/webhook') && method === 'POST') {
+    const rawBody = await request.text()
+    const signature = request.headers.get('x-razorpay-signature')
+
+    if (!signature) {
+      return NextResponse.json({ error: 'Missing Razorpay webhook signature' }, { status: 400 })
+    }
+
+    const isValid = webhookService.verifySignature(rawBody, signature)
+    if (!isValid) {
+      return NextResponse.json({ error: 'Invalid Razorpay webhook signature' }, { status: 400 })
+    }
+
+    try {
+      const event = JSON.parse(rawBody)
+      const res = await webhookService.handle(event)
+      return NextResponse.json({ status: 'ok', ...res })
+    } catch (err) {
+      console.error('[Razorpay Webhook] Processing error:', err)
+      return NextResponse.json({ error: err.message }, { status: 500 })
+    }
+  }
+
+  // Legacy PayPal decommissioned
+  if ((normalizedRoute === '/webhooks/paypal' || normalizedRoute === '/payments/paypal/webhook') && method === 'POST') {
+    return NextResponse.json({ message: 'PayPal webhook decommissioned.' }, { status: 410 })
   }
 
   // ===== META INSTAGRAM WEBHOOK (raw body / challenge verification) =====
@@ -316,11 +353,14 @@ async function processRoute(request, context = {}) {
       return json({ ok: true, deleted: res?.count || 0, timestamp: new Date().toISOString() })
     }
 
-    // ===== Public (no auth) =====
-    if (path[0] === 'store' && path[1] === 'username' && path[2] === 'check' && method === 'GET') {
+    // ===== Public / Optional Auth =====
+    if ((normalizedRoute === '/store/username/check' || (path[0] === 'store' && path[1] === 'username' && path[2] === 'check')) && method === 'GET') {
       const u = url.searchParams.get('u') || url.searchParams.get('username')
-      if (!u) return json({ available: false, error: 'Username required' })
-      return json(await storeService.checkUsername(null, u))
+      if (!u) return json({ available: false, isCurrent: false, error: 'Username required' }, 400)
+      const token = request.cookies.get(SESSION_COOKIE)?.value || request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
+      const user = token ? await authService.userFromToken(token).catch(() => null) : null
+      const creatorId = user?.id || null
+      return json(await storeService.checkUsername(creatorId, u))
     }
     if (path[0] === 'store' && path[1] === 'policies' && method === 'GET') {
       const username = url.searchParams.get('username')
@@ -708,11 +748,82 @@ async function processRoute(request, context = {}) {
       }
     }
 
+    if ((route === '/checkout/supported-currencies' || (path[0] === 'checkout' && path[1] === 'supported-currencies')) && method === 'GET') {
+      return json({
+        currencies: Object.values(SUPPORTED_CURRENCIES),
+      })
+    }
+
+    if ((route === '/checkout/preview-currency' || (path[0] === 'checkout' && path[1] === 'preview-currency')) && method === 'GET') {
+      const productId = url.searchParams.get('productId')
+      const targetCurrency = url.searchParams.get('currency') || 'USD'
+      const country = url.searchParams.get('country') || undefined
+
+      if (!productId) return json({ error: 'productId is required' }, 400)
+      const product = await productsRepo.getById(productId)
+      if (!product) return json({ error: 'Product not found' }, 404)
+
+      const originalPrice = Number(product.price || 0)
+      const originalCurrency = (product.currency || 'USD').toUpperCase()
+      const normalizedTarget = normalizeCurrency(targetCurrency, originalCurrency)
+
+      const conversion = await convertCurrency({
+        amount: originalPrice,
+        fromCurrency: originalCurrency,
+        toCurrency: normalizedTarget,
+      })
+
+      const targetConfig = getCurrencyConfig(normalizedTarget)
+      const minCheck = validateMinimumAmount(conversion.convertedAmount, normalizedTarget)
+
+      // Optional authoritative preview from Dodo
+      let dodoPreview = null
+      try {
+        let dodoProductId = null
+        if (product.id) {
+          dodoProductId = await dodoProvider.ensureProduct({
+            productId: product.id,
+            title: product.title,
+            amount: originalPrice,
+            currency: originalCurrency,
+          }).catch(() => null)
+        }
+        if (dodoProductId) {
+          dodoPreview = await previewDodoPrice({
+            dodoProductId,
+            billingCurrency: normalizedTarget,
+            billingCountry: country,
+          })
+        }
+      } catch (e) {}
+
+      return json({
+        productId: product.id,
+        originalPrice,
+        originalCurrency,
+        targetCurrency: normalizedTarget,
+        convertedAmount: dodoPreview?.total ?? conversion.convertedAmount,
+        subtotal: dodoPreview?.subtotal ?? conversion.convertedAmount,
+        tax: dodoPreview?.tax ?? 0,
+        rate: conversion.rate,
+        rateTimestamp: conversion.rateTimestamp,
+        symbol: targetConfig.symbol,
+        isEstimated: !dodoPreview?.isAuthoritative,
+        isAuthoritative: Boolean(dodoPreview?.isAuthoritative),
+        minAmount: targetConfig.minAmount,
+        isValidMinimum: minCheck.valid,
+        minErrorMessage: minCheck.valid ? null : minCheck.message,
+        supportedCurrencies: Object.values(SUPPORTED_CURRENCIES),
+      })
+    }
+
     if ((route === '/checkout' || route === '/checkout/process' || route === '/checkout/create-order' || route === '/payments/create-order' || (path[0] === 'checkout' && (path[1] === 'create-order' || path[1] === 'process'))) && method === 'POST') {
       const body = await request.json()
       const targetEmail = body.email || body.customerEmail
       const result = await checkoutService.createSession({
         productId: body.productId,
+        creatorId: body.creatorId || null,
+        username: body.username || url.searchParams.get('username') || null,
         email: targetEmail,
         customerName: body.name || body.customerName,
         bookingId: body.bookingId,
@@ -720,6 +831,9 @@ async function processRoute(request, context = {}) {
         customResponses: body.customResponses,
         ref: body.ref || body.attributionToken || url.searchParams.get('ref'),
         couponCode: body.couponCode || body.code || null,
+        currency: body.currency || body.billingCurrency || url.searchParams.get('currency') || null,
+        country: body.country || body.billingCountry || null,
+        billingCountry: body.billingCountry || body.country || null,
       })
 
       const res = json(result)
@@ -1740,13 +1854,21 @@ async function processRoute(request, context = {}) {
         const effectiveId = subscriptionId || sessionId
         let authUser = null
         try { authUser = await requireAuth(request) } catch (e) { }
-        const targetSub = effectiveId ? await creatorSubscriptionsRepo.getByProviderSubscriptionId(effectiveId) : null
+
+        let targetSub = effectiveId ? await creatorSubscriptionsRepo.getByProviderSubscriptionId(effectiveId) : null
+        if (!targetSub && paymentId) {
+          targetSub = await creatorSubscriptionsRepo.getByDodoPaymentId(paymentId).catch(() => null)
+        }
+        if (!targetSub && authUser?.id) {
+          targetSub = await creatorSubscriptionsRepo.getByCreator(authUser.id).catch(() => null)
+        }
         const targetCreatorId = authUser?.id || targetSub?.creatorId
 
         let verifySuccess = false
+        let isPending = false
         let errorReason = null
 
-        if (targetCreatorId && effectiveId) {
+        if (targetCreatorId && (effectiveId || paymentId)) {
           try {
             const result = await creatorSubscriptionService.verifySubscriptionPayment(targetCreatorId, {
               provider: 'dodo',
@@ -1754,7 +1876,11 @@ async function processRoute(request, context = {}) {
               subscriptionId,
               paymentId,
             })
-            verifySuccess = Boolean(result && result.status === 'ACTIVE')
+            if (result?.pending || result?.status === 'PENDING_PAYMENT') {
+              isPending = true
+            } else {
+              verifySuccess = Boolean(result && result.status === 'ACTIVE')
+            }
           } catch (err) {
             console.error('[Dodo Return] Verification error:', err.message)
             verifySuccess = false
@@ -1768,6 +1894,8 @@ async function processRoute(request, context = {}) {
         const destination = new URL('/dashboard/settings/billing', redirectBase)
         if (verifySuccess) {
           destination.searchParams.set('success', 'true')
+        } else if (isPending) {
+          destination.searchParams.set('processing', 'true')
         } else {
           destination.searchParams.set('error', 'dodo_verification_failed')
           if (errorReason) {
@@ -1798,8 +1926,18 @@ async function processRoute(request, context = {}) {
         const body = await request.json().catch(() => ({}))
         return json(await creatorSubscriptionService.verifySubscriptionPayment(user.id, body))
       }
+      if (path[2] === 'update-payment-method' && method === 'POST') {
+        const body = await request.json().catch(() => ({}))
+        return json(await creatorSubscriptionService.updatePaymentMethod(user.id, body))
+      }
       if (path[2] === 'cancel' && method === 'POST') {
         return json(await creatorSubscriptionService.cancelSubscription(user.id))
+      }
+      if (path[2] === 'cancel-downgrade' && method === 'POST') {
+        return json(await creatorSubscriptionService.cancelScheduledDowngrade(user.id))
+      }
+      if (path[2] === 'audit' && method === 'GET') {
+        return json(await auditCustomerSubscriptions({ creatorId: user.id }))
       }
     }
 
@@ -2001,6 +2139,18 @@ async function processRoute(request, context = {}) {
       return json({ profile, store: updatedStore })
     }
 
+    if ((route === '/me/country' || route === '/user/country') && (method === 'PATCH' || method === 'POST')) {
+      const body = await request.json().catch(() => ({}))
+      const rawCountry = body?.country || body?.countryCode
+      const cleanCountry = normalizeCountryCode(rawCountry)
+      if (!cleanCountry || !isValidCountryCode(cleanCountry)) {
+        return json({ error: 'Valid ISO 3166-1 alpha-2 country code is required (e.g. IN, US, GB, CA)' }, 400)
+      }
+      await usersRepo.update(user.id, { country: cleanCountry })
+      await profilesRepo.upsert(user.id, { country: cleanCountry })
+      return json({ success: true, country: cleanCountry })
+    }
+
     // ===== Everything below requires CREATOR role =====
     requireCreator(user)
     const creatorId = user.id
@@ -2128,6 +2278,38 @@ async function processRoute(request, context = {}) {
       const body = await request.json().catch(() => ({}))
       return json(await creatorSubscriptionService.updateSubscriptionStatus(creatorId, body.status))
     }
+    if ((route === '/creator/subscription/update-payment-method' || route === '/subscription/update-payment-method') && method === 'POST') {
+      const body = await request.json().catch(() => ({}))
+      return json(await creatorSubscriptionService.updatePaymentMethod(creatorId, body))
+    }
+    if ((route === '/creator/subscription/cancel-downgrade' || route === '/subscription/cancel-downgrade') && method === 'POST') {
+      return json(await creatorSubscriptionService.cancelScheduledDowngrade(creatorId))
+    }
+    if ((route === '/creator/subscription/audit' || route === '/subscription/audit') && method === 'GET') {
+      return json(await auditCustomerSubscriptions({ creatorId }))
+    }
+    if ((route === '/creator/subscription/reconcile' || route === '/subscription/reconcile') && method === 'POST') {
+      const sub = await creatorSubscriptionsRepo.getByCreator(creatorId)
+      const subId = sub?.providerSubscriptionId || sub?.razorpayOrderId
+      if (!subId) return json({ error: 'No provider subscription ID to reconcile' }, 400)
+      return json(await razorpaySubscriptionLifecycleService.reconcileSubscription(subId))
+    }
+    if (route === '/admin/subscription-invoices' && method === 'GET') {
+      const invoices = await subscriptionInvoicesRepo.listOutstanding({ limit: 100 })
+      return json({ invoices })
+    }
+    if (route === '/admin/subscription-invoices/manual-recovery' && method === 'POST') {
+      const user = await authService.userFromToken(token)
+      if (!user) return json({ error: 'Unauthorized' }, 401)
+      const body = await request.json().catch(() => ({}))
+      const res = await razorpaySubscriptionLifecycleService.recordManualInvoiceRecovery({
+        razorpayInvoiceId: body.razorpayInvoiceId,
+        paymentId: body.paymentId,
+        adminEmail: user.email,
+        notes: body.notes,
+      })
+      return json(res)
+    }
 
     // Store
     if (route === '/store' && method === 'GET') return json({ store: await storeService.getOrCreate(creatorId) })
@@ -2151,9 +2333,6 @@ async function processRoute(request, context = {}) {
         } catch (e) { }
       }
       return json({ store: updatedStore })
-    }
-    if (route === '/store/username/check' && method === 'GET') {
-      return json(await storeService.checkUsername(creatorId, url.searchParams.get('u')))
     }
     if (route === '/store/username' && method === 'POST') {
       const body = await request.json()
