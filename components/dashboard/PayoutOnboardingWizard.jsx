@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select'
 import {
   Landmark, QrCode, ShieldCheck, AlertTriangle, CheckCircle2,
-  Loader2, Save, Sparkles, HelpCircle, Check, Info, ArrowUpRight, ArrowLeft
+  Loader2, Save, Sparkles, HelpCircle, Check, Info, ArrowUpRight, ArrowLeft, Wallet
 } from 'lucide-react'
 
 function FieldError({ message }) {
@@ -35,6 +35,17 @@ function maskUpi(upiId) {
   if (handle.length <= 2) return `${handle[0] || ''}••@${bank}`
   if (handle.length <= 4) return `${handle.slice(0, 2)}•••@${bank}`
   return `${handle.slice(0, 3)}••••@${bank}`
+}
+
+function maskPayPal(email) {
+  if (!email) return ''
+  const trimmed = String(email).trim().toLowerCase()
+  const parts = trimmed.split('@')
+  if (parts.length !== 2) return trimmed
+  const [handle, domain] = parts
+  if (handle.length <= 2) return `${handle[0] || ''}••@${domain}`
+  if (handle.length <= 4) return `${handle.slice(0, 2)}•••@${domain}`
+  return `${handle.slice(0, 2)}••••${handle.slice(-1)}@${domain}`
 }
 
 function maskAccount(acc) {
@@ -60,7 +71,7 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
   const [payoutSchedule, setPayoutSchedule] = useState('weekly') // 'weekly' | 'monthly'
   const [minimumPayoutThreshold, setMinimumPayoutThreshold] = useState('100')
   const [isPayoutPaused, setIsPayoutPaused] = useState(false)
-  const [payoutMethod, setPayoutMethod] = useState('BANK_ACCOUNT') // 'BANK_ACCOUNT' | 'UPI'
+  const [payoutMethod, setPayoutMethod] = useState('BANK_ACCOUNT') // 'BANK_ACCOUNT' | 'UPI' | 'PAYPAL'
 
   // Bank form details
   const [accountHolderName, setAccountHolderName] = useState('')
@@ -71,6 +82,9 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
 
   // UPI form details
   const [upiId, setUpiId] = useState('')
+
+  // PayPal form details (international creators)
+  const [paypalEmail, setPayPalEmail] = useState('')
 
   // Loaded Profile Overview
   const [profile, setProfile] = useState(null)
@@ -85,22 +99,32 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
       const res = await api.get('/payouts/settings')
       if (res) {
         setProfile(res)
+        const isIndiaCreator = res.country ? res.country === 'IN' : true
+        const defaultThreshold = isIndiaCreator ? 100 : 50
         setPayoutSchedule(res.payoutSchedule === 'monthly' ? 'monthly' : 'weekly')
-        setMinimumPayoutThreshold(String(res.minimumPayoutThreshold || 100))
+        setMinimumPayoutThreshold(String(res.minimumPayoutThreshold || defaultThreshold))
         setIsPayoutPaused(Boolean(res.isPayoutPaused))
         
-        const method = res.payoutMethod === 'UPI' ? 'UPI' : 'BANK_ACCOUNT'
+        let method = ''
+        if (!isIndiaCreator) {
+          method = 'PAYPAL'
+        } else {
+          method = res.payoutMethod === 'UPI' ? 'UPI' : 'BANK_ACCOUNT'
+        }
         setPayoutMethod(method)
 
         setAccountHolderName(res.accountHolderName || '')
         setBankName(res.bankName || '')
         setIfscCode(res.ifsc || '')
         
+        if (res.paypalEmail) {
+          setPayPalEmail(res.paypalEmail)
+        }
+
         if (res.bankAccountRaw) {
           setAccountNumber(res.bankAccountRaw)
           setConfirmAccountNumber(res.bankAccountRaw)
         } else if (res.bankLast4) {
-          // If only last 4 is known, placeholder for user
           setAccountNumber('')
           setConfirmAccountNumber('')
         }
@@ -126,7 +150,16 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
       nextErrors.minimumPayoutThreshold = 'Please enter a valid positive payout threshold.'
     }
 
-    if (payoutMethod === 'UPI') {
+    const isIndiaCreator = profile?.country ? profile.country === 'IN' : true
+
+    if (!isIndiaCreator || payoutMethod === 'PAYPAL') {
+      const trimmedPayPal = paypalEmail.trim()
+      if (!trimmedPayPal) {
+        nextErrors.paypalEmail = 'PayPal email address is required.'
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedPayPal)) {
+        nextErrors.paypalEmail = 'Enter a valid PayPal email address.'
+      }
+    } else if (payoutMethod === 'UPI') {
       const trimmedUpi = upiId.trim()
       if (!trimmedUpi) {
         nextErrors.upiId = 'UPI ID is required.'
@@ -182,21 +215,28 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
 
     setSaving(true)
     try {
+      const isIndiaCreator = profile?.country ? profile.country === 'IN' : true
+      const resolvedMethod = !isIndiaCreator ? 'PAYPAL' : (payoutMethod === 'UPI' ? 'UPI' : 'ACCOUNT')
+
       const payload = {
         payoutSchedule,
-        minimumPayoutThreshold: Number(minimumPayoutThreshold) || 100,
+        minimumPayoutThreshold: Number(minimumPayoutThreshold) || (isIndiaCreator ? 100 : 50),
         isPayoutPaused,
-        payoutMethod: payoutMethod === 'UPI' ? 'UPI' : 'ACCOUNT',
-        accountHolderName: payoutMethod === 'UPI' ? '' : accountHolderName.trim(),
-        bankName: payoutMethod === 'UPI' ? '' : bankName.trim(),
-        accountNumber: payoutMethod === 'UPI' ? '' : (accountNumber.trim() || profile?.bankAccountRaw || ''),
-        confirmAccountNumber: payoutMethod === 'UPI' ? '' : (confirmAccountNumber.trim() || profile?.bankAccountRaw || ''),
-        ifscCode: payoutMethod === 'UPI' ? '' : ifscCode.trim().toUpperCase(),
-        upiId: payoutMethod === 'UPI' ? upiId.trim() : '',
+        payoutMethod: resolvedMethod,
+        accountHolderName: (!isIndiaCreator || payoutMethod === 'UPI') ? '' : accountHolderName.trim(),
+        bankName: (!isIndiaCreator || payoutMethod === 'UPI') ? '' : bankName.trim(),
+        accountNumber: (!isIndiaCreator || payoutMethod === 'UPI') ? '' : (accountNumber.trim() || profile?.bankAccountRaw || ''),
+        confirmAccountNumber: (!isIndiaCreator || payoutMethod === 'UPI') ? '' : (confirmAccountNumber.trim() || profile?.bankAccountRaw || ''),
+        ifscCode: (!isIndiaCreator || payoutMethod === 'UPI') ? '' : ifscCode.trim().toUpperCase(),
+        upiId: (isIndiaCreator && payoutMethod === 'UPI') ? upiId.trim() : '',
+        paypalEmail: !isIndiaCreator ? paypalEmail.trim().toLowerCase() : '',
       }
 
       const updated = await api.post('/payouts/settings', payload)
       setProfile(updated)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('creatorstore:setup-updated'))
+      }
       toast.success('Payout details submitted successfully.')
     } catch (err) {
       toast.error(err.message || 'Failed to save payment settings')
@@ -219,6 +259,8 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
   const isConfigured = isPending || isActive
   const availableEarnings = profile?.availableEarnings || 0
   const isEligible = profile?.isEligibleForPayout ?? (isActive && !isPayoutPaused && availableEarnings >= Number(minimumPayoutThreshold))
+  const isIndia = profile?.country ? profile.country === 'IN' : true
+  const countryName = profile?.countryName || profile?.country || (isIndia ? 'India' : 'International')
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 font-sans text-[#1F1F1F] pb-16">
@@ -313,7 +355,7 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
             <Label className="text-xs font-bold text-[#1F1F1F]">Minimum payout threshold</Label>
             <div className="relative">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-[#6F6F6B] select-none">
-                ₹
+                {isIndia ? '₹' : '$'}
               </span>
               <Input
                 type="number"
@@ -325,7 +367,7 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
                   setErrors((prev) => ({ ...prev, minimumPayoutThreshold: '' }))
                 }}
                 className="pl-8 h-11 bg-[#FFFFFF] border-[#E5E5E3] text-[#1F1F1F] text-sm rounded-[14px] font-bold focus:border-[#1F1F1F]"
-                placeholder="100"
+                placeholder={isIndia ? "100" : "50"}
               />
             </div>
             <FieldError message={errors.minimumPayoutThreshold} />
@@ -365,7 +407,9 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
         <div className="md:col-span-4 space-y-2">
           <h2 className="text-lg font-bold text-[#1F1F1F] tracking-tight">Payout method</h2>
           <p className="text-xs sm:text-sm text-[#6F6F6B] leading-relaxed font-medium">
-            Choose whether you want to receive direct creator settlements via Bank Account or UPI.
+            {isIndia
+              ? 'Choose whether you want to receive direct creator settlements via Bank Account or UPI.'
+              : `Configure your PayPal ID to receive direct creator settlements in ${countryName}.`}
           </p>
           <div className="pt-2">
             <span className="inline-flex items-center gap-1.5 text-xs text-[#6F6F6B] font-medium">
@@ -376,75 +420,104 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
         </div>
 
         <div className="md:col-span-8 space-y-6">
-          {/* Method Selection Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* OPTION 1: Account Details */}
-            <div
-              onClick={() => {
-                setPayoutMethod('BANK_ACCOUNT')
-                setErrors({})
-              }}
-              className={`p-5 rounded-[18px] border transition-all cursor-pointer space-y-2 ${
-                payoutMethod === 'BANK_ACCOUNT'
-                  ? 'border-2 border-[#1F1F1F] bg-[#F5F5F3] shadow-none'
-                  : 'border border-[#E5E5E3] bg-[#FFFFFF] hover:border-[#1F1F1F]/40 hover:bg-[#F5F5F3]'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className={`h-10 w-10 rounded-full flex items-center justify-center border ${
-                  payoutMethod === 'BANK_ACCOUNT' ? 'bg-[#1F1F1F] text-white border-[#1F1F1F]' : 'bg-[#F2F1EF] text-[#1F1F1F] border-[#E5E5E3]'
-                }`}>
-                  <Landmark className="h-5 w-5" />
+          {/* Method Selection Cards - Conditional on creator's registered country */}
+          {isIndia ? (
+            /* INDIA CREATOR: Show Account Details & UPI cards. PayPal is hidden. */
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* OPTION 1: Account Details */}
+              <div
+                onClick={() => {
+                  setPayoutMethod('BANK_ACCOUNT')
+                  setErrors({})
+                }}
+                className={`p-5 rounded-[18px] border transition-all cursor-pointer space-y-2 ${
+                  payoutMethod === 'BANK_ACCOUNT'
+                    ? 'border-2 border-[#1F1F1F] bg-[#F5F5F3] shadow-none'
+                    : 'border border-[#E5E5E3] bg-[#FFFFFF] hover:border-[#1F1F1F]/40 hover:bg-[#F5F5F3]'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center border ${
+                    payoutMethod === 'BANK_ACCOUNT' ? 'bg-[#1F1F1F] text-white border-[#1F1F1F]' : 'bg-[#F2F1EF] text-[#1F1F1F] border-[#E5E5E3]'
+                  }`}>
+                    <Landmark className="h-5 w-5" />
+                  </div>
+                  <div className={`h-5 w-5 rounded-full border flex items-center justify-center ${
+                    payoutMethod === 'BANK_ACCOUNT' ? 'border-[#1F1F1F] bg-[#1F1F1F] text-white' : 'border-[#E5E5E3] bg-white'
+                  }`}>
+                    {payoutMethod === 'BANK_ACCOUNT' && <Check className="h-3 w-3 stroke-[3]" />}
+                  </div>
                 </div>
-                <div className={`h-5 w-5 rounded-full border flex items-center justify-center ${
-                  payoutMethod === 'BANK_ACCOUNT' ? 'border-[#1F1F1F] bg-[#1F1F1F] text-white' : 'border-[#E5E5E3] bg-white'
-                }`}>
-                  {payoutMethod === 'BANK_ACCOUNT' && <Check className="h-3 w-3 stroke-[3]" />}
+                <div>
+                  <h3 className="text-sm font-bold text-[#1F1F1F]">Account Details</h3>
+                  <p className="text-xs text-[#6F6F6B] mt-0.5">
+                    Receive payouts directly to your bank account.
+                  </p>
                 </div>
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-[#1F1F1F]">Account Details</h3>
-                <p className="text-xs text-[#6F6F6B] mt-0.5">
-                  Receive payouts directly to your bank account.
-                </p>
+
+              {/* OPTION 2: UPI */}
+              <div
+                onClick={() => {
+                  setPayoutMethod('UPI')
+                  setErrors({})
+                }}
+                className={`p-5 rounded-[18px] border transition-all cursor-pointer space-y-2 ${
+                  payoutMethod === 'UPI'
+                    ? 'border-2 border-[#1F1F1F] bg-[#F5F5F3] shadow-none'
+                    : 'border border-[#E5E5E3] bg-[#FFFFFF] hover:border-[#1F1F1F]/40 hover:bg-[#F5F5F3]'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center border ${
+                    payoutMethod === 'UPI' ? 'bg-[#1F1F1F] text-white border-[#1F1F1F]' : 'bg-[#F2F1EF] text-[#1F1F1F] border-[#E5E5E3]'
+                  }`}>
+                    <QrCode className="h-5 w-5" />
+                  </div>
+                  <div className={`h-5 w-5 rounded-full border flex items-center justify-center ${
+                    payoutMethod === 'UPI' ? 'border-[#1F1F1F] bg-[#1F1F1F] text-white' : 'border-[#E5E5E3] bg-white'
+                  }`}>
+                    {payoutMethod === 'UPI' && <Check className="h-3 w-3 stroke-[3]" />}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#1F1F1F]">UPI</h3>
+                  <p className="text-xs text-[#6F6F6B] mt-0.5">
+                    Receive payouts directly to your UPI ID.
+                  </p>
+                </div>
               </div>
             </div>
-
-            {/* OPTION 2: UPI */}
-            <div
-              onClick={() => {
-                setPayoutMethod('UPI')
-                setErrors({})
-              }}
-              className={`p-5 rounded-[18px] border transition-all cursor-pointer space-y-2 ${
-                payoutMethod === 'UPI'
-                  ? 'border-2 border-[#1F1F1F] bg-[#F5F5F3] shadow-none'
-                  : 'border border-[#E5E5E3] bg-[#FFFFFF] hover:border-[#1F1F1F]/40 hover:bg-[#F5F5F3]'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className={`h-10 w-10 rounded-full flex items-center justify-center border ${
-                  payoutMethod === 'UPI' ? 'bg-[#1F1F1F] text-white border-[#1F1F1F]' : 'bg-[#F2F1EF] text-[#1F1F1F] border-[#E5E5E3]'
-                }`}>
-                  <QrCode className="h-5 w-5" />
+          ) : (
+            /* NON-INDIA CREATOR: Show only PayPal card. Bank Account and UPI are hidden. */
+            <div className="grid grid-cols-1 gap-4">
+              <div
+                onClick={() => {
+                  setPayoutMethod('PAYPAL')
+                  setErrors({})
+                }}
+                className="p-5 rounded-[18px] border-2 border-[#1F1F1F] bg-[#F5F5F3] shadow-none space-y-2 cursor-pointer"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="h-10 w-10 rounded-full flex items-center justify-center border bg-[#1F1F1F] text-white border-[#1F1F1F]">
+                    <Wallet className="h-5 w-5" />
+                  </div>
+                  <div className="h-5 w-5 rounded-full border border-[#1F1F1F] bg-[#1F1F1F] text-white flex items-center justify-center">
+                    <Check className="h-3 w-3 stroke-[3]" />
+                  </div>
                 </div>
-                <div className={`h-5 w-5 rounded-full border flex items-center justify-center ${
-                  payoutMethod === 'UPI' ? 'border-[#1F1F1F] bg-[#1F1F1F] text-white' : 'border-[#E5E5E3] bg-white'
-                }`}>
-                  {payoutMethod === 'UPI' && <Check className="h-3 w-3 stroke-[3]" />}
+                <div>
+                  <h3 className="text-sm font-bold text-[#1F1F1F]">PayPal</h3>
+                  <p className="text-xs text-[#6F6F6B] mt-0.5">
+                    Receive payouts directly to your PayPal account.
+                  </p>
                 </div>
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-[#1F1F1F]">UPI</h3>
-                <p className="text-xs text-[#6F6F6B] mt-0.5">
-                  Receive payouts directly to your UPI ID.
-                </p>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* DYNAMIC FORM: Account Details */}
-          {payoutMethod === 'BANK_ACCOUNT' && (
+          {/* DYNAMIC FORM: Account Details (India only) */}
+          {isIndia && payoutMethod === 'BANK_ACCOUNT' && (
             <div className="bg-[#FFFFFF] p-6 rounded-[20px] border border-[#E5E5E3] space-y-4 animate-in fade-in duration-150 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-[#1F1F1F]">Account holder name</Label>
@@ -524,8 +597,8 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
             </div>
           )}
 
-          {/* DYNAMIC FORM: UPI */}
-          {payoutMethod === 'UPI' && (
+          {/* DYNAMIC FORM: UPI (India only) */}
+          {isIndia && payoutMethod === 'UPI' && (
             <div className="bg-[#FFFFFF] p-6 rounded-[20px] border border-[#E5E5E3] space-y-4 animate-in fade-in duration-150 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-[#1F1F1F]">UPI ID</Label>
@@ -545,6 +618,29 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
               </div>
             </div>
           )}
+
+          {/* DYNAMIC FORM: PayPal (Non-India only) */}
+          {!isIndia && (
+            <div className="bg-[#FFFFFF] p-6 rounded-[20px] border border-[#E5E5E3] space-y-4 animate-in fade-in duration-150 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-[#1F1F1F]">PayPal account email / ID</Label>
+                <Input
+                  type="email"
+                  value={paypalEmail}
+                  onChange={(e) => {
+                    setPayPalEmail(e.target.value)
+                    setErrors((prev) => ({ ...prev, paypalEmail: '' }))
+                  }}
+                  className="h-11 bg-[#FFFFFF] border-[#E5E5E3] text-[#1F1F1F] text-sm rounded-[14px] focus:border-[#1F1F1F]"
+                  placeholder="your-paypal-email@example.com"
+                />
+                <FieldError message={errors.paypalEmail} />
+                <p className="text-[11px] text-[#6F6F6B] font-medium">
+                  Enter the email address registered with your PayPal account. Payouts for non-Indian creators are delivered via PayPal.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -559,11 +655,32 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
 
         <div className="md:col-span-8">
           <div className="bg-[#FFFFFF] p-6 rounded-[24px] border border-[#E5E5E3] space-y-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+            {profile?.methodMismatch && (
+              <div className="p-4 rounded-[16px] bg-[#FFF5DD] border border-[#D97706]/30 text-[#D97706] text-xs font-medium flex items-start gap-2.5">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Configuration Attention Required</p>
+                  <p className="text-[11px] mt-0.5">
+                    {profile?.eligibilityReason || `Your registered country is ${countryName}. Please update and save the payout method required for your country.`}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1">
                 <span className="text-xs text-[#6F6F6B] font-medium block">Configuration Status</span>
                 <div className="space-y-0.5">
-                  {isActive ? (
+                  {profile?.methodMismatch ? (
+                    <div>
+                      <span className="text-[#DC2626] flex items-center gap-1.5 font-bold text-sm">
+                        <AlertTriangle className="h-4 w-4" /> Action Required
+                      </span>
+                      <p className="text-[11px] text-[#6F6F6B] font-medium mt-0.5">
+                        Saved payout details do not match your registered country.
+                      </p>
+                    </div>
+                  ) : isActive ? (
                     <div>
                       <span className="text-[#16A34A] flex items-center gap-1.5 font-bold text-sm">
                         <span className="h-2 w-2 rounded-full bg-[#16A34A]" /> Payout is active
@@ -604,23 +721,35 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs border-t border-[#E5E5E3] pt-4">
               <div>
                 <span className="text-[#6F6F6B] font-medium block mb-0.5">Method</span>
-                <span className="text-[#1F1F1F] font-bold">{profile?.payoutMethod === 'UPI' ? 'UPI Transfer' : 'Bank Transfer'}</span>
+                <span className="text-[#1F1F1F] font-bold">
+                  {profile?.payoutMethod === 'PAYPAL'
+                    ? 'PayPal'
+                    : (profile?.payoutMethod === 'UPI' ? 'UPI Transfer' : 'Bank Transfer')}
+                </span>
               </div>
               <div>
-                <span className="text-[#6F6F6B] font-medium block mb-0.5">Account Holder</span>
-                <span className="text-[#1F1F1F] font-bold truncate block">{profile?.accountHolderName || 'Not configured'}</span>
+                <span className="text-[#6F6F6B] font-medium block mb-0.5">Account / Holder</span>
+                <span className="text-[#1F1F1F] font-bold truncate block">
+                  {profile?.payoutMethod === 'PAYPAL'
+                    ? (profile?.paypalEmailMasked || profile?.paypalEmail || 'PayPal Account')
+                    : (profile?.accountHolderName || 'Not configured')}
+                </span>
               </div>
               <div>
                 <span className="text-[#6F6F6B] font-medium block mb-0.5">Destination</span>
                 <span className="text-[#1F1F1F] font-mono font-bold truncate block">
-                  {profile?.payoutMethod === 'UPI'
-                    ? (profile?.upiIdMasked || profile?.upiId || 'Not configured')
-                    : (profile?.bankLast4 ? `•••• ${profile.bankLast4}` : 'Not configured')}
+                  {profile?.payoutMethod === 'PAYPAL'
+                    ? (profile?.paypalEmailMasked || profile?.paypalEmail || 'Not configured')
+                    : (profile?.payoutMethod === 'UPI'
+                      ? (profile?.upiIdMasked || profile?.upiId || 'Not configured')
+                      : (profile?.bankLast4 ? `•••• ${profile.bankLast4}` : 'Not configured'))}
                 </span>
               </div>
               <div>
                 <span className="text-[#6F6F6B] font-medium block mb-0.5">Threshold</span>
-                <span className="text-[#1F1F1F] font-bold">₹{profile?.minimumPayoutThreshold || minimumPayoutThreshold}</span>
+                <span className="text-[#1F1F1F] font-bold">
+                  {isIndia ? '₹' : '$'}{profile?.minimumPayoutThreshold || minimumPayoutThreshold}
+                </span>
               </div>
             </div>
 

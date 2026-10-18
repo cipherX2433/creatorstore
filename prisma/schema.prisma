@@ -26,6 +26,7 @@ model User {
   resetTokenExpires         DateTime? @map("reset_token_expires") @db.Timestamptz
   verificationTokenHash     String?   @map("verification_token_hash")
   verificationTokenExpires  DateTime? @map("verification_token_expires") @db.Timestamptz
+  country                   String?   @db.VarChar(2)
   createdAt                 DateTime? @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                 DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -47,6 +48,8 @@ model User {
   automationEvents    AutomationEvent[]
   payoutProfile       PayoutProfile?
   payoutAuditLogs     PayoutAuditLog[]
+  subscriptionAuditLogs SubscriptionAuditLog[]
+  subscriptionInvoices  SubscriptionInvoice[]
 
   @@map("users")
 }
@@ -61,6 +64,7 @@ model CreatorProfile {
   socialLinks        Json?     @default("{}") @map("social_links")
   onboardingStatus   String?   @default("SOCIAL_SETUP") @map("onboarding_status")
   onboardingComplete Boolean?  @default(false) @map("onboarding_complete")
+  country            String?   @db.VarChar(2)
   createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -76,6 +80,7 @@ model Customer {
   email      String
   name       String?
   phone      String?
+  country    String?   @map("country")
   totalSpent Decimal?  @default(0) @map("total_spent") @db.Decimal
   ordersCount Int?     @default(0) @map("orders_count")
   createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz
@@ -89,6 +94,7 @@ model Customer {
   certificates     CourseCertificate[]
 
   @@unique([creatorId, email])
+  @@index([country], map: "idx_customers_country")
   @@map("customers")
 }
 
@@ -161,12 +167,36 @@ model CreatorSubscription {
   trialStartedAt         DateTime? @map("trial_started_at") @db.Timestamptz
   trialEndsAt            DateTime? @map("trial_ends_at") @db.Timestamptz
   trialStatus            String?   @default("NOT_STARTED") @map("trial_status")
-  createdAt              DateTime? @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt              DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  scheduledPlan          String?   @map("scheduled_plan")
+  scheduledChangeAt      DateTime? @map("scheduled_change_at") @db.Timestamptz
+  scheduledInterval      String?   @map("scheduled_interval")
+  pendingUpgradePlan        String?   @map("pending_upgrade_plan")
+  pendingUpgradeInterval    String?   @map("pending_upgrade_interval")
+  pendingUpgradePaymentId   String?   @map("pending_upgrade_payment_id")
+  pendingUpgradeStatus      String?   @map("pending_upgrade_status")
+  pendingUpgradeStartedAt   DateTime? @map("pending_upgrade_started_at") @db.Timestamptz
+  pendingUpgradeErrorMessage String?  @map("pending_upgrade_error_message")
+  pendingUpgradePaymentLink String?   @map("pending_upgrade_payment_link")
+  pendingUpgradeAmount      Decimal?  @map("pending_upgrade_amount") @db.Decimal
+  pendingUpgradeCurrency    String?   @map("pending_upgrade_currency")
+  lastVerifiedAt             DateTime? @map("last_verified_at") @db.Timestamptz
+  cancellationReason         String?   @map("cancellation_reason")
+  cancellationDetails        Json?     @default("{}") @map("cancellation_details")
+  authStatus                 String?   @default("ACTIVE") @map("auth_status")
+  lastInvoiceId              String?   @map("last_invoice_id")
+  lastInvoiceStatus          String?   @map("last_invoice_status")
+  lastPaymentFailureReason   String?   @map("last_payment_failure_reason")
+  lastPaymentFailureAt       DateTime? @map("last_payment_failure_at") @db.Timestamptz
+  gracePeriodEndsAt          DateTime? @map("grace_period_ends_at") @db.Timestamptz
+  retryCount                 Int?      @default(0) @map("retry_count")
+  createdAt                  DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                  DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
+  @@index([pendingUpgradeStatus, pendingUpgradeStartedAt], map: "idx_creator_subscriptions_pending_upgrade")
+  @@index([status, authStatus], map: "idx_creator_subscriptions_status_auth")
   @@map("creator_subscriptions")
 }
 
@@ -377,8 +407,19 @@ model Order {
   customerEmail     String    @map("customer_email")
   amount            Decimal   @db.Decimal
   currency          String?   @default("INR")
+  originalPrice     Decimal?  @map("original_price") @db.Decimal
+  originalCurrency  String?   @map("original_currency")
+  presentmentAmount Decimal?  @map("presentment_amount") @db.Decimal
+  presentmentCurrency String? @map("presentment_currency")
+  chargedAmount     Decimal?  @map("charged_amount") @db.Decimal
+  chargedCurrency   String?   @map("charged_currency")
+  exchangeRate      Decimal?  @map("exchange_rate") @db.Decimal
+  exchangeRateTimestamp DateTime? @map("exchange_rate_timestamp") @db.Timestamptz
+  taxAmount         Decimal?  @map("tax_amount") @db.Decimal
+  taxCurrency       String?   @map("tax_currency")
   status            String    @default("PENDING")
   paymentProvider   String?   @default("dodo") @map("payment_provider")
+  country           String?   @default("IN") @map("country")
   dodoPaymentId     String?   @unique @map("dodo_payment_id")
   dodoSessionId     String?   @map("dodo_session_id")
   razorpayOrderId   String?   @unique @map("razorpay_order_id")
@@ -396,6 +437,7 @@ model Order {
 
   @@index([creatorId, status], map: "idx_orders_creator_status")
   @@index([automationId, status], map: "idx_orders_automation_status")
+  @@index([country], map: "idx_orders_country")
   @@map("orders")
 }
 
@@ -634,6 +676,8 @@ model PayoutProfile {
   bankIfscMasked              String?   @map("bank_ifsc_masked")
   ifsc                        String?
   upiId                       String?   @map("upi_id")
+  paypalEmail                 String?   @map("paypal_email")
+  paypalId                    String?   @map("paypal_id")
   payoutSchedule              String?   @default("weekly") @map("payout_schedule")
   minimumPayoutThreshold      Decimal?  @default(100) @map("minimum_payout_threshold") @db.Decimal
   isPayoutPaused              Boolean?  @default(false) @map("is_payout_paused")
@@ -673,6 +717,58 @@ model PayoutAuditLog {
 
   @@index([creatorId], map: "idx_payout_audit_creator")
   @@map("payout_audit_logs")
+}
+
+model SubscriptionAuditLog {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId              String?   @map("creator_id") @db.Uuid
+  event                  String
+  provider               String?   @default("DODO")
+  providerSubscriptionId String?   @map("provider_subscription_id")
+  dodoCustomerId         String?   @map("dodo_customer_id")
+  plan                   String?
+  status                 String?
+  amount                 Decimal?  @db.Decimal
+  currency               String?
+  metadata               Json?     @default("{}")
+  createdAt              DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  creator User? @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId], map: "idx_subscription_audit_creator")
+  @@index([providerSubscriptionId], map: "idx_subscription_audit_sub_id")
+  @@map("subscription_audit_logs")
+}
+
+model SubscriptionInvoice {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId          String    @map("creator_id") @db.Uuid
+  provider           String    @default("RAZORPAY")
+  subscriptionId     String    @map("subscription_id")
+  razorpayInvoiceId  String?   @unique @map("razorpay_invoice_id")
+  razorpayPaymentId  String?   @map("razorpay_payment_id")
+  amount             Decimal?  @default(0) @db.Decimal
+  currency           String?   @default("INR")
+  status             String    @default("ISSUED") // ISSUED, PAID, PENDING, FAILED, HALTED, CANCELLED
+  billingStart       DateTime? @map("billing_start") @db.Timestamptz
+  billingEnd         DateTime? @map("billing_end") @db.Timestamptz
+  paidAt             DateTime? @map("paid_at") @db.Timestamptz
+  issuedAt           DateTime? @default(now()) @map("issued_at") @db.Timestamptz
+  attemptCount       Int?      @default(0) @map("attempt_count")
+  failureReason      String?   @map("failure_reason")
+  recoveryStatus     String?   @default("NONE") @map("recovery_status") // NONE, RETRY_PENDING, MANUAL_REQUIRED, RECOVERED, ABANDONED
+  metadata           Json?     @default("{}")
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId], map: "idx_subscription_invoices_creator")
+  @@index([subscriptionId], map: "idx_subscription_invoices_sub_id")
+  @@index([status, recoveryStatus], map: "idx_subscription_invoices_recovery")
+  @@map("subscription_invoices")
 }
 
 // ------------------------------------------------------------------------------

@@ -131,6 +131,7 @@ export default function OnboardingWizardPage() {
   // Username availability state
   const [usernameStatus, setUsernameStatus] = useState('idle') // 'idle' | 'checking' | 'available' | 'taken'
   const [usernameError, setUsernameError] = useState('')
+  const [isCurrentUsername, setIsCurrentUsername] = useState(false)
   const usernameCheckTimer = useRef(null)
 
   // 1. Initial boot and draft restoration
@@ -200,12 +201,14 @@ export default function OnboardingWizardPage() {
     if (!slug || slug.length < 3) {
       setUsernameStatus('idle')
       setUsernameError('')
+      setIsCurrentUsername(false)
       return
     }
 
     if (isReservedSlug(slug)) {
       setUsernameStatus('taken')
-      setUsernameError('Username is reserved')
+      setIsCurrentUsername(false)
+      setUsernameError('This username is reserved. Please pick another.')
       return
     }
 
@@ -215,10 +218,13 @@ export default function OnboardingWizardPage() {
         const res = await api.get(`/store/username/check?u=${encodeURIComponent(slug)}`)
         if (res?.available) {
           setUsernameStatus('available')
+          setIsCurrentUsername(Boolean(res?.isCurrent))
           setUsernameError('')
+          setStepError((prev) => (prev && prev.includes('username') ? '' : prev))
         } else {
           setUsernameStatus('taken')
-          setUsernameError(res?.error || 'Username is already taken')
+          setIsCurrentUsername(false)
+          setUsernameError(res?.error || 'This username is already taken. Please pick another.')
         }
       } catch {
         setUsernameStatus('idle')
@@ -229,6 +235,7 @@ export default function OnboardingWizardPage() {
   function handleUsernameInput(e) {
     const clean = normalizeSlug(e.target.value)
     setOnboardingData((prev) => ({ ...prev, username: clean }))
+    setStepError((prev) => (prev && prev.includes('username') ? '' : prev))
     checkUsername(clean)
   }
 
@@ -283,7 +290,11 @@ export default function OnboardingWizardPage() {
         return false
       }
       if (usernameStatus === 'taken') {
-        setStepError('This username is already taken. Please pick another.')
+        setStepError(usernameError || 'This username is already taken. Please pick another.')
+        return false
+      }
+      if (usernameStatus === 'checking') {
+        setStepError('Checking username availability...')
         return false
       }
     }
@@ -296,7 +307,32 @@ export default function OnboardingWizardPage() {
     return true
   }
 
-  function handleNext() {
+  async function handleNext() {
+    if (currentStep === 4 && (usernameStatus === 'checking' || usernameStatus === 'idle')) {
+      const cleanU = normalizeSlug(onboardingData.username)
+      if (cleanU && cleanU.length >= 3) {
+        try {
+          setUsernameStatus('checking')
+          const res = await api.get(`/store/username/check?u=${encodeURIComponent(cleanU)}`)
+          if (res?.available) {
+            setUsernameStatus('available')
+            setIsCurrentUsername(Boolean(res?.isCurrent))
+            setUsernameError('')
+            setStepError((prev) => (prev && prev.includes('username') ? '' : prev))
+          } else {
+            setUsernameStatus('taken')
+            setIsCurrentUsername(false)
+            const err = res?.error || 'This username is already taken. Please pick another.'
+            setUsernameError(err)
+            setStepError(err)
+            return
+          }
+        } catch {
+          // Fallback to validateCurrentStep
+        }
+      }
+    }
+
     if (!validateCurrentStep()) return
     trackOnboardingStepCompleted(currentStep)
     setCurrentStep((s) => Math.min(s + 1, TOTAL_STEPS))
@@ -324,9 +360,9 @@ export default function OnboardingWizardPage() {
       const cleanBio = onboardingData.bio.trim()
       const primaryCategory = onboardingData.creatorType || 'Content Creator'
 
-      // 1. Set verified custom username
+      // 1. Set verified custom username (fails safely if conflict occurs)
       if (cleanU && cleanU.length >= 3) {
-        await api.post('/store/username', { username: cleanU }).catch(() => null)
+        await api.post('/store/username', { username: cleanU })
       }
 
       // 2. Persist store details & theme
@@ -691,7 +727,7 @@ export default function OnboardingWizardPage() {
               </div>
 
               {/* Custom URL Input with Live Availability */}
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="block text-[11px] font-bold text-[#010619] uppercase tracking-wider text-left">
                   Your Custom Storefront URL
                 </label>
@@ -720,13 +756,33 @@ export default function OnboardingWizardPage() {
                       <Loader2 className="h-4 w-4 animate-spin text-[#194DF5]" />
                     )}
                     {usernameStatus === 'available' && (
-                      <Check className="h-4 w-4 text-[#22C55E] stroke-[3]" />
+                      <span className="text-xs text-[#22C55E] font-bold flex items-center gap-1 select-none">
+                        <Check className="h-4 w-4 text-[#22C55E] stroke-[3]" />
+                        <span>{isCurrentUsername ? 'Current' : 'Available'}</span>
+                      </span>
                     )}
                     {usernameStatus === 'taken' && (
-                      <span className="text-xs text-[#EF4444] font-bold">Taken</span>
+                      <span className="text-xs text-[#EF4444] font-bold select-none">Taken</span>
                     )}
                   </div>
                 </div>
+
+                {/* Live Availability Status Message */}
+                {usernameStatus === 'available' && isCurrentUsername && (
+                  <p className="text-[11px] text-[#16A34A] font-medium text-left">
+                    Your current username
+                  </p>
+                )}
+                {usernameStatus === 'available' && !isCurrentUsername && (
+                  <p className="text-[11px] text-[#16A34A] font-medium text-left">
+                    Username is available
+                  </p>
+                )}
+                {usernameStatus === 'taken' && (
+                  <p className="text-[11px] text-[#EF4444] font-medium text-left">
+                    {usernameError || 'This username is already taken. Please pick another.'}
+                  </p>
+                )}
               </div>
 
               {/* Short Bio / Tagline */}

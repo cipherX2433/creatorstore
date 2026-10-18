@@ -9,7 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import {
   ShieldCheck, RefreshCw, Banknote, DollarSign, ArrowUpRight, CheckCircle2,
-  QrCode, Landmark, Users, CreditCard, Copy, Check, X, Loader2, Search
+  QrCode, Landmark, Users, CreditCard, Copy, Check, X, Loader2, Search,
+  FileText, AlertTriangle, ExternalLink
 } from 'lucide-react'
 
 export default function AdminPaymentsPage() {
@@ -26,6 +27,15 @@ export default function AdminPaymentsPage() {
   const [payNotes, setPayNotes] = useState('')
   const [submittingPay, setSubmittingPay] = useState(false)
 
+  // Subscription Invoices & Manual Recovery
+  const [activeTab, setActiveTab] = useState('payouts') // 'payouts' | 'invoices'
+  const [invoices, setInvoices] = useState([])
+  const [loadingInvoices, setLoadingInvoices] = useState(false)
+  const [selectedInvoice, setSelectedInvoice] = useState(null)
+  const [recoveryPaymentId, setRecoveryPaymentId] = useState('')
+  const [recoveryNotes, setRecoveryNotes] = useState('')
+  const [submittingRecovery, setSubmittingRecovery] = useState(false)
+
   useEffect(() => {
     fetchData()
   }, [])
@@ -35,13 +45,28 @@ export default function AdminPaymentsPage() {
     Promise.all([
       api.get('/admin/payments').catch(() => ({ stats: {}, transfers: [] })),
       api.get('/admin/payouts').catch(() => []),
+      api.get('/admin/subscription-invoices').catch(() => ({ invoices: [] })),
     ])
-      .then(([statsRes, creatorsRes]) => {
+      .then(([statsRes, creatorsRes, invoicesRes]) => {
         setStatsData(statsRes)
         setCreators(Array.isArray(creatorsRes) ? creatorsRes : [])
+        setInvoices(invoicesRes?.invoices || [])
         setLoading(false)
       })
       .catch(() => setLoading(false))
+  }
+
+  function fetchInvoicesOnly() {
+    setLoadingInvoices(true)
+    api.get('/admin/subscription-invoices')
+      .then((res) => {
+        setInvoices(res?.invoices || [])
+        setLoadingInvoices(false)
+      })
+      .catch((err) => {
+        toast.error(err.message || 'Failed to fetch invoices')
+        setLoadingInvoices(false)
+      })
   }
 
   function handleCopy(text, id) {
@@ -85,6 +110,38 @@ export default function AdminPaymentsPage() {
       toast.error(err.message || 'Failed to mark payout as paid')
     } finally {
       setSubmittingPay(false)
+    }
+  }
+
+  function openRecoveryModal(invoice) {
+    setSelectedInvoice(invoice)
+    setRecoveryPaymentId('')
+    setRecoveryNotes('')
+  }
+
+  async function handleManualRecovery(e) {
+    e.preventDefault()
+    if (!selectedInvoice) return
+
+    setSubmittingRecovery(true)
+    try {
+      const res = await api.post('/admin/subscription-invoices/manual-recovery', {
+        razorpayInvoiceId: selectedInvoice.razorpayInvoiceId,
+        paymentId: recoveryPaymentId.trim() || undefined,
+        notes: recoveryNotes.trim() || undefined,
+      })
+
+      if (res?.ok) {
+        toast.success(res.message || 'Invoice recovery recorded successfully!')
+        setSelectedInvoice(null)
+        fetchData()
+      } else {
+        toast.error(res?.error || 'Manual recovery failed')
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to record manual recovery')
+    } finally {
+      setSubmittingRecovery(false)
     }
   }
 
@@ -159,151 +216,299 @@ export default function AdminPaymentsPage() {
         </div>
       </div>
 
-      {/* Creators Payout Profiles Table */}
-      <div className="bg-[var(--bg-surface,#242424)] rounded-[24px] border border-[var(--border-subtle,#303030)] shadow-md p-6 sm:p-8 space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-extrabold text-[var(--text-heading,#F5F5F5)]">Creator Payout Accounts</h2>
-            <p className="text-xs text-[var(--text-secondary,#A3A3A3)] font-medium">List of creators with saved payout details for manual processing</p>
-          </div>
+      {/* Navigation Tabs */}
+      <div className="flex border-b border-[var(--border-subtle,#303030)] gap-8">
+        <button
+          type="button"
+          onClick={() => setActiveTab('payouts')}
+          className={`pb-3 text-sm font-extrabold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            activeTab === 'payouts'
+              ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+              : 'border-transparent text-[var(--text-secondary,#A3A3A3)] hover:text-white'
+          }`}
+        >
+          <Banknote className="h-4 w-4" /> Creator Payouts
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('invoices')}
+          className={`pb-3 text-sm font-extrabold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            activeTab === 'invoices'
+              ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+              : 'border-transparent text-[var(--text-secondary,#A3A3A3)] hover:text-white'
+          }`}
+        >
+          <FileText className="h-4 w-4" /> Subscription Invoices & Recovery ({invoices.length})
+        </button>
+      </div>
 
-          <div className="relative w-64">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-secondary,#A3A3A3)]" />
-            <input
-              type="text"
-              placeholder="Search creator, UPI, account..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 rounded-full bg-[var(--bg-surface-hover,#2A2A2A)] border border-[var(--border-subtle,#303030)] text-xs text-[var(--text-heading,#F5F5F5)] placeholder:text-[var(--text-secondary,#A3A3A3)] focus:outline-none focus:border-[var(--accent-primary)]"
-            />
-          </div>
-        </div>
+      {activeTab === 'payouts' ? (
+        <>
+          {/* Creators Payout Profiles Table */}
+          <div className="bg-[var(--bg-surface,#242424)] rounded-[24px] border border-[var(--border-subtle,#303030)] shadow-md p-6 sm:p-8 space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-extrabold text-[var(--text-heading,#F5F5F5)]">Creator Payout Accounts</h2>
+                <p className="text-xs text-[var(--text-secondary,#A3A3A3)] font-medium">List of creators with saved payout details for manual processing</p>
+              </div>
 
-        {filteredCreators.length === 0 ? (
-          <div className="text-center py-12 border-2 border-dashed border-[var(--border-subtle,#303030)] rounded-2xl space-y-2">
-            <Users className="h-10 w-10 text-[var(--text-secondary,#A3A3A3)] mx-auto" />
-            <p className="text-sm font-bold text-[var(--text-heading,#F5F5F5)]">No creator payout accounts found</p>
-            <p className="text-xs text-[var(--text-secondary,#A3A3A3)]">Creators who submit their UPI or bank account will appear here.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-medium text-[var(--text-heading,#F5F5F5)]">
-              <thead className="bg-[var(--bg-sidebar,#0D0D0D)] text-[var(--text-secondary,#A3A3A3)] uppercase text-[10px] font-black tracking-wider border-b border-[var(--border-subtle,#303030)]">
-                <tr>
-                  <th className="py-3 px-4 rounded-l-xl">Creator</th>
-                  <th className="py-3 px-4">Payout Method</th>
-                  <th className="py-3 px-4">Account Holder</th>
-                  <th className="py-3 px-4">Payout Details</th>
-                  <th className="py-3 px-4">Available Balance</th>
-                  <th className="py-3 px-4 text-right rounded-r-xl">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border-subtle,#303030)]">
-                {filteredCreators.map((c) => {
-                  const rawTarget = c.payoutMethod === 'UPI' ? c.upiIdRaw : `${c.bankAccountRaw} (${c.ifsc})`
-                  const maskedDisplay = c.payoutMethod === 'UPI' ? c.upiIdMasked : `${c.bankAccountMasked} (${c.bankIfscMasked})`
+              <div className="relative w-64">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-secondary,#A3A3A3)]" />
+                <input
+                  type="text"
+                  placeholder="Search creator, UPI, account..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full h-9 pl-9 pr-3 rounded-full bg-[var(--bg-surface-hover,#2A2A2A)] border border-[var(--border-subtle,#303030)] text-xs text-[var(--text-heading,#F5F5F5)] placeholder:text-[var(--text-secondary,#A3A3A3)] focus:outline-none focus:border-[var(--accent-primary)]"
+                />
+              </div>
+            </div>
 
-                  return (
-                    <tr key={c.id} className="hover:bg-[var(--bg-surface-hover,#2A2A2A)] transition-colors">
-                      <td className="py-3.5 px-4">
-                        <span className="font-bold text-[var(--text-heading,#F5F5F5)] block">{c.creatorName}</span>
-                        <span className="text-[11px] text-[var(--text-secondary,#A3A3A3)] block">{c.creatorEmail}</span>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20">
-                          {c.payoutMethod === 'UPI' ? (
-                            <>
-                              <QrCode className="h-3 w-3" /> UPI
-                            </>
-                          ) : (
-                            <>
-                              <Landmark className="h-3 w-3" /> Bank
-                            </>
-                          )}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 font-semibold text-[var(--text-heading,#F5F5F5)]">
-                        {c.accountHolderName}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[var(--text-heading,#F5F5F5)] font-bold">{maskedDisplay}</span>
-                          {rawTarget && (
-                            <button
-                              type="button"
-                              onClick={() => handleCopy(rawTarget, c.id)}
-                              className="p-1 rounded bg-[var(--bg-surface-hover,#2A2A2A)] hover:bg-[var(--border-subtle,#303030)] text-[var(--text-secondary,#A3A3A3)] hover:text-white transition-colors cursor-pointer"
-                              title="Copy raw details for payment"
-                            >
-                              {copiedId === c.id ? <Check className="h-3 w-3 text-[var(--status-success,#22C55E)]" /> : <Copy className="h-3 w-3" />}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="text-sm font-black text-[var(--status-success,#22C55E)]">
-                          {formatMoney(c.availableBalance)}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <Button
-                          size="sm"
-                          onClick={() => openPayModal(c)}
-                          className="font-bold text-xs bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white rounded-full h-8 px-3.5 cursor-pointer shadow-sm"
-                        >
-                          Mark as Paid
-                        </Button>
-                      </td>
+            {filteredCreators.length === 0 ? (
+              <div className="text-center py-12 border-2 border-dashed border-[var(--border-subtle,#303030)] rounded-2xl space-y-2">
+                <Users className="h-10 w-10 text-[var(--text-secondary,#A3A3A3)] mx-auto" />
+                <p className="text-sm font-bold text-[var(--text-heading,#F5F5F5)]">No creator payout accounts found</p>
+                <p className="text-xs text-[var(--text-secondary,#A3A3A3)]">Creators who submit their UPI or bank account will appear here.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs font-medium text-[var(--text-heading,#F5F5F5)]">
+                  <thead className="bg-[var(--bg-sidebar,#0D0D0D)] text-[var(--text-secondary,#A3A3A3)] uppercase text-[10px] font-black tracking-wider border-b border-[var(--border-subtle,#303030)]">
+                    <tr>
+                      <th className="py-3 px-4 rounded-l-xl">Creator</th>
+                      <th className="py-3 px-4">Payout Method</th>
+                      <th className="py-3 px-4">Account Holder</th>
+                      <th className="py-3 px-4">Payout Details</th>
+                      <th className="py-3 px-4">Available Balance</th>
+                      <th className="py-3 px-4 text-right rounded-r-xl">Action</th>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-subtle,#303030)]">
+                    {filteredCreators.map((c) => {
+                      const rawTarget = c.payoutMethod === 'UPI' ? c.upiIdRaw : `${c.bankAccountRaw} (${c.ifsc})`
+                      const maskedDisplay = c.payoutMethod === 'UPI' ? c.upiIdMasked : `${c.bankAccountMasked} (${c.bankIfscMasked})`
 
-      {/* Recent Payout Transfers Log */}
-      <div className="bg-[var(--bg-surface,#242424)] rounded-[24px] border border-[var(--border-subtle,#303030)] shadow-md p-6 sm:p-8 space-y-6">
-        <div>
-          <h2 className="text-xl font-extrabold text-[var(--text-heading,#F5F5F5)]">Recent Processed Payouts</h2>
-          <p className="text-xs text-[var(--text-secondary,#A3A3A3)] font-medium">Reconciliation audit log of manual creator transfers</p>
+                      return (
+                        <tr key={c.id} className="hover:bg-[var(--bg-surface-hover,#2A2A2A)] transition-colors">
+                          <td className="py-3.5 px-4">
+                            <span className="font-bold text-[var(--text-heading,#F5F5F5)] block">{c.creatorName}</span>
+                            <span className="text-[11px] text-[var(--text-secondary,#A3A3A3)] block">{c.creatorEmail}</span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20">
+                              {c.payoutMethod === 'UPI' ? (
+                                <>
+                                  <QrCode className="h-3 w-3" /> UPI
+                                </>
+                              ) : (
+                                <>
+                                  <Landmark className="h-3 w-3" /> Bank
+                                </>
+                              )}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 font-semibold text-[var(--text-heading,#F5F5F5)]">
+                            {c.accountHolderName}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[var(--text-heading,#F5F5F5)] font-bold">{maskedDisplay}</span>
+                              {rawTarget && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopy(rawTarget, c.id)}
+                                  className="p-1 rounded bg-[var(--bg-surface-hover,#2A2A2A)] hover:bg-[var(--border-subtle,#303030)] text-[var(--text-secondary,#A3A3A3)] hover:text-white transition-colors cursor-pointer"
+                                  title="Copy raw details for payment"
+                                >
+                                  {copiedId === c.id ? <Check className="h-3 w-3 text-[var(--status-success,#22C55E)]" /> : <Copy className="h-3 w-3" />}
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="text-sm font-black text-[var(--status-success,#22C55E)]">
+                              {formatMoney(c.availableBalance)}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <Button
+                              size="sm"
+                              onClick={() => openPayModal(c)}
+                              className="font-bold text-xs bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white rounded-full h-8 px-3.5 cursor-pointer shadow-sm"
+                            >
+                              Mark as Paid
+                            </Button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Recent Payout Transfers Log */}
+          <div className="bg-[var(--bg-surface,#242424)] rounded-[24px] border border-[var(--border-subtle,#303030)] shadow-md p-6 sm:p-8 space-y-6">
+            <div>
+              <h2 className="text-xl font-extrabold text-[var(--text-heading,#F5F5F5)]">Recent Processed Payouts</h2>
+              <p className="text-xs text-[var(--text-secondary,#A3A3A3)] font-medium">Reconciliation audit log of manual creator transfers</p>
+            </div>
+
+            {transfers.length === 0 ? (
+              <div className="text-center py-10 border-2 border-dashed border-[var(--border-subtle,#303030)] rounded-2xl space-y-2">
+                <Banknote className="h-8 w-8 text-[var(--text-secondary,#A3A3A3)] mx-auto" />
+                <p className="text-xs font-bold text-[var(--text-secondary,#A3A3A3)]">No manual transfers recorded yet</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs font-medium text-[var(--text-heading,#F5F5F5)]">
+                  <thead className="bg-[var(--bg-sidebar,#0D0D0D)] text-[var(--text-secondary,#A3A3A3)] uppercase text-[10px] font-black tracking-wider border-b border-[var(--border-subtle,#303030)]">
+                    <tr>
+                      <th className="py-3 px-4 rounded-l-xl">Reference / UTR</th>
+                      <th className="py-3 px-4">Amount</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 rounded-r-xl">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-subtle,#303030)]">
+                    {transfers.map((t) => (
+                      <tr key={t.id} className="hover:bg-[var(--bg-surface-hover,#2A2A2A)] transition-colors">
+                        <td className="py-3 px-4 font-mono font-bold text-[var(--text-heading,#F5F5F5)]">{t.transferId || t.razorpayTransferId || t.id.slice(0, 12)}</td>
+                        <td className="py-3 px-4 font-black text-[var(--status-success,#22C55E)]">{formatMoney(t.amount)}</td>
+                        <td className="py-3 px-4">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[var(--status-success,#22C55E)]/10 text-[var(--status-success,#22C55E)] border border-[var(--status-success,#22C55E)]/20">
+                            {t.status || 'PROCESSED'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-[var(--text-secondary,#A3A3A3)]">{new Date(t.date || t.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        /* Subscription Invoices & Manual Recovery Tab */
+        <div className="space-y-6">
+          <div className="bg-[var(--bg-surface,#242424)] rounded-[24px] border border-[var(--border-subtle,#303030)] shadow-md p-6 sm:p-8 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-extrabold text-[var(--text-heading,#F5F5F5)]">Subscription Invoices & Recovery</h2>
+                <p className="text-xs text-[var(--text-secondary,#A3A3A3)] font-medium">
+                  Track recurring invoices, review payment-pending or halted subscriptions, and record audited manual recoveries from the Razorpay Dashboard.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={fetchInvoicesOnly}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full border-[var(--border-subtle,#303030)] text-xs text-[var(--text-heading,#F5F5F5)] hover:bg-[var(--bg-surface-hover,#2A2A2A)]"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loadingInvoices ? 'animate-spin' : ''}`} /> Refresh Invoices
+                </Button>
+              </div>
+            </div>
+
+            {/* Instruction Banner */}
+            <div className="p-4 rounded-[16px] bg-[var(--bg-surface-hover,#2A2A2A)] border border-[var(--border-subtle,#303030)] text-xs space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-[var(--accent-primary)]">
+                <ShieldCheck className="h-4 w-4" /> Razorpay Manual Charge & Recovery Protocol
+              </div>
+              <p className="text-[var(--text-secondary,#A3A3A3)] leading-relaxed">
+                Under Razorpay's Subscriptions architecture, manual invoice charging on issued recurring invoices is initiated via the <span className="font-semibold text-white">Razorpay Dashboard &gt; Subscriptions &gt; Invoices &gt; Charge</span>. Once charged or collected, record the recovery below to verify the invoice via API, restore the customer's entitlements, and reconcile billing records without double charges.
+              </p>
+            </div>
+
+            {invoices.length === 0 ? (
+              <div className="text-center py-12 border-2 border-dashed border-[var(--border-subtle,#303030)] rounded-2xl space-y-2">
+                <FileText className="h-10 w-10 text-[var(--text-secondary,#A3A3A3)] mx-auto" />
+                <p className="text-sm font-bold text-[var(--text-heading,#F5F5F5)]">No subscription invoices recorded yet</p>
+                <p className="text-xs text-[var(--text-secondary,#A3A3A3)]">Invoices created during Razorpay recurring subscription cycles will automatically appear here.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs font-medium text-[var(--text-heading,#F5F5F5)]">
+                  <thead className="bg-[var(--bg-sidebar,#0D0D0D)] text-[var(--text-secondary,#A3A3A3)] uppercase text-[10px] font-black tracking-wider border-b border-[var(--border-subtle,#303030)]">
+                    <tr>
+                      <th className="py-3 px-4 rounded-l-xl">Customer</th>
+                      <th className="py-3 px-4">Invoice ID</th>
+                      <th className="py-3 px-4">Subscription</th>
+                      <th className="py-3 px-4">Amount</th>
+                      <th className="py-3 px-4">Invoice Status</th>
+                      <th className="py-3 px-4">Billing Period</th>
+                      <th className="py-3 px-4 text-right rounded-r-xl">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-subtle,#303030)]">
+                    {invoices.map((inv) => {
+                      const isPaid = inv.status === 'paid'
+                      const isHalted = inv.subscription?.status === 'HALTED'
+                      const isPastDue = inv.subscription?.isPastDue
+
+                      return (
+                        <tr key={inv.id} className="hover:bg-[var(--bg-surface-hover,#2A2A2A)] transition-colors">
+                          <td className="py-3.5 px-4">
+                            <span className="font-bold text-[var(--text-heading,#F5F5F5)] block">{inv.user?.name || 'Creator'}</span>
+                            <span className="text-[11px] text-[var(--text-secondary,#A3A3A3)] block">{inv.user?.email}</span>
+                          </td>
+                          <td className="py-3.5 px-4 font-mono font-bold text-white">
+                            {inv.razorpayInvoiceId}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="font-mono text-[11px] text-[var(--text-secondary,#A3A3A3)] block">{inv.razorpaySubscriptionId}</span>
+                            <span className="text-[10px] font-bold text-[var(--accent-primary)] uppercase">{inv.subscription?.plan || 'PRO'}</span>
+                          </td>
+                          <td className="py-3.5 px-4 font-black text-white">
+                            ₹{(inv.amount / 100).toFixed(2)}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {isPaid ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[var(--status-success,#22C55E)]/10 text-[var(--status-success,#22C55E)] border border-[var(--status-success,#22C55E)]/20">
+                                PAID
+                              </span>
+                            ) : isHalted ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[var(--status-error,#EF4444)]/10 text-[var(--status-error,#EF4444)] border border-[var(--status-error,#EF4444)]/20">
+                                HALTED
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[var(--status-warning,#EF6820)]/10 text-[var(--status-warning,#EF6820)] border border-[var(--status-warning,#EF6820)]/20">
+                                {inv.status.toUpperCase()}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-[11px] text-[var(--text-secondary,#A3A3A3)]">
+                            {inv.billingStart ? new Date(inv.billingStart).toLocaleDateString() : 'N/A'} - {inv.billingEnd ? new Date(inv.billingEnd).toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            {isPaid ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--status-success,#22C55E)]">
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Reconciled
+                              </span>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => openRecoveryModal(inv)}
+                                className="font-bold text-xs bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white rounded-full h-8 px-3.5 cursor-pointer shadow-sm"
+                              >
+                                Record Recovery
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
-
-        {transfers.length === 0 ? (
-          <div className="text-center py-10 border-2 border-dashed border-[var(--border-subtle,#303030)] rounded-2xl space-y-2">
-            <Banknote className="h-8 w-8 text-[var(--text-secondary,#A3A3A3)] mx-auto" />
-            <p className="text-xs font-bold text-[var(--text-secondary,#A3A3A3)]">No manual transfers recorded yet</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-medium text-[var(--text-heading,#F5F5F5)]">
-              <thead className="bg-[var(--bg-sidebar,#0D0D0D)] text-[var(--text-secondary,#A3A3A3)] uppercase text-[10px] font-black tracking-wider border-b border-[var(--border-subtle,#303030)]">
-                <tr>
-                  <th className="py-3 px-4 rounded-l-xl">Reference / UTR</th>
-                  <th className="py-3 px-4">Amount</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 rounded-r-xl">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border-subtle,#303030)]">
-                {transfers.map((t) => (
-                  <tr key={t.id} className="hover:bg-[var(--bg-surface-hover,#2A2A2A)] transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-[var(--text-heading,#F5F5F5)]">{t.transferId || t.razorpayTransferId || t.id.slice(0, 12)}</td>
-                    <td className="py-3 px-4 font-black text-[var(--status-success,#22C55E)]">{formatMoney(t.amount)}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[var(--status-success,#22C55E)]/10 text-[var(--status-success,#22C55E)] border border-[var(--status-success,#22C55E)]/20">
-                        {t.status || 'PROCESSED'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-[var(--text-secondary,#A3A3A3)]">{new Date(t.date || t.createdAt).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* ================= MARK AS PAID MODAL ================= */}
       {selectedCreator && (
@@ -412,6 +617,102 @@ export default function AdminPaymentsPage() {
                 >
                   {submittingPay ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                   Confirm Payout Paid
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* ================= RECORD MANUAL RECOVERY MODAL ================= */}
+      {selectedInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-[var(--bg-surface,#242424)] border border-[var(--border-subtle,#303030)] rounded-[24px] p-6 sm:p-8 shadow-2xl text-[var(--text-heading,#F5F5F5)] space-y-6">
+            
+            <button
+              onClick={() => setSelectedInvoice(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-full bg-[var(--bg-surface-hover,#2A2A2A)] text-[var(--text-secondary,#A3A3A3)] hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent-primary)]">Manual Invoice Recovery</span>
+              <h2 className="text-xl font-extrabold text-white">Record Recovery for {selectedInvoice.razorpayInvoiceId}</h2>
+              <p className="text-xs text-[var(--text-secondary,#A3A3A3)]">
+                Reconcile a payment collected manually via the Razorpay Dashboard to restore the creator's paid plan entitlements.
+              </p>
+            </div>
+
+            {/* Invoice Summary Box */}
+            <div className="bg-[var(--bg-surface-hover,#2A2A2A)] p-4 rounded-[16px] border border-[var(--border-subtle,#303030)] space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-[var(--text-secondary,#A3A3A3)]">Customer:</span>
+                <span className="font-bold text-white">{selectedInvoice.user?.name || selectedInvoice.user?.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[var(--text-secondary,#A3A3A3)]">Subscription ID:</span>
+                <span className="font-mono font-bold text-white">{selectedInvoice.razorpaySubscriptionId}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[var(--text-secondary,#A3A3A3)]">Amount:</span>
+                <span className="font-black text-[var(--status-success,#22C55E)]">₹{(selectedInvoice.amount / 100).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between pt-1 border-t border-[var(--border-subtle,#303030)]">
+                <span className="text-[var(--text-secondary,#A3A3A3)]">Invoice Status:</span>
+                <span className="font-bold text-[var(--status-warning,#EF6820)] uppercase">{selectedInvoice.status}</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleManualRecovery} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="recoveryPaymentId" className="text-xs font-bold text-[var(--text-heading,#F5F5F5)]">
+                  Razorpay Payment ID (Optional if paid on invoice)
+                </Label>
+                <Input
+                  id="recoveryPaymentId"
+                  type="text"
+                  placeholder="e.g. pay_Nabc1234567890"
+                  value={recoveryPaymentId}
+                  onChange={(e) => setRecoveryPaymentId(e.target.value)}
+                  className="rounded-full h-11 bg-[var(--bg-surface-hover,#2A2A2A)] border border-[var(--border-subtle,#303030)] text-white font-mono text-xs"
+                />
+                <span className="text-[11px] text-[var(--text-secondary,#A3A3A3)] block">
+                  Leave blank to auto-detect the payment ID from Razorpay's invoice API.
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="recoveryNotes" className="text-xs font-bold text-[var(--text-heading,#F5F5F5)]">
+                  Recovery Notes / Audit Reason
+                </Label>
+                <Input
+                  id="recoveryNotes"
+                  type="text"
+                  placeholder="e.g. Customer paid outstanding charge via Dashboard link"
+                  value={recoveryNotes}
+                  onChange={(e) => setRecoveryNotes(e.target.value)}
+                  className="rounded-full h-11 bg-[var(--bg-surface-hover,#2A2A2A)] border border-[var(--border-subtle,#303030)] text-white text-xs"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSelectedInvoice(null)}
+                  className="rounded-full border-[var(--border-subtle,#303030)] text-[var(--text-heading,#F5F5F5)] hover:bg-[var(--bg-surface-hover,#2A2A2A)]"
+                >
+                  Cancel
+                </Button>
+                <button
+                  type="submit"
+                  disabled={submittingRecovery}
+                  className="font-extrabold bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white rounded-full h-10 px-6 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 text-xs shadow-sm"
+                >
+                  {submittingRecovery ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                  Verify & Restore Access
                 </button>
               </div>
             </form>

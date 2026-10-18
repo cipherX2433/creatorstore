@@ -1136,7 +1136,7 @@ export default function StoreBuilderPage() {
     updateStore((s) => {
       s.sections.push(section)
       return s
-    })
+    }, { immediate: true })
     setSelectedId(section.id)
     setEditingCollection(section)
     setAddCollectionOpen(false)
@@ -1145,37 +1145,44 @@ export default function StoreBuilderPage() {
   }
 
   function updateCollectionProps(sectionId, patchProps) {
+    const isImmediate = patchProps.layout !== undefined || patchProps.displayMode !== undefined
     updateStore((s) => {
       const sec = s.sections.find((x) => x.id === sectionId)
       if (sec) {
         sec.props = { ...sec.props, ...patchProps }
       }
       return s
-    })
+    }, { immediate: isImmediate })
     setEditingCollection((prev) => (prev && prev.id === sectionId ? { ...prev, props: { ...prev.props, ...patchProps } } : prev))
   }
 
   function addItemToCollection(sectionId, itemObj) {
     let alreadyExists = false
+    let targetCollection = null
+    const candidateId = String(itemObj.productId || itemObj.id || '')
     updateStore((s) => {
       const sec = s.sections.find((x) => x.id === sectionId)
       if (sec) {
-        const curItems = sec.props?.items || []
-        if (itemObj.type === 'product' && curItems.some((it) => it.type === 'product' && it.productId === itemObj.productId)) {
+        const curItems = Array.isArray(sec.props?.items) ? sec.props.items : []
+        if (curItems.some((it) => {
+          const itId = String(it.productId || it.courseId || it.id || '')
+          return candidateId && itId === candidateId
+        })) {
           alreadyExists = true
           return s
         }
         sec.props = { ...sec.props, items: [...curItems, itemObj] }
+        targetCollection = sec
       }
       return s
-    })
+    }, { immediate: true })
     if (alreadyExists) {
       toast('Already in this collection')
       return false
     }
     setEditingCollection((prev) => {
-      if (!prev || prev.id !== sectionId) return prev
-      const curItems = prev.props?.items || []
+      if (!prev || prev.id !== sectionId) return targetCollection || prev
+      const curItems = Array.isArray(prev.props?.items) ? prev.props.items : []
       return { ...prev, props: { ...prev.props, items: [...curItems, itemObj] } }
     })
     toast.success('Added item to collection')
@@ -1183,37 +1190,41 @@ export default function StoreBuilderPage() {
   }
 
   function removeItemFromCollection(sectionId, itemId) {
+    let targetCollection = null
+    const targetStrId = String(itemId)
     updateStore((s) => {
       const sec = s.sections.find((x) => x.id === sectionId)
       if (sec) {
-        const curItems = sec.props?.items || []
-        const removedItem = curItems.find((it) => (it.id || it.productId) === itemId)
-        sec.props = { ...sec.props, items: curItems.filter((it) => (it.id || it.productId) !== itemId) }
+        const curItems = Array.isArray(sec.props?.items) ? sec.props.items : []
+        const removedItem = curItems.find((it) => String(it.id || it.productId || it.courseId) === targetStrId)
+        const remainingItems = curItems.filter((it) => String(it.id || it.productId || it.courseId) !== targetStrId)
+        sec.props = { ...sec.props, items: remainingItems }
+        targetCollection = sec
 
-        // Guarantee safety: if removed item was a product and there is no top-level section for it, create one
-        if (removedItem && removedItem.type === 'product' && (removedItem.productId || removedItem.id)) {
-          const prodId = removedItem.productId || removedItem.id
+        // Guarantee safety: if removed item was a product/course and there is no top-level section for it, create one
+        if (removedItem && (removedItem.productId || removedItem.courseId || removedItem.id)) {
+          const prodId = String(removedItem.productId || removedItem.courseId || removedItem.id)
           const hasSection = s.sections.some(
             (x) => (x.type === 'product' || x.type === 'course') &&
-              (x.props?.productId === prodId || x.props?.courseId === prodId)
+              (String(x.props?.productId) === prodId || String(x.props?.courseId) === prodId)
           )
           if (!hasSection) {
             s.sections.push({
               id: uuidv4(),
-              type: 'product',
+              type: removedItem.type === 'course' ? 'course' : 'product',
               hidden: false,
               pageId: sec.pageId || null,
-              props: { productId: prodId, layout: 'classic' }
+              props: removedItem.type === 'course' ? { courseId: prodId, layout: 'classic' } : { productId: prodId, layout: 'classic' }
             })
           }
         }
       }
       return s
-    })
+    }, { immediate: true })
     setEditingCollection((prev) => {
-      if (!prev || prev.id !== sectionId) return prev
-      const curItems = prev.props?.items || []
-      return { ...prev, props: { ...prev.props, items: curItems.filter((it) => (it.id || it.productId) !== itemId) } }
+      if (!prev || prev.id !== sectionId) return targetCollection || prev
+      const curItems = Array.isArray(prev.props?.items) ? prev.props.items : []
+      return { ...prev, props: { ...prev.props, items: curItems.filter((it) => String(it.id || it.productId || it.courseId) !== targetStrId) } }
     })
     toast.success('Removed item from collection')
   }
@@ -1231,7 +1242,7 @@ export default function StoreBuilderPage() {
         }
       }
       return s
-    })
+    }, { immediate: true })
     setEditingCollection((prev) => {
       if (!prev || prev.id !== sectionId || !Array.isArray(prev.props?.items)) return prev
       const items = [...prev.props.items]
@@ -2194,12 +2205,12 @@ export default function StoreBuilderPage() {
 
   const profile = me?.profile
 
-  const scheduleSave = useCallback((next) => {
+  const scheduleSave = useCallback((next, immediate = false) => {
     setSaveState('saving')
     if (saveTimer.current) {
       clearTimeout(saveTimer.current)
     }
-    saveTimer.current = setTimeout(async () => {
+    const runSave = async () => {
       const thisSeq = ++saveSeqRef.current
       try {
         const latest = storeRef.current || next
@@ -2236,6 +2247,11 @@ export default function StoreBuilderPage() {
             ...res.store,
             sections: canonicalSections,
           }
+          setEditingCollection((prev) => {
+            if (!prev) return null
+            const updated = canonicalSections.find((x) => x.id === prev.id)
+            return updated || prev
+          })
         }
         setSaveState('saved')
         if (typeof window !== 'undefined') {
@@ -2247,21 +2263,25 @@ export default function StoreBuilderPage() {
           toast.error('Failed to save changes')
         }
       }
-    }, 350)
+    }
+
+    if (immediate) {
+      runSave()
+    } else {
+      saveTimer.current = setTimeout(runSave, 350)
+    }
   }, [])
 
-  function updateStore(mutator) {
-    let nextState = null
-    setStore((prev) => {
-      const base = prev ? structuredClone(prev) : { sections: [], theme: {} }
-      if (!Array.isArray(base.sections)) base.sections = []
-      nextState = mutator(base)
-      return nextState
-    })
-    if (nextState) {
-      storeRef.current = nextState
-      scheduleSave(nextState)
-    }
+  function updateStore(mutator, options = {}) {
+    const current = storeRef.current || store || { sections: [], theme: {} }
+    const base = structuredClone(current)
+    if (!Array.isArray(base.sections)) base.sections = []
+    const mutated = mutator(base)
+    const nextState = mutated !== undefined ? mutated : base
+    storeRef.current = nextState
+    setStore(nextState)
+    scheduleSave(nextState, Boolean(options?.immediate))
+    return nextState
   }
 
   // Update theme locally for immediate live preview without auto-persisting to DB
@@ -3103,35 +3123,8 @@ export default function StoreBuilderPage() {
             )}
             </div>
 
-            {/* RIGHT: STOREFRONT PREVIEW COLUMN (URL PILL + SHARE + PREVIEW) */}
-            <div className="flex flex-col items-center gap-4 w-full max-w-[420px] mx-auto lg:sticky lg:top-6">
-
-              {/* TOP BAR: CLEAN URL PILL & SHARE BUTTON */}
-              <div className="w-[min(360px,100%)] flex items-center justify-between gap-3">
-                <a
-                  href={typeof window !== 'undefined' && storeSlug ? `${window.location.origin}/${storeSlug}` : `/${storeSlug || 'store'}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#E5E5E3] bg-[#FFFFFF] hover:bg-[#F5F5F3] text-xs font-semibold text-[#1F1F1F] shadow-xs transition-colors truncate max-w-[240px]"
-                  title="Open storefront"
-                >
-                  <span className="h-4 w-4 rounded-full bg-[#F5F5F3] text-[#1F1F1F] border border-[#E5E5E3] flex items-center justify-center text-[9px] shrink-0 font-bold">
-                    cs
-                  </span>
-                  <span className="truncate">creatorstore.store/{storeSlug || 'creator'}</span>
-                  <ExternalLink className="h-3 w-3 text-[#999995] shrink-0 ml-0.5" />
-                </a>
-
-                <button
-                  type="button"
-                  onClick={() => setShareOpen(true)}
-                  className="h-8 px-3.5 rounded-full border border-[#E5E5E3] bg-[#FFFFFF] hover:bg-[#F5F5F3] text-[#1F1F1F] text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer shrink-0"
-                  title="Share Store"
-                >
-                  <Share2 className="h-3.5 w-3.5 text-[#1F1F1F]" />
-                  <span>Share</span>
-                </button>
-              </div>
+            {/* RIGHT: STOREFRONT PREVIEW COLUMN */}
+            <div className="flex flex-col items-center w-full max-w-[420px] mx-auto lg:sticky lg:top-6">
 
               {/* PREVIEW CONTAINER WITH ATTACHED SIDE CONTROLS */}
               <div className="relative w-[min(360px,100%)] flex items-center justify-center">
@@ -3183,16 +3176,6 @@ export default function StoreBuilderPage() {
                       onSelectPage={(targetId) => setActivePageId(targetId === 'home' ? null : targetId)}
                     />
                   </div>
-
-                  {/* FLOATING SPARKLE THEME BUTTON */}
-                  <button
-                    type="button"
-                    onClick={() => handleTabChange('design')}
-                    className="absolute bottom-5 right-5 h-12 w-12 rounded-full bg-gradient-to-br from-[#D946EF] to-[#A855F7] text-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer"
-                    title="Customize Theme & Design"
-                  >
-                    <Sparkles className="h-6 w-6" />
-                  </button>
                 </div>
               </div>
             </div>
@@ -3391,14 +3374,14 @@ export default function StoreBuilderPage() {
           addModalType === 'coaching' || addModalType === 'course'
             ? 'sm:max-w-4xl max-w-4xl w-[95vw] sm:w-full max-h-[90vh] p-0 gap-0 overflow-hidden'
             : addModalType === 'menu'
-            ? 'sm:max-w-[780px] w-[95vw] sm:w-full max-h-[92vh] p-5 sm:p-7 rounded-[28px] bg-white border border-[#E5E5E3] shadow-[0_24px_70px_rgba(0,0,0,0.15)] gap-0 overflow-hidden'
+            ? 'sm:max-w-[780px] w-[95vw] sm:w-full h-[88vh] sm:h-[640px] max-h-[92vh] p-4 sm:p-7 rounded-[28px] bg-white border border-[#E5E5E3] shadow-[0_24px_70px_rgba(0,0,0,0.15)] gap-0 overflow-hidden flex flex-col'
             : 'sm:max-w-[700px]'
         }
         bodyClassName={
           addModalType === 'coaching' || addModalType === 'course'
             ? 'p-0 min-h-[500px] flex flex-col flex-1'
             : addModalType === 'menu'
-            ? 'p-0 flex flex-col flex-1 overflow-hidden'
+            ? 'p-0 flex flex-col flex-1 min-h-0 overflow-hidden'
             : 'pt-5'
         }
         title={
@@ -3500,8 +3483,6 @@ export default function StoreBuilderPage() {
                 openDigitalProductWizard()
               } else if (opt.type === 'coaching') {
                 openCoachingCreationFlow()
-              } else if (opt.type === 'course') {
-                openCourseCreationFlow()
               } else if (opt.type === 'link') {
                 if (opt.prefillUrl) {
                   const validated = safeUrlValidate(opt.prefillUrl)
@@ -3511,6 +3492,19 @@ export default function StoreBuilderPage() {
                   }
                   addSectionWithProps('button', {
                     label: opt.prefillTitle || 'Link',
+                    url: validated,
+                    layout: 'classic',
+                  })
+                  setAddModalOpen(false)
+                } else {
+                  setAddModalType('link')
+                }
+              } else if (opt.type === 'link_preset') {
+                const targetUrl = opt.presetUrl || 'https://'
+                const validated = safeUrlValidate(targetUrl)
+                if (validated) {
+                  addSectionWithProps('button', {
+                    label: opt.title || 'Link',
                     url: validated,
                     layout: 'classic',
                   })
@@ -3529,25 +3523,48 @@ export default function StoreBuilderPage() {
                 }
               } else if (opt.type === 'forms_menu') {
                 setAddModalType('forms_menu')
-              } else if (opt.type === 'form') {
-                setSelectedFormType(opt.formType || 'contact')
+              } else if (
+                opt.type === 'form' ||
+                opt.type === 'form_contact' ||
+                opt.type === 'form_newsletter' ||
+                opt.type === 'form_feedback' ||
+                opt.type === 'form_qa'
+              ) {
+                const fType =
+                  opt.formType ||
+                  (opt.type === 'form_newsletter'
+                    ? 'newsletter'
+                    : opt.type === 'form_feedback'
+                    ? 'feedback'
+                    : opt.type === 'form_qa'
+                    ? 'qa'
+                    : 'contact')
+                setSelectedFormType(fType)
                 setEditingFormSection(null)
                 setAddModalType('form_config')
-              } else if (opt.type === 'media') {
-                setSelectedMediaType(opt.mediaType)
+              } else if (
+                opt.type === 'media' ||
+                opt.type === 'youtube' ||
+                opt.type === 'video' ||
+                opt.type === 'gallery' ||
+                opt.type === 'audio' ||
+                opt.type === 'pdf'
+              ) {
+                const mType = opt.mediaType || opt.type
+                setSelectedMediaType(mType)
                 setEditingMediaSection(null)
                 setAddModalType('media_config')
-              } else if (opt.type === 'event') {
+              } else if (opt.type === 'event' || opt.type === 'webinar') {
                 addSectionWithProps('button', {
-                  label: 'Upcoming Event',
+                  label: opt.title || 'Live Webinar or Event',
                   url: 'https://',
                   layout: 'classic',
                 })
                 setAddModalOpen(false)
-              } else if (opt.type === 'heading_text') {
+              } else if (opt.type === 'heading_text' || opt.type === 'heading') {
                 addSectionWithProps('heading', { text: 'Section Heading' })
                 setAddModalOpen(false)
-              } else if (opt.type === 'text_block') {
+              } else if (opt.type === 'text_block' || opt.type === 'text') {
                 addSectionWithProps('text', { text: 'Add your text here...' })
                 setAddModalOpen(false)
               } else if (opt.type === 'existing_product') {
@@ -3893,7 +3910,7 @@ export default function StoreBuilderPage() {
             ) : (
               <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                 {products.map((p) => {
-                  const alreadyInCollection = editingCollection?.props?.items?.some((it) => it.type === 'product' && it.productId === p.id)
+                  const alreadyInCollection = editingCollection?.props?.items?.some((it) => (it.productId && String(it.productId) === String(p.id)) || (it.id && String(it.id) === String(p.id)))
                   return (
                     <button
                       key={p.id}

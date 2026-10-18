@@ -143,6 +143,9 @@ export default function SettingsPage() {
       if (updateDashboardProfile) updateDashboardProfile(updatedProfile)
       if (updatedStore && updateDashboardStore) updateDashboardStore(updatedStore)
       if (refreshMe) await refreshMe()
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('creatorstore:setup-updated'))
+      }
 
       toast.success('Store & Profile saved successfully!')
     } catch (e) {

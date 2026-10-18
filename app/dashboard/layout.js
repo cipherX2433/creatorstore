@@ -24,8 +24,8 @@ import {
 import {
   LayoutDashboard, Store, Package, CreditCard, Compass, Bot,
   Users, Link2, Palette, ChevronRight,
-  HelpCircle, Loader2, ExternalLink, Menu, X,
-  Wallet, Clock, Calendar, Megaphone, Zap, ShoppingBag, Settings
+  Loader2, ExternalLink, Menu, X,
+  Wallet, Clock, Calendar, Zap, ShoppingBag
 } from 'lucide-react'
 
 function NavTooltip({ label, visible }) {
@@ -108,7 +108,7 @@ function DashboardContent({ children }) {
             }`}
         >
           {/* Profile / Account Row */}
-          <div className="pt-3.5 px-3.5 pb-3.5 shrink-0 bg-[#F2F1EF]">
+          <div className="pt-2 px-3 pb-1 shrink-0 bg-[#F2F1EF]">
             <SidebarProfileRow
               me={me}
               onLogout={logout}
@@ -117,8 +117,8 @@ function DashboardContent({ children }) {
             />
           </div>
 
-          {/* Sidebar Navigation (Rule 5 & 6 & 15: only nav scrolls, spacious 8-10px gap, 24px fixed icon column) */}
-          <nav className="flex-1 overflow-y-auto no-scrollbar py-1 px-3.5 space-y-2">
+          {/* Sidebar Navigation */}
+          <nav className="flex-1 overflow-y-auto no-scrollbar py-1 px-3 space-y-1.5">
 
             {/* MY STORE COLLAPSIBLE SECTION */}
             <div>
@@ -126,25 +126,31 @@ function DashboardContent({ children }) {
                 <Link
                   href="/dashboard/store"
                   onClick={handleNavClick}
-                  className={`group relative flex items-center h-[46px] transition-colors duration-150 ${isHovered ? 'px-3.5 rounded-[15px]' : 'justify-center mx-1 rounded-[14px]'
-                    } ${isStoreActive && !isHovered
-                      ? 'bg-[#FFFFFF] text-[#1F1F1F] border border-[#E5E5E3] shadow-[0_2px_8px_rgba(0,0,0,0.03)] font-semibold'
-                      : (isStoreActive && isHovered
-                        ? 'bg-[#FFFFFF] text-[#1F1F1F] font-semibold border border-[#E5E5E3] shadow-[0_2px_8px_rgba(0,0,0,0.03)]'
-                        : 'text-[#5F5F5F] hover:bg-[#EAE9E6] hover:text-[#1F1F1F]')
-                    }`}
+                  className={`group relative flex items-center h-[48px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
+                    isHovered ? 'px-3 rounded-[12px]' : 'justify-center mx-0.5 rounded-[12px]'
+                  } ${
+                    isStoreActive && (!myStoreOpen || !isHovered)
+                      ? 'bg-[#E5E4E1] text-[#1F1F1F] font-medium'
+                      : 'text-[#5F5F5F] hover:bg-[#EAE9E6] hover:text-[#1F1F1F]'
+                  }`}
                 >
                   <div className="w-6 min-w-[24px] max-w-[24px] h-6 flex items-center justify-center shrink-0">
-                    <Store className={`h-[22px] w-[22px] stroke-[1.8] shrink-0 ${isStoreActive ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`} />
+                    <Store className={`h-[21px] w-[21px] stroke-[1.8] shrink-0 ${
+                      isStoreActive && (!myStoreOpen || !isHovered) ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'
+                    }`} />
                   </div>
 
                   {isHovered ? (
                     <>
-                      <span className="ml-3.5 text-[15.5px] font-[550] leading-none whitespace-nowrap">My Store</span>
+                      <span className={`ml-3.5 text-[16px] leading-none whitespace-nowrap tracking-[-0.01em] ${
+                        isStoreActive && (!myStoreOpen || !isHovered) ? 'font-medium text-[#1F1F1F]' : 'font-[450] text-[#5F5F5F] group-hover:text-[#1F1F1F]'
+                      }`}>
+                        My Store
+                      </span>
                       <button
                         type="button"
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMyStoreOpen(!myStoreOpen) }}
-                        className="ml-auto p-1 text-[#999995] hover:text-[#1F1F1F] cursor-pointer"
+                        className="ml-auto p-1 text-[#999995] hover:text-[#1F1F1F] cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 rounded-md"
                         aria-label="Toggle My Store submenu"
                       >
                         <ChevronRight className={`h-4.5 w-4.5 transition-transform duration-200 ${myStoreOpen ? 'rotate-90 text-[#1F1F1F]' : ''}`} />
@@ -156,9 +162,9 @@ function DashboardContent({ children }) {
                 </Link>
               </div>
 
-              {/* MY STORE Child Items (Rule 9 & 10: subtle vertical guide, 40px indentation, 38-42px height, 15px text) */}
+              {/* MY STORE Child Items */}
               {isHovered && myStoreOpen && (
-                <div className="ml-6 pl-3.5 border-l border-[#E5E5E3] space-y-1.5 my-2">
+                <div className="ml-[23px] pl-3 border-l border-[#E5E5E3] space-y-1 my-1">
                   {MY_STORE_CHILDREN.map((child) => {
                     let active = false
                     if (child.label === 'Store') active = pathname === '/dashboard/store' && currentTab !== 'design'
@@ -171,10 +177,11 @@ function DashboardContent({ children }) {
                         key={child.label}
                         href={child.href}
                         onClick={handleNavClick}
-                        className={`group flex items-center gap-3 px-3 h-10 rounded-[12px] text-[14.5px] transition-colors duration-150 ${active
-                          ? 'bg-[#E5E4E1] text-[#1F1F1F] font-semibold'
-                          : 'text-[#5F5F5F] hover:text-[#1F1F1F] hover:bg-[#EAE9E6]'
-                          }`}
+                        className={`group flex items-center gap-2.5 px-3 h-[40px] rounded-[10px] text-[14.5px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
+                          active
+                            ? 'bg-[#E5E4E1] text-[#1F1F1F] font-medium'
+                            : 'text-[#5F5F5F] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] font-[420]'
+                        }`}
                       >
                         <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`} />
                         <span className="whitespace-nowrap">{child.label}</span>
@@ -191,25 +198,31 @@ function DashboardContent({ children }) {
                 <Link
                   href="/dashboard"
                   onClick={handleNavClick}
-                  className={`group relative flex items-center h-[46px] transition-colors duration-150 ${isHovered ? 'px-3.5 rounded-[15px]' : 'justify-center mx-1 rounded-[14px]'
-                    } ${isEarnActive && !isHovered
-                      ? 'bg-[#FFFFFF] text-[#1F1F1F] border border-[#E5E5E3] shadow-[0_2px_8px_rgba(0,0,0,0.03)] font-semibold'
-                      : (isEarnActive && isHovered
-                        ? 'bg-[#FFFFFF] text-[#1F1F1F] font-semibold border border-[#E5E5E3] shadow-[0_2px_8px_rgba(0,0,0,0.03)]'
-                        : 'text-[#5F5F5F] hover:bg-[#EAE9E6] hover:text-[#1F1F1F]')
-                    }`}
+                  className={`group relative flex items-center h-[48px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
+                    isHovered ? 'px-3 rounded-[12px]' : 'justify-center mx-0.5 rounded-[12px]'
+                  } ${
+                    isEarnActive && (!earnOpen || !isHovered)
+                      ? 'bg-[#E5E4E1] text-[#1F1F1F] font-medium'
+                      : 'text-[#5F5F5F] hover:bg-[#EAE9E6] hover:text-[#1F1F1F]'
+                  }`}
                 >
                   <div className="w-6 min-w-[24px] max-w-[24px] h-6 flex items-center justify-center shrink-0">
-                    <Wallet className={`h-[22px] w-[22px] stroke-[1.8] shrink-0 ${isEarnActive ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`} />
+                    <Wallet className={`h-[21px] w-[21px] stroke-[1.8] shrink-0 ${
+                      isEarnActive && (!earnOpen || !isHovered) ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'
+                    }`} />
                   </div>
 
                   {isHovered ? (
                     <>
-                      <span className="ml-3.5 text-[15.5px] font-[550] leading-none whitespace-nowrap">Earn</span>
+                      <span className={`ml-3.5 text-[16px] leading-none whitespace-nowrap tracking-[-0.01em] ${
+                        isEarnActive && (!earnOpen || !isHovered) ? 'font-medium text-[#1F1F1F]' : 'font-[450] text-[#5F5F5F] group-hover:text-[#1F1F1F]'
+                      }`}>
+                        Earn
+                      </span>
                       <button
                         type="button"
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEarnOpen(!earnOpen) }}
-                        className="ml-auto p-1 text-[#999995] hover:text-[#1F1F1F] cursor-pointer"
+                        className="ml-auto p-1 text-[#999995] hover:text-[#1F1F1F] cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 rounded-md"
                         aria-label="Toggle Earn submenu"
                       >
                         <ChevronRight className={`h-4.5 w-4.5 transition-transform duration-200 ${earnOpen ? 'rotate-90 text-[#1F1F1F]' : ''}`} />
@@ -221,9 +234,9 @@ function DashboardContent({ children }) {
                 </Link>
               </div>
 
-              {/* EARN Child Items (Rule 9 & 10: subtle vertical guide, active submenu #E5E4E1) */}
+              {/* EARN Child Items */}
               {isHovered && earnOpen && (
-                <div className="ml-6 pl-3.5 border-l border-[#E5E5E3] space-y-1.5 my-2">
+                <div className="ml-[23px] pl-3 border-l border-[#E5E5E3] space-y-1 my-1">
                   {EARN_CHILDREN.map((child) => {
                     let active = false
                     if (child.label === 'Insights') active = pathname === '/dashboard'
@@ -236,19 +249,20 @@ function DashboardContent({ children }) {
                         key={child.href}
                         href={child.href}
                         onClick={handleNavClick}
-                        className={`group flex items-center justify-between px-3 h-10 rounded-[12px] text-[14.5px] transition-colors duration-150 ${active
-                          ? 'bg-[#E5E4E1] text-[#1F1F1F] font-semibold'
-                          : 'text-[#5F5F5F] hover:text-[#1F1F1F] hover:bg-[#EAE9E6]'
-                          }`}
+                        className={`group flex items-center justify-between px-3 h-[40px] rounded-[10px] text-[14.5px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
+                          active
+                            ? 'bg-[#E5E4E1] text-[#1F1F1F] font-medium'
+                            : 'text-[#5F5F5F] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] font-[420]'
+                        }`}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           {Icon && (
                             <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`} />
                           )}
-                          <span className="whitespace-nowrap">{child.label}</span>
+                          <span className="whitespace-nowrap truncate">{child.label}</span>
                         </div>
                         {child.label === 'Earnings' && (
-                          <span className="text-[10px] font-bold text-[#FFFFFF] bg-[#1F1F1F] px-2 py-0.5 rounded-full shrink-0 ml-2">
+                          <span className="ml-auto text-[12px] font-medium text-[#4A4A48] bg-[#E0DFDC] px-2.5 py-0.5 rounded-full shrink-0">
                             {formatMoney(availableEarnings ?? 0)}
                           </span>
                         )}
@@ -259,17 +273,17 @@ function DashboardContent({ children }) {
               )}
             </div>
 
-            {/* SECTION LABEL: TOOLS (Rule 7: 24-32px above, 8-12px below, uppercase, #999995) */}
+            {/* SECTION LABEL: TOOLS */}
             {isHovered ? (
-              <div className="pt-7 pb-2 px-3.5 text-[12px] font-semibold text-[#999995] uppercase tracking-[0.04em] select-none">
+              <div className="pt-[18px] pb-1 px-3 text-[13px] font-medium text-[#7A7A75] select-none tracking-normal">
                 Tools
               </div>
             ) : (
-              <div className="h-4" />
+              <div className="h-3" />
             )}
 
             {/* OTHER PRIMARY NAVIGATION ITEMS */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {OTHER_PRIMARY_NAV.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(item.href)
                 const Icon = item.icon
@@ -280,22 +294,25 @@ function DashboardContent({ children }) {
                     <Link
                       href={item.href}
                       onClick={handleNavClick}
-                      className={`group relative flex items-center h-[46px] transition-colors duration-150 ${isHovered ? 'px-3.5 rounded-[15px]' : 'justify-center mx-1 rounded-[14px]'
-                        } ${active
-                          ? 'bg-[#FFFFFF] text-[#1F1F1F] font-semibold border border-[#E5E5E3] shadow-[0_2px_8px_rgba(0,0,0,0.03)]'
+                      className={`group relative flex items-center h-[48px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
+                        isHovered ? 'px-3 rounded-[12px]' : 'justify-center mx-0.5 rounded-[12px]'
+                      } ${
+                        active
+                          ? 'bg-[#E5E4E1] text-[#1F1F1F] font-medium'
                           : 'text-[#5F5F5F] hover:bg-[#EAE9E6] hover:text-[#1F1F1F]'
-                        }`}
+                      }`}
                     >
                       <div className="w-6 min-w-[24px] max-w-[24px] h-6 flex items-center justify-center shrink-0">
-                        <Icon className={`h-[22px] w-[22px] stroke-[1.8] shrink-0 ${active ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`} />
+                        <Icon className={`h-[21px] w-[21px] stroke-[1.8] shrink-0 ${active ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`} />
                       </div>
 
                       {isHovered && (
                         <>
-                          <span className="ml-3.5 text-[15.5px] font-[550] leading-none whitespace-nowrap">{item.label}</span>
-                          {/* Rule 13: Redesigned NEW badge */}
+                          <span className={`ml-3.5 text-[16px] leading-none whitespace-nowrap tracking-[-0.01em] truncate min-w-0 pr-2 ${active ? 'font-medium text-[#1F1F1F]' : 'font-[450] text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`}>
+                            {item.label}
+                          </span>
                           {isAutomations && (
-                            <span className="ml-auto text-[11px] font-semibold text-[#4D7CFF] border-[1.5px] border-[#4D7CFF] rounded-full px-2 py-0.2 shrink-0">
+                            <span className="ml-auto text-[11px] font-semibold text-[#194DF5] border border-[#194DF5]/40 bg-[#194DF5]/5 rounded-full px-2 py-0.5 shrink-0">
                               NEW
                             </span>
                           )}
@@ -310,58 +327,8 @@ function DashboardContent({ children }) {
 
           </nav>
 
-          {/* BOTTOM UTILITY / SETUP AREA (Rule 14: separated by whitespace, white setup card with black button, bottom utility icons) */}
-          <div className="shrink-0 px-3.5 pb-4 pt-4 mt-auto">
-            <SidebarTaskProgress collapsed={!isHovered} onNavClick={handleNavClick} />
-
-            {isHovered ? (
-              <div className="flex items-center justify-between px-3 pt-4 text-[#5F5F5F]">
-                <Link
-                  href="/dashboard/success-center"
-                  onClick={handleNavClick}
-                  className="p-2 rounded-full hover:bg-[#EAE9E6] hover:text-[#1F1F1F] transition-colors"
-                  title="Help Center"
-                >
-                  <HelpCircle className="h-5 w-5" />
-                </Link>
-                <Link
-                  href="/dashboard/marketing"
-                  onClick={handleNavClick}
-                  className="p-2 rounded-full hover:bg-[#EAE9E6] hover:text-[#1F1F1F] transition-colors"
-                  title="Announcements & Growth"
-                >
-                  <Megaphone className="h-5 w-5" />
-                </Link>
-                <Link
-                  href="/dashboard/settings"
-                  onClick={handleNavClick}
-                  className="p-2 rounded-full hover:bg-[#EAE9E6] hover:text-[#1F1F1F] transition-colors"
-                  title="Store Settings"
-                >
-                  <Settings className="h-5 w-5" />
-                </Link>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-1.5 pt-2 text-[#5F5F5F]">
-                <Link
-                  href="/dashboard/success-center"
-                  onClick={handleNavClick}
-                  className="p-2 rounded-[12px] hover:bg-[#EAE9E6] hover:text-[#1F1F1F] transition-colors"
-                  title="Help Center"
-                >
-                  <HelpCircle className="h-5 w-5" />
-                </Link>
-                <Link
-                  href="/dashboard/settings"
-                  onClick={handleNavClick}
-                  className="p-2 rounded-[12px] hover:bg-[#EAE9E6] hover:text-[#1F1F1F] transition-colors"
-                  title="Settings"
-                >
-                  <Settings className="h-5 w-5" />
-                </Link>
-              </div>
-            )}
-          </div>
+          {/* BOTTOM SETUP AREA */}
+          <SidebarTaskProgress collapsed={!isHovered} onNavClick={handleNavClick} />
         </aside>
 
         {/* MAIN CONTENT CANVAS */}

@@ -1143,32 +1143,22 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       const title = section.props?.title || 'Collection'
       const rawLayout = section.props?.displayMode || section.props?.layout || 'list'
       const layout = (rawLayout === 'stack' || !rawLayout) ? 'list' : rawLayout
-      const items = section.props?.items || []
+      const items = Array.isArray(section.props?.items) ? section.props.items : []
       const isLight = tokens?.contrast?.isLight ?? false
       const cardBg = cards.bg || (isLight ? '#FFFFFF' : '#000000')
       const cardTitleColor = getAccessibleTextColor(cardBg, null, 4.5)
       const cardMutedColor = getAccessibleMutedTextColor(cardBg)
       const cardBorder = cards.border || (isLight ? '1px solid rgba(0, 0, 0, 0.10)' : '1px solid #39414D')
 
-      if (!items.length) {
-        if (editor) {
-          return (
-            <div className="w-full max-w-md mx-auto p-4 rounded-xl border border-dashed border-white/10 bg-[#000000] text-center text-xs font-medium text-[rgba(244,242,236,0.68)]">
-              <p className="font-bold text-white mb-1">{title}</p>
-              <p>Your collection is empty. Add products or links to group related content.</p>
-            </div>
-          )
-        }
-        return null
-      }
-
       const renderCollectionItem = (item, idx) => {
-        if (item.type === 'product') {
-          const p = products.find((x) => x.id === item.productId)
+        if (!item) return null
+        if (item.type === 'product' || item.type === 'course') {
+          const targetId = String(item.productId || item.courseId || item.id || '')
+          const p = products.find((x) => String(x.id) === targetId || String(x.productId) === targetId || String(x.courseId) === targetId)
           if (!p) return null
           return (
             <ProductCard
-              key={item.id || item.productId || idx}
+              key={item.id || item.productId || item.courseId || idx}
               product={p}
               tokens={tokens}
               username={username}
@@ -1215,6 +1205,28 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
         return null
       }
 
+      // Check whether this collection has any renderable items
+      const hasValidItems = items.some((item) => {
+        if (!item) return false
+        if (item.type === 'product' || item.type === 'course') {
+          const targetId = String(item.productId || item.courseId || item.id || '')
+          return products.some((x) => String(x.id) === targetId || String(x.productId) === targetId || String(x.courseId) === targetId)
+        }
+        return item.type === 'link'
+      })
+
+      if (!hasValidItems) {
+        if (editor) {
+          return (
+            <div className="w-full max-w-md mx-auto p-4 rounded-xl border border-dashed border-white/10 bg-[#000000] text-center text-xs font-medium text-[rgba(244,242,236,0.68)]">
+              <p className="font-bold text-white mb-1">{title}</p>
+              <p>Your collection is empty. Add products or links to group related content.</p>
+            </div>
+          )
+        }
+        return null
+      }
+
       return (
         <div className="w-full max-w-md mx-auto space-y-3">
           {title && (
@@ -1238,12 +1250,16 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
 
           {/* GRID LAYOUT */}
           {layout === 'grid' && (
-            <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-3 sm:gap-3.5">
-              {items.map((item, idx) => (
-                <div key={item.id || item.productId || idx} className="h-full">
-                  {renderCollectionItem(item, idx)}
-                </div>
-              ))}
+            <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
+              {items.map((item, idx) => {
+                const rendered = renderCollectionItem(item, idx)
+                if (!rendered) return null
+                return (
+                  <div key={item.id || item.productId || item.courseId || idx} className="h-full">
+                    {rendered}
+                  </div>
+                )
+              })}
             </div>
           )}
 
@@ -1251,11 +1267,15 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
           {layout === 'carousel' && (
             <div className="relative -mx-2 px-2 sm:mx-0 sm:px-0">
               <div className="flex gap-3 overflow-x-auto pb-2.5 pt-0.5 scroll-smooth snap-x snap-mandatory no-scrollbar [scrollbar-width:none] [-webkit-overflow-scrolling:touch]">
-                {items.map((item, idx) => (
-                  <div key={item.id || item.productId || idx} className="shrink-0 w-[240px] sm:w-[260px] snap-start h-full">
-                    {renderCollectionItem(item, idx)}
-                  </div>
-                ))}
+                {items.map((item, idx) => {
+                  const rendered = renderCollectionItem(item, idx)
+                  if (!rendered) return null
+                  return (
+                    <div key={item.id || item.productId || item.courseId || idx} className="shrink-0 w-[240px] sm:w-[260px] snap-start h-full">
+                      {rendered}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -1269,12 +1289,16 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
                 </div>
               )}
               {items.length > 1 && (
-                <div className="grid grid-cols-1 min-[440px]:grid-cols-2 gap-3 pt-1">
-                  {items.slice(1).map((item, idx) => (
-                    <div key={item.id || item.productId || idx + 1} className="h-full">
-                      {renderCollectionItem(item, idx + 1)}
-                    </div>
-                  ))}
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  {items.slice(1).map((item, idx) => {
+                    const rendered = renderCollectionItem(item, idx + 1)
+                    if (!rendered) return null
+                    return (
+                      <div key={item.id || item.productId || item.courseId || idx + 1} className="h-full">
+                        {rendered}
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </div>
