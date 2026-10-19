@@ -3,9 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   Sparkles,
-  AlertTriangle,
-  ChevronRight,
-  Video,
   Clock,
   Tag,
   CheckCircle2,
@@ -13,7 +10,7 @@ import {
   Layers,
   BarChart3,
   Flame,
-  ArrowRight
+  Video,
 } from 'lucide-react'
 import StoreItemEditorShell from '@/components/dashboard/StoreItemEditorShell'
 import StoreItemDisplaySelector from '@/components/dashboard/editors/StoreItemDisplaySelector'
@@ -38,10 +35,12 @@ export default function BookingEditor({
   const [wizardOpen, setWizardOpen] = useState(false)
 
   const initialProps = section?.props || {}
+  // Resolve the product ID: from section props, or from the passed product, or null
   const productId = initialProps.productId || initialProduct?.id || null
 
   const [product, setProduct] = useState(initialProduct)
   const [coachingConfig, setCoachingConfig] = useState(null)
+  const [loadingConfig, setLoadingConfig] = useState(false)
 
   const [title, setTitle] = useState(
     initialProps.title || initialProduct?.title || 'Book a session'
@@ -56,6 +55,7 @@ export default function BookingEditor({
   // Fetch Product & Coaching Config if not provided
   useEffect(() => {
     if (productId) {
+      setLoadingConfig(true)
       Promise.all([
         api.get(`/products/${productId}`),
         api.get(`/coaching/config/${productId}`),
@@ -73,8 +73,9 @@ export default function BookingEditor({
           }
         })
         .catch(() => {})
+        .finally(() => setLoadingConfig(false))
     }
-  }, [productId])
+  }, [productId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const triggerSave = (patch) => {
     setSaveState('saving')
@@ -111,11 +112,34 @@ export default function BookingEditor({
     triggerSave({ layout: mode, displayMode: mode })
   }
 
+  // Consider setup complete if we have an availability configuration with at least one enabled day
   const isSetupComplete = Boolean(
-    product &&
     coachingConfig &&
     coachingConfig.availability?.some((d) => d.enabled)
   )
+
+  // Stats from coaching config
+  const configuredTypes = coachingConfig?.bookingTypes?.length || 0
+  const enabledDays = coachingConfig?.availability?.filter((d) => d.enabled)?.length || 0
+
+  const handleWizardSuccess = (savedProduct) => {
+    if (savedProduct) {
+      setProduct(savedProduct)
+      setTitle(savedProduct.title || title)
+      if (onUpdateProps) {
+        onUpdateProps({ title: savedProduct.title || title })
+      }
+    }
+    // Reload coaching config after save
+    if (productId || savedProduct?.id) {
+      const pid = productId || savedProduct.id
+      api.get(`/coaching/config/${pid}`)
+        .then((cfgRes) => {
+          if (cfgRes?.config) setCoachingConfig(cfgRes.config)
+        })
+        .catch(() => {})
+    }
+  }
 
   return (
     <>
@@ -140,36 +164,12 @@ export default function BookingEditor({
         {/* TAB 1: DETAILS */}
         {activeTab === 'details' && (
           <div className="space-y-7">
-            {/* 1. Name Your Booking Link Banner (Matches Screenshot media_1792414775074.png) */}
-            {(!title || title === 'Book a session') && (
-              <div className="rounded-[18px] bg-[#FEFCE8] border border-[#FEF08A] p-4 flex items-center justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-[#CA8A04] shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-bold text-[#854D0E]">
-                      Name your booking link
-                    </p>
-                    <p className="text-xs text-[#A16207]">
-                      Add a title so visitors know what they&apos;re booking
-                    </p>
-                  </div>
-                </div>
 
-                <button
-                  type="button"
-                  onClick={() => titleInputRef.current?.focus()}
-                  className="px-3.5 py-1.5 rounded-full bg-[#1F1F1F] hover:bg-black text-white text-xs font-bold transition-all shrink-0 cursor-pointer"
-                >
-                  Add title
-                </button>
-              </div>
-            )}
-
-            {/* 2. SECTION: INFO */}
+            {/* SECTION: INFO */}
             <div className="space-y-4">
               <h3 className="text-base sm:text-lg font-bold text-[#1F1F1F]">Info</h3>
 
-              {/* Title Input with 0/255 and Sparkle icon */}
+              {/* Title Input with character counter and sparkle icon */}
               <div className="space-y-1.5">
                 <div className="relative">
                   <input
@@ -178,7 +178,7 @@ export default function BookingEditor({
                     value={title}
                     maxLength={255}
                     onChange={handleTitleChange}
-                    placeholder="Enter title..."
+                    placeholder="Book a session"
                     className="w-full h-12 px-4 rounded-[14px] bg-[#FFFFFF] border border-[#D9D9D9] text-[15px] font-medium text-[#1F1F1F] focus:outline-none focus:border-[#1F1F1F] focus:ring-1 focus:ring-[#1F1F1F] transition-all pr-10"
                   />
                   <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#999995] pointer-events-none">
@@ -191,46 +191,9 @@ export default function BookingEditor({
                   </span>
                 </div>
               </div>
-
-              {/* Booking Details Card (Avatar placeholder + Finish setup / Edit details) */}
-              <div
-                onClick={() => setWizardOpen(true)}
-                className="rounded-[18px] border border-[#E5E5E3] bg-[#FFFFFF] p-4 flex items-center justify-between gap-4 cursor-pointer hover:border-[#1F1F1F] transition-all group shadow-2xs"
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="h-14 w-14 rounded-[14px] bg-[#E5E5E3] overflow-hidden flex items-center justify-center shrink-0 border border-[#D9D9D9]">
-                    {product?.thumbnail || product?.coverImage ? (
-                      <img
-                        src={product.thumbnail || product.coverImage}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-8 w-8 rounded-full bg-[#BDBDBD] flex items-center justify-center text-white font-bold text-xs">
-                        {title.charAt(0)?.toUpperCase() || 'B'}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="min-w-0 space-y-0.5">
-                    <p className="text-sm font-bold text-[#1F1F1F] group-hover:text-purple-700 transition-colors">
-                      Booking details
-                    </p>
-                    <p className="text-xs text-[#6F6F6B] truncate">
-                      {isSetupComplete
-                        ? 'Availability, session types, and customer settings configured'
-                        : 'Finish setup to start taking bookings'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-1 rounded-full text-[#999995] group-hover:text-[#1F1F1F] transition-colors">
-                  <ChevronRight className="h-5 w-5" />
-                </div>
-              </div>
             </div>
 
-            {/* 3. SECTION: DISPLAY (Classic vs Featured) */}
+            {/* SECTION: DISPLAY (Classic vs Featured) */}
             <div className="space-y-2 pt-2 border-t border-[#F2F1EF]">
               <StoreItemDisplaySelector
                 value={displayMode}
@@ -242,7 +205,7 @@ export default function BookingEditor({
               />
             </div>
 
-            {/* 4. SECTION: INTERACTION */}
+            {/* SECTION: INTERACTION */}
             <div className="space-y-4 pt-2 border-t border-[#F2F1EF]">
               <div>
                 <h3 className="text-base sm:text-lg font-bold text-[#1F1F1F]">
@@ -253,7 +216,7 @@ export default function BookingEditor({
                 </p>
               </div>
 
-              <div className="rounded-[18px] bg-[#FAF9F6] border border-[#E5E5E3] p-5 space-y-4">
+              <div className="space-y-4">
                 <div className="space-y-1">
                   <h4 className="text-sm font-bold text-[#1F1F1F]">Bookings</h4>
                   <p className="text-xs leading-relaxed text-[#6F6F6B]">
@@ -261,13 +224,27 @@ export default function BookingEditor({
                   </p>
                 </div>
 
+                {/* Setup status summary — only shown after setup */}
+                {isSetupComplete && (
+                  <div className="rounded-[14px] bg-[#F0FDF4] border border-[#BBF7D0] px-4 py-3 flex items-center gap-3">
+                    <CheckCircle2 className="h-4 w-4 text-[#16A34A] shrink-0" />
+                    <div className="text-xs text-[#15803D] space-y-0.5">
+                      <p className="font-semibold">Booking is set up</p>
+                      <p className="text-[#166534]">
+                        {enabledDays} day{enabledDays !== 1 ? 's' : ''} available
+                        {configuredTypes > 0 ? ` · ${configuredTypes} session type${configuredTypes !== 1 ? 's' : ''}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Full-width pill Continue setup button — matching reference */}
                 <button
                   type="button"
                   onClick={() => setWizardOpen(true)}
-                  className="w-full h-11 rounded-[14px] bg-[#1F1F1F] hover:bg-black text-white text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-[0.99]"
+                  className="w-full h-12 rounded-full bg-[#1F1F1F] hover:bg-black text-white text-sm font-bold transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-[0.99]"
                 >
                   {isSetupComplete ? 'Edit setup' : 'Continue setup'}
-                  <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -331,13 +308,7 @@ export default function BookingEditor({
         creatorProfile={creatorProfile}
         currentPlan={currentPlan}
         onClose={() => setWizardOpen(false)}
-        onSuccess={(savedProduct) => {
-          setProduct(savedProduct)
-          setTitle(savedProduct.title || title)
-          if (onUpdateProps) {
-            onUpdateProps({ title: savedProduct.title || title })
-          }
-        }}
+        onSuccess={handleWizardSuccess}
       />
     </>
   )

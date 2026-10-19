@@ -185,9 +185,12 @@ export default function LinktreeBookingWizardModal({
     setMounted(true)
   }, [])
 
-  // Lock body scroll while modal is open
+  // Lock body scroll while modal is open, and reset step when modal opens
   useEffect(() => {
     if (!open) return
+    // Always restart from step 1 when the modal is opened
+    setStep(1)
+    setErrors({})
     const originalOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
@@ -815,13 +818,20 @@ export default function LinktreeBookingWizardModal({
                     </p>
                   </div>
 
-                  {/* Suggestion Defaults Banner */}
+                  {/* Availability hint banner — context-aware for create vs. edit mode */}
                   <div className="rounded-[16px] border border-blue-200 bg-blue-50/70 p-3.5 flex items-start gap-3 text-blue-900 text-xs sm:text-sm">
                     <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold text-blue-950">
-                        These are suggested defaults, edit to match your actual schedule.
+                        {editProductId
+                          ? 'Update your weekly availability windows below.'
+                          : 'These are suggested defaults, edit to match your actual schedule.'}
                       </p>
+                      {editProductId && (
+                        <p className="text-xs text-blue-700 mt-0.5">
+                          Changes apply to all new bookings going forward.
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -1448,12 +1458,12 @@ export default function LinktreeBookingWizardModal({
         </div>
 
         {/* 3. FIXED FOOTER */}
-        <div className="shrink-0 p-4 sm:p-5 bg-white border-t border-[#F2F1EF] z-10 flex items-center justify-end">
+        <div className="shrink-0 px-4 sm:px-5 py-4 bg-white border-t border-[#F2F1EF] z-10">
           {step < 4 ? (
             <button
               type="button"
               onClick={handleContinue}
-              className="w-full sm:w-full h-12 rounded-[16px] bg-[#7B2CBF] hover:bg-[#6A24A6] text-white font-bold text-[15px] shadow-sm transition-all flex items-center justify-center cursor-pointer active:scale-[0.99]"
+              className="w-full h-12 rounded-full bg-[#7B2CBF] hover:bg-[#6A24A6] text-white font-bold text-[15px] shadow-sm transition-all flex items-center justify-center cursor-pointer active:scale-[0.99]"
             >
               Continue
             </button>
@@ -1462,7 +1472,7 @@ export default function LinktreeBookingWizardModal({
               type="button"
               onClick={handleComplete}
               disabled={submitting}
-              className="w-full sm:w-full h-12 rounded-[16px] bg-[#1F1F1F] hover:bg-black text-white font-bold text-[15px] shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-60"
+              className="w-full h-12 rounded-full bg-[#1F1F1F] hover:bg-black text-white font-bold text-[15px] shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-60"
             >
               {submitting ? (
                 <>
@@ -1472,7 +1482,7 @@ export default function LinktreeBookingWizardModal({
               ) : editProductId ? (
                 'Save changes'
               ) : (
-                'Complete'
+                'Complete setup'
               )}
             </button>
           )}

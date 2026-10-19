@@ -290,14 +290,17 @@ try {
   assert(content.includes('Details'), 'Details tab must exist')
   assert(content.includes('Power-ups'), 'Power-ups tab must exist')
   assert(content.includes('Insights'), 'Insights tab must exist')
-  assert(content.includes('Name your booking link'), 'Warning banner Name your booking link must match screenshot')
-  assert(content.includes('Booking details'), 'Booking details action card must exist')
+  // Per updated reference design: no warning banner or extra Booking details card in Info section
+  assert(!content.includes('Name your booking link'), 'Updated design: warning banner removed from Info section')
+  assert(!content.includes('Booking details\n'), 'Updated design: no separate Booking details card in Info section')
   assert(content.includes('StoreItemDisplaySelector'), 'Display selector (Classic vs Featured) must exist')
   assert(content.includes('Interaction'), 'Interaction section must exist')
+  assert(content.includes('rounded-full'), 'Continue setup button must be pill-shaped (rounded-full)')
   assert(content.includes('Continue setup') || content.includes('Edit setup'), 'Continue/Edit setup button must exist')
   assert(content.includes('LinktreeBookingWizardModal'), 'Must link to LinktreeBookingWizardModal for multi-step editing')
+  assert(content.includes('editProductId={productId}'), 'Wizard must receive productId to operate in edit mode')
 
-  pass('BookingEditor matches screenshot layout with Details, Power-ups, Insights, Display, and Interaction')
+  pass('BookingEditor matches reference layout with Details, Power-ups, Insights, Display, pill Continue setup, and Interaction')
 } catch (err) {
   fail('BookingEditor Dashboard Editor Card', err)
 }
