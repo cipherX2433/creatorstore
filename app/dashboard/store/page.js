@@ -63,6 +63,7 @@ import GalleryEditor from '@/components/dashboard/editors/GalleryEditor'
 import LinkEditor from '@/components/dashboard/editors/LinkEditor'
 import CollectionEditor from '@/components/dashboard/editors/CollectionEditor'
 import MediaEditor from '@/components/dashboard/editors/MediaEditor'
+import BookingEditor from '@/components/dashboard/editors/BookingEditor'
 import { IconBadge, ICON_BADGE_COLORS } from '@/components/ui/icon-badge'
 import { AddOptionRow, SettingsRow, SettingsValuePill } from '@/components/ui/settings-row'
 import CoachingBookingWizardModal, { CoachingBookingWizardContent } from '@/components/coaching/CoachingBookingWizardModal'
@@ -761,9 +762,9 @@ function StoreContentCard({
       setAddModalType('course')
       setAddModalOpen(true)
     } else if (prod?.type === 'COACHING') {
-      setCoachingWizardProductId(prod.id)
-      setAddModalType('coaching')
-      setAddModalOpen(true)
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
     } else if (prod) {
       setEditingSectionId?.(null)
       setEditingProductId(prod.id)
@@ -1453,10 +1454,10 @@ export default function StoreBuilderPage() {
       setPricingModalOpen(true)
       return
     }
+    setAddModalOpen(false)
+    setAddModalType('menu')
     setCoachingWizardProductId(null)
-    setModalOrigin('menu')
-    setAddModalType('coaching')
-    setAddModalOpen(true)
+    setCoachingWizardOpen(true)
   }, [canCreate, setPricingModalOpen])
 
   const openCourseCreationFlow = useCallback(() => {
@@ -2790,6 +2791,45 @@ export default function StoreBuilderPage() {
             {/* LEFT: ONE SINGLE LARGE WHITE EDITOR CARD CONTAINING EVERYTHING */}
             <div className="w-full max-w-[740px] mx-auto min-w-0 lg:h-full lg:min-h-0 flex flex-col">
               {editingProductId ? (
+                products.find((p) => p.id === editingProductId)?.type === 'COACHING' ? (
+                  <BookingEditor
+                    product={products.find((p) => p.id === editingProductId)}
+                    creatorProfile={profile}
+                    currentPlan={me?.user?.plan || 'FREE'}
+                    onBack={() => {
+                      setEditingProductId(null)
+                      if (typeof window !== 'undefined') {
+                        const url = new URL(window.location.href)
+                        url.searchParams.delete('intent')
+                        url.searchParams.delete('productId')
+                        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
+                      }
+                    }}
+                    onUpdateProps={(patch) => {
+                      if (patch.title) {
+                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, title: patch.title } : p)))
+                      }
+                      if (patch.layout || patch.displayMode) {
+                        const mode = patch.layout || patch.displayMode
+                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, displayMode: mode } : p)))
+                        setStore((prev) => {
+                          if (!prev || !Array.isArray(prev.sections)) return prev
+                          const nextSecs = prev.sections.map((sec) =>
+                            sec.props?.productId === editingProductId
+                              ? { ...sec, props: { ...sec.props, layout: mode, displayMode: mode } }
+                              : sec
+                          )
+                          return { ...prev, sections: nextSecs }
+                        })
+                      }
+                    }}
+                    onDelete={() => {
+                      setEditingProductId(null)
+                      refreshStoreData()
+                    }}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : (
                 <ProductEditor
                   productId={editingProductId}
                   initialProduct={products.find((p) => p.id === editingProductId)}
@@ -2821,8 +2861,34 @@ export default function StoreBuilderPage() {
                     }
                   }}
                 />
+              )
               ) : editingSection ? (
-                editingSection.type === 'gallery' ? (
+                editingSection.type === 'coaching' || editingSection.type === 'booking' || (editingSection.type === 'product' && products.find(p => p.id === editingSection.props?.productId)?.type === 'COACHING') ? (
+                  <BookingEditor
+                    section={editingSection}
+                    product={products.find(p => p.id === editingSection.props?.productId)}
+                    creatorProfile={profile}
+                    currentPlan={me?.user?.plan || 'FREE'}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => {
+                      updateSectionProps(editingSection.id, patch)
+                      if (patch.title && editingSection.props?.productId) {
+                        setProducts((prev) => prev.map((p) => (p.id === editingSection.props.productId ? { ...p, title: patch.title } : p)))
+                      }
+                    }}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : editingSection.type === 'gallery' ? (
                   <GalleryEditor
                     section={editingSection}
                     onBack={() => {
@@ -4243,8 +4309,12 @@ export default function StoreBuilderPage() {
           if (createdProd?.id && !coachingWizardProductId) {
             addSectionWithProps('product', { productId: createdProd.id, layout: 'classic' })
           }
+          setCoachingWizardOpen(false)
+          setCoachingWizardProductId(null)
         }}
         editProductId={coachingWizardProductId}
+        creatorProfile={profile}
+        currentPlan={me?.user?.plan || 'FREE'}
       />
 
       <CourseWizardModal

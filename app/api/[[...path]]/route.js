@@ -433,7 +433,32 @@ async function processRoute(request, context = {}) {
     if (path[0] === 'coaching' && path[1] === 'slots' && method === 'GET') {
       const productId = url.searchParams.get('productId')
       const date = url.searchParams.get('date')
-      return json(await coachingService.getAvailableSlots({ productId, date }))
+      const duration = url.searchParams.get('duration') || url.searchParams.get('durationMinutes')
+      const bookingTypeId = url.searchParams.get('bookingTypeId')
+      const timezone = url.searchParams.get('timezone')
+      return json(await coachingService.getAvailableSlots({
+        productId,
+        date,
+        timezone,
+        durationMinutes: duration ? parseInt(duration, 10) : undefined,
+        bookingTypeId,
+      }))
+    }
+    if (path[0] === 'coaching' && path[1] === 'month-availability' && method === 'GET') {
+      const productId = url.searchParams.get('productId')
+      const year = url.searchParams.get('year')
+      const month = url.searchParams.get('month')
+      const duration = url.searchParams.get('duration') || url.searchParams.get('durationMinutes')
+      const bookingTypeId = url.searchParams.get('bookingTypeId')
+      const timezone = url.searchParams.get('timezone')
+      return json(await coachingService.getAvailableMonthDates({
+        productId,
+        year,
+        month,
+        durationMinutes: duration ? parseInt(duration, 10) : undefined,
+        bookingTypeId,
+        timezone,
+      }))
     }
     if (path[0] === 'coaching' && path[1] === 'book' && method === 'POST') {
       const body = await request.json()
@@ -2467,7 +2492,7 @@ async function processRoute(request, context = {}) {
     if (path[0] === 'products' && path[1] && !path[2] && method === 'GET') {
       return json({ product: await productService.get(creatorId, path[1]) })
     }
-    if (path[0] === 'products' && path[1] && !path[2] && method === 'PATCH') {
+    if (path[0] === 'products' && path[1] && !path[2] && (method === 'PATCH' || method === 'PUT')) {
       const body = await request.json()
       return json({ product: await productService.update(creatorId, path[1], body) })
     }

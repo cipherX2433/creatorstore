@@ -1510,6 +1510,7 @@ export default function AddToStoreModal({
           <CoachingBookingWizardContent
             key={coachingWizardProductId || 'new-coaching'}
             editProductId={coachingWizardProductId}
+            creatorProfile={{ email: creatorEmail }}
             onClose={closeWizard}
             onSuccess={async (createdProd) => {
               if (context === 'store' && createdProd?.id && !coachingWizardProductId) {

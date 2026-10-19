@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Instagram, Youtube, Twitter, Linkedin, Facebook, Globe, Music2,
   ArrowRight, Lock, Star, Sparkles, FileText, CheckCircle2, Package,
-  Link2, Layers, ExternalLink, User
+  Link2, Layers, ExternalLink, User, Video, Calendar
 } from 'lucide-react'
 import { formatMoney } from '@/lib/clientApi'
 import { getThemeTokens } from '@/lib/themePresets'
@@ -30,6 +30,7 @@ import {
 } from '@/lib/storefrontLayout'
 import { CreatorStoreMark, CreatorStoreLogoIcon } from '@/components/brand/CreatorStoreBrand'
 import ProductPurchaseModalFlow from '@/components/storefront/ProductPurchaseModalFlow'
+import PublicBookingModal from '@/components/storefront/PublicBookingModal'
 import GalleryWizardModal from '@/components/storefront/GalleryWizardModal'
 
 export const SOCIAL_ICONS = {
@@ -118,9 +119,10 @@ export function WallpaperBackdrop({ wallpaper, colors }) {
 
 
 /* ---------------- Reusable Product Thumbnail Component with Fallback ---------------- */
-function ProductThumbnail({ thumbnail, title, aspect = 'aspect-[2.1/1]', className = '', price = null, hasDiscount = false, discountPct = 0, theme = 'default' }) {
+function ProductThumbnail({ thumbnail, title, type = 'DIGITAL', aspect = 'aspect-[2.1/1]', className = '', price = null, hasDiscount = false, discountPct = 0, theme = 'default' }) {
   const [imgError, setImgError] = useState(false)
   const showPlaceholder = !thumbnail || imgError
+  const isCoaching = type === 'COACHING'
 
   if (showPlaceholder) {
     return (
@@ -136,8 +138,17 @@ function ProductThumbnail({ thumbnail, title, aspect = 'aspect-[2.1/1]', classNa
                 : 'bg-slate-100 border border-white/10 text-[rgba(244,242,236,0.5)]'
           } ${className}`}
       >
-        <Package className="h-6 w-6 opacity-70 mb-0.5" />
-        <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-60">Digital Product</span>
+        {isCoaching ? (
+          <>
+            <Video className="h-6 w-6 opacity-70 mb-0.5" />
+            <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-60">1:1 Session</span>
+          </>
+        ) : (
+          <>
+            <Package className="h-6 w-6 opacity-70 mb-0.5" />
+            <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-60">Digital Product</span>
+          </>
+        )}
         {price !== null && Number(price) === 0 && (
           <span className="absolute top-2 left-2 bg-slate-900 text-white font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 rounded shadow-xs z-10">
             FREE
@@ -716,8 +727,20 @@ export default function PublicStoreRenderer({
         )}
       </div>
 
-      {/* Complete Product Purchase & Download Modal Flow (Linktree-inspired) */}
-      {modalProduct && (
+      {/* Complete Product Purchase & Download Modal Flow / Dedicated Coaching Booking Modal (Linktree-inspired) */}
+      {modalProduct && modalProduct.type === 'COACHING' ? (
+        <PublicBookingModal
+          product={modalProduct}
+          creator={{
+            name: profile?.name || store?.storeName || 'Creator',
+            username: resolvedUsername,
+            avatarUrl: profile?.avatarUrl || store?.avatarUrl || null,
+          }}
+          isOpen={Boolean(modalProduct)}
+          onClose={() => setModalProduct(null)}
+          tokens={tokens}
+        />
+      ) : modalProduct ? (
         <ProductPurchaseModalFlow
           product={modalProduct}
           creator={{
@@ -729,7 +752,7 @@ export default function PublicStoreRenderer({
           onClose={() => setModalProduct(null)}
           initialStep={modalStep}
         />
-      )}
+      ) : null}
 
       {/* Dedicated Gallery Click-to-Open Image Wizard (Reference Image 1) */}
       {modalGallery && (
@@ -1567,6 +1590,11 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
     )
 
   const hasDiscount = product.originalPrice && Number(product.originalPrice) > Number(product.price)
+  const isCoaching = product.type === 'COACHING'
+  const defaultCta = isCoaching
+    ? (Number(product.price) === 0 ? 'Book Free' : (ctaOverride || 'Book Session'))
+    : (Number(product.price) === 0 ? 'Get it Free' : (ctaOverride || 'Get it'))
+
   const discountPct = hasDiscount
     ? Math.round(((Number(product.originalPrice) - Number(product.price)) / Number(product.originalPrice)) * 100)
     : 0
@@ -1593,6 +1621,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
           <ProductThumbnail
             thumbnail={product.thumbnail}
             title={product.title}
+            type={product.type}
             price={product.price}
             theme="minimal"
             aspect="aspect-[2.1/1]"
@@ -1608,7 +1637,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
               <span className="text-sm sm:text-base font-extrabold" style={{ color: cardTitleColor }}>{priceDisplay}</span>
               {origPriceDisplay && <span className="text-xs font-semibold line-through" style={{ color: cardMutedColor }}>{origPriceDisplay}</span>}
             </div>
-            <ProductCtaButton label={Number(product.price) === 0 ? 'Get it Free' : (ctaOverride || 'Get it')} cardBg={cardBg} tokens={tokens} fullWidth={false} />
+            <ProductCtaButton label={defaultCta} cardBg={cardBg} tokens={tokens} fullWidth={false} />
           </div>
         </div>
       </Wrapper>
@@ -1629,6 +1658,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
           <ProductThumbnail
             thumbnail={product.thumbnail}
             title={product.title}
+            type={product.type}
             price={product.price}
             hasDiscount={hasDiscount}
             discountPct={discountPct}
@@ -1649,7 +1679,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
               <span className="text-lg sm:text-xl font-bold text-[#D4AF37]">{priceDisplay}</span>
               {origPriceDisplay && <span className="text-xs text-[rgba(244,242,236,0.68)] line-through">{origPriceDisplay}</span>}
             </div>
-            <ProductCtaButton label={Number(product.price) === 0 ? 'Get it Free' : (ctaOverride || 'Get the Guide')} cardBg="#111827" tokens={tokens} fullWidth={false} />
+            <ProductCtaButton label={defaultCta} cardBg="#111827" tokens={tokens} fullWidth={false} />
           </div>
         </div>
       </Wrapper>
@@ -1671,6 +1701,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
             <ProductThumbnail
               thumbnail={product.thumbnail}
               title={product.title}
+              type={product.type}
               aspect="w-14 h-14"
               theme="dark"
             />
@@ -1693,7 +1724,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
           </div>
 
           <div className="mt-auto pt-0.5">
-            <ProductCtaButton label={Number(product.price) === 0 ? 'Get it Free' : (ctaOverride || 'Get it Now')} cardBg="#18181B" tokens={tokens} fullWidth />
+            <ProductCtaButton label={defaultCta} cardBg="#18181B" tokens={tokens} fullWidth />
           </div>
         </div>
       </Wrapper>
@@ -1714,6 +1745,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
             <ProductThumbnail
               thumbnail={product.thumbnail}
               title={product.title}
+              type={product.type}
               aspect="w-full sm:w-2/5 aspect-[16/10] sm:aspect-[4/4.5]"
               theme="editorial"
             />
@@ -1734,7 +1766,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
           </div>
 
           <div className="pt-2 border-t border-stone-100 mt-auto">
-            <ProductCtaButton label={Number(product.price) === 0 ? 'Get it Free' : (ctaOverride || 'Get the Guide')} cardBg="#FFFFFF" tokens={tokens} fullWidth />
+            <ProductCtaButton label={defaultCta} cardBg="#FFFFFF" tokens={tokens} fullWidth />
           </div>
         </div>
       </Wrapper>
@@ -1770,6 +1802,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
         <ProductThumbnail
           thumbnail={product.thumbnail}
           title={product.title}
+          type={product.type}
           aspect="aspect-[2.1/1]"
           price={product.price}
           hasDiscount={hasDiscount}
