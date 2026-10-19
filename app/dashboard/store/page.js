@@ -23,7 +23,7 @@ import {
   ChevronDown, ChevronUp, ChevronRight, CheckCircle2, Layers, Camera, Instagram, Search, ArrowRight,
   ShoppingBag, Video, FileText, Link2, X, Upload, ArrowLeft, AlertCircle, Edit3, Folder, FolderPlus, MoveUp, MoveDown,
   Pencil, ClipboardList, Mail, Star, Send, HelpCircle, Play, Images, Headphones, Music, GraduationCap,
-  MoreVertical, Archive, SlidersHorizontal, Users, Wrench, Power, Globe, Youtube, Zap
+  MoreVertical, Archive, SlidersHorizontal, Users, Wrench, Power, Globe, Youtube, Zap, Calendar
 } from 'lucide-react'
 import AddFormConfig, { FORM_TYPES } from '@/components/dashboard/AddFormConfig'
 import AddMediaConfig from '@/components/dashboard/AddMediaConfig'
@@ -64,6 +64,8 @@ import LinkEditor from '@/components/dashboard/editors/LinkEditor'
 import CollectionEditor from '@/components/dashboard/editors/CollectionEditor'
 import MediaEditor from '@/components/dashboard/editors/MediaEditor'
 import BookingEditor from '@/components/dashboard/editors/BookingEditor'
+import { isBookingItem, resolveSectionProduct } from '@/lib/bookingItemUtils'
+export { isBookingItem, resolveSectionProduct }
 import { IconBadge, ICON_BADGE_COLORS } from '@/components/ui/icon-badge'
 import { AddOptionRow, SettingsRow, SettingsValuePill } from '@/components/ui/settings-row'
 import CoachingBookingWizardModal, { CoachingBookingWizardContent } from '@/components/coaching/CoachingBookingWizardModal'
@@ -125,16 +127,28 @@ const COMPONENTS = [
   { type: 'gallery', label: 'Image Gallery', icon: Images },
   { type: 'audio', label: 'Audio', icon: Headphones },
   { type: 'pdf', label: 'PDF Display', icon: FileText },
+  { type: 'booking', label: 'Bookings', icon: Calendar },
 ]
 const ICONS = {
   ...Object.fromEntries(COMPONENTS.map((c) => [c.type, c.icon])),
   profile: User,
   product_collection: Layers,
+  booking: Calendar,
+  bookings: Calendar,
+  coaching: Calendar,
+  session: Calendar,
+  sessions: Calendar,
+  calendar: Calendar,
 }
 const LABELS = {
   ...Object.fromEntries(COMPONENTS.map((c) => [c.type, c.label])),
   profile: 'Profile',
   product_collection: 'Collection',
+  booking: 'Bookings',
+  bookings: 'Bookings',
+  coaching: 'Bookings',
+  session: 'Bookings',
+  sessions: 'Bookings',
 }
 
 function defaultProps(type, products = []) {
@@ -145,6 +159,16 @@ function defaultProps(type, products = []) {
     case 'button': return { label: 'Follow me', url: '', layout: 'classic' }
     case 'image': return { url: '', alt: '' }
     case 'product': return { productId: products[0]?.id, layout: 'classic' }
+    case 'booking':
+    case 'bookings':
+    case 'coaching':
+    case 'session':
+    case 'calendar': return {
+      productId: products.find((p) => String(p.type || '').toUpperCase() === 'COACHING')?.id || products[0]?.id || null,
+      title: 'Book a session',
+      layout: 'classic',
+      displayMode: 'classic',
+    }
     case 'product_grid': return { source: 'all' }
     case 'collection':
     case 'product_collection': return { title: 'New Collection', layout: 'list', displayMode: 'list', items: [] }
@@ -703,16 +727,17 @@ function StoreContentCard({
     )
   }
 
-  const Icon = ICONS[s.type] || (s.type === 'course' ? GraduationCap : Package)
-  const prod = (s.type === 'product' || s.type === 'course')
+  const isBooking = isBookingItem(s, products)
+  const Icon = ICONS[s.type] || (isBooking ? Calendar : (s.type === 'course' ? GraduationCap : Package))
+  const prod = resolveSectionProduct(s, products) || ((s.type === 'product' || s.type === 'course')
     ? (products.find((p) =>
       p.id === s.props?.productId ||
       p.courseId === s.props?.productId ||
       p.id === s.props?.courseId ||
       p.courseId === s.props?.courseId
     ) || (s.type === 'product' && !s.props?.productId && products.length > 0 ? products[0] : null))
-    : null
-  const title = prod ? prod.title : (s.props?.label || s.props?.text || LABELS[s.type])
+    : null)
+  const title = prod ? prod.title : (s.props?.label || s.props?.text || s.props?.title || LABELS[s.type] || (isBooking ? 'Book a session' : 'Untitled'))
   const price = prod ? (Number(prod.price) === 0 ? 'Free' : formatMoney(prod.price, prod.currency)) : null
   const origPrice = prod?.originalPrice ? formatMoney(prod.originalPrice, prod.currency) : null
   const isDraftItem = Boolean(prod && prod.status === 'DRAFT')
@@ -726,7 +751,7 @@ function StoreContentCard({
     if (s.type === 'form') return { bg: 'bg-[#F0FDFA]', text: 'text-[#0D9488]', border: 'border-[#CCFBF1]', icon: ClipboardList, label: 'Form' }
     if (s.type === 'collection' || s.type === 'product_collection') return { bg: 'bg-[#EEF2FF]', text: 'text-[#4F46E5]', border: 'border-[#E0E7FF]', icon: Layers, label: 'Collection' }
     if (s.type === 'course' || prod?.type === 'COURSE') return { bg: 'bg-[#F5F5F3]', text: 'text-[#1F1F1F]', border: 'border-[#E5E5E3]', icon: GraduationCap, label: 'Course' }
-    if (prod?.type === 'COACHING') return { bg: 'bg-[#F5F5F3]', text: 'text-[#1F1F1F]', border: 'border-[#E5E5E3]', icon: Video, label: '1:1 Session' }
+    if (isBooking || prod?.type === 'COACHING') return { bg: 'bg-[#F5F5F3]', text: 'text-[#1F1F1F]', border: 'border-[#E5E5E3]', icon: Calendar, label: '1:1 Session' }
     return { bg: 'bg-[#F5F5F3]', text: 'text-[#1F1F1F]', border: 'border-[#E5E5E3]', icon: Package, label: 'Product' }
   }
 
@@ -745,6 +770,10 @@ function StoreContentCard({
       setEditingFormSection(s)
       setAddModalType('form_config')
       setAddModalOpen(true)
+    } else if (isBooking || prod?.type === 'COACHING' || String(prod?.type || '').toUpperCase() === 'COACHING') {
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
     } else if (s.type === 'gallery') {
       setSelectedId(s.id)
       setEditingProductId?.(null)
@@ -761,13 +790,13 @@ function StoreContentCard({
       setCourseWizardId(prod.courseId || prod.id)
       setAddModalType('course')
       setAddModalOpen(true)
-    } else if (prod?.type === 'COACHING') {
-      setSelectedId(s.id)
-      setEditingProductId?.(null)
-      setEditingSectionId?.(s.id)
     } else if (prod) {
       setEditingSectionId?.(null)
       setEditingProductId(prod.id)
+    } else {
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
     }
   }
 
@@ -2863,10 +2892,10 @@ export default function StoreBuilderPage() {
                 />
               )
               ) : editingSection ? (
-                editingSection.type === 'coaching' || editingSection.type === 'booking' || (editingSection.type === 'product' && products.find(p => p.id === editingSection.props?.productId)?.type === 'COACHING') ? (
+                isBookingItem(editingSection, products) ? (
                   <BookingEditor
                     section={editingSection}
-                    product={products.find(p => p.id === editingSection.props?.productId)}
+                    product={resolveSectionProduct(editingSection, products)}
                     creatorProfile={profile}
                     currentPlan={me?.user?.plan || 'FREE'}
                     onBack={() => {
@@ -2875,8 +2904,9 @@ export default function StoreBuilderPage() {
                     }}
                     onUpdateProps={(patch) => {
                       updateSectionProps(editingSection.id, patch)
-                      if (patch.title && editingSection.props?.productId) {
-                        setProducts((prev) => prev.map((p) => (p.id === editingSection.props.productId ? { ...p, title: patch.title } : p)))
+                      const targetPid = editingSection.props?.productId || resolveSectionProduct(editingSection, products)?.id
+                      if (patch.title && targetPid) {
+                        setProducts((prev) => prev.map((p) => (p.id === targetPid ? { ...p, title: patch.title } : p)))
                       }
                     }}
                     onDelete={() => {
@@ -2948,7 +2978,7 @@ export default function StoreBuilderPage() {
                     onDuplicate={() => duplicate(editingSection.id)}
                     onOpenMobilePreview={() => setShareOpen?.(true)}
                   />
-                ) : (
+                ) : ['video', 'youtube', 'audio', 'pdf', 'media'].includes(editingSection.type) ? (
                   <MediaEditor
                     section={editingSection}
                     onBack={() => {
@@ -2965,6 +2995,53 @@ export default function StoreBuilderPage() {
                     onDuplicate={() => duplicate(editingSection.id)}
                     onOpenMobilePreview={() => setShareOpen?.(true)}
                   />
+                ) : editingSection.type === 'product' ? (
+                  <ProductEditor
+                    productId={resolveSectionProduct(editingSection, products)?.id}
+                    initialProduct={resolveSectionProduct(editingSection, products)}
+                    isStoreContext={true}
+                    storeSlug={storeSlug || store?.username}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onProductUpdated={(updatedProd) => {
+                      const formatted = toPreviewProduct(updatedProd)
+                      setProducts((prev) => prev.map((p) => (p.id === formatted.id ? formatted : p)))
+                      if (updatedProd.displayMode) {
+                        setStore((prev) => {
+                          if (!prev || !Array.isArray(prev.sections)) return prev
+                          const nextSections = prev.sections.map((sec) =>
+                            sec.props?.productId === updatedProd.id
+                              ? { ...sec, props: { ...sec.props, layout: updatedProd.displayMode, displayMode: updatedProd.displayMode } }
+                              : sec
+                          )
+                          storeRef.current = { ...(storeRef.current || {}), sections: nextSections }
+                          return { ...prev, sections: nextSections }
+                        })
+                      }
+                    }}
+                  />
+                ) : (
+                  /* Safe fallback for any unknown section type — NEVER MediaEditor */
+                  <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-4">
+                    <div className="flex items-center justify-between pb-4 border-b border-[#E5E5E3]">
+                      <h3 className="text-base font-bold text-[#1F1F1F]">Edit Section</h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingSectionId(null)
+                          setSelectedId(null)
+                        }}
+                        className="text-xs text-[#6F6F6B] hover:text-[#1F1F1F] font-semibold"
+                      >
+                        Back
+                      </button>
+                    </div>
+                    <p className="text-sm text-[#6F6F6B]">
+                      This section type ({editingSection.type}) does not have a dedicated editor.
+                    </p>
+                  </div>
                 )
               ) : (
                 <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-6 lg:h-full lg:min-h-0 lg:overflow-y-auto subtle-scrollbar">

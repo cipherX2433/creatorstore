@@ -36,11 +36,18 @@ export default function BookingEditor({
 
   const initialProps = section?.props || {}
   // Resolve the product ID: from section props, or from the passed product, or null
-  const productId = initialProps.productId || initialProduct?.id || null
+  const productId = initialProps.productId || initialProduct?.id || initialProps.bookingId || initialProps.coachingId || null
 
   const [product, setProduct] = useState(initialProduct)
   const [coachingConfig, setCoachingConfig] = useState(null)
   const [loadingConfig, setLoadingConfig] = useState(false)
+
+  // Auto-heal section props if productId was resolved but missing from section props
+  useEffect(() => {
+    if (section && !section.props?.productId && productId && onUpdateProps) {
+      onUpdateProps({ productId })
+    }
+  }, [section, productId, onUpdateProps])
 
   const [title, setTitle] = useState(
     initialProps.title || initialProduct?.title || 'Book a session'
@@ -244,7 +251,7 @@ export default function BookingEditor({
                   onClick={() => setWizardOpen(true)}
                   className="w-full h-12 rounded-full bg-[#1F1F1F] hover:bg-black text-white text-sm font-bold transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-[0.99]"
                 >
-                  {isSetupComplete ? 'Edit setup' : 'Continue setup'}
+                  Continue setup
                 </button>
               </div>
             </div>
