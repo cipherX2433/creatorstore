@@ -85,6 +85,7 @@ function DashboardContent({ children }) {
   }
 
   const username = me?.store?.username || me?.store?.slug || me?.profile?.username || ''
+  const isStorePage = pathname.startsWith('/dashboard/store')
   const isStoreActive = pathname.startsWith('/dashboard/store') || pathname.startsWith('/dashboard/products')
   const isEarnActive = pathname === '/dashboard' || pathname.startsWith('/dashboard/earn') || pathname.startsWith('/dashboard/orders')
 
@@ -332,12 +333,22 @@ function DashboardContent({ children }) {
         </aside>
 
         {/* MAIN CONTENT CANVAS */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-auto bg-[#FBFAF9] text-[#1F1F1F] no-scrollbar rounded-tr-[20px] md:rounded-tr-[24px]">
+        <div className={`flex-1 flex flex-col min-w-0 min-h-0 bg-[#FBFAF9] text-[#1F1F1F] no-scrollbar rounded-tr-[20px] md:rounded-tr-[24px] ${
+          isStorePage ? 'overflow-y-auto lg:overflow-hidden' : 'overflow-y-auto'
+        }`}>
 
           {/* MAIN PAGE VIEW CANVAS */}
-          <main className="flex-1 px-3.5 sm:px-6 md:px-8 pb-28 sm:pb-32 md:pb-20 pt-4 sm:pt-6 bg-[#FBFAF9] text-[#1F1F1F] w-full max-w-full min-w-0">
-            <div className={pathname === '/dashboard' || pathname.startsWith('/dashboard/store') ? 'mx-auto max-w-[1440px] w-full min-w-0' : 'mx-auto max-w-5xl space-y-8 min-w-0'}>
-              <DashboardPageTransition transitionKey={pathname}>
+          <main className={`flex-1 w-full max-w-full min-w-0 bg-[#FBFAF9] text-[#1F1F1F] ${
+            isStorePage
+              ? 'px-3.5 sm:px-6 md:px-8 pb-28 sm:pb-32 lg:pb-5 pt-4 sm:pt-6 lg:pt-5 lg:h-full lg:min-h-0 lg:overflow-hidden flex flex-col'
+              : 'px-3.5 sm:px-6 md:px-8 pb-28 sm:pb-32 md:pb-20 pt-4 sm:pt-6'
+          }`}>
+            <div className={
+              pathname === '/dashboard' || isStorePage
+                ? 'mx-auto max-w-[1440px] w-full min-w-0 flex-1 flex flex-col min-h-0'
+                : 'mx-auto max-w-5xl space-y-8 min-w-0'
+            }>
+              <DashboardPageTransition transitionKey={pathname} className={isStorePage ? 'flex-1 flex flex-col min-h-0 w-full' : ''}>
                 {children}
               </DashboardPageTransition>
             </div>

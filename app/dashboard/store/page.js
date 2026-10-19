@@ -2759,8 +2759,8 @@ export default function StoreBuilderPage() {
   )
 
   return (
-    <div className="space-y-6 text-content-primary selection:bg-brand selection:text-brand-fg w-full py-2">
-      <DashboardPageTransition transitionKey={tab}>
+    <div className="text-content-primary selection:bg-brand selection:text-brand-fg w-full lg:h-full lg:min-h-0 flex flex-col py-2 lg:py-0">
+      <DashboardPageTransition transitionKey={tab} className="flex-1 flex flex-col min-h-0 w-full">
         {tab === 'design' ? (
           <DesignStudioPage
             store={store}
@@ -2784,10 +2784,10 @@ export default function StoreBuilderPage() {
           />
         ) : (
           /* 2-COLUMN WORKSPACE: LEFT SINGLE UNIFIED EDITOR CARD (60-65%) & RIGHT PREVIEW (35-40%) */
-          <div className="grid gap-8 xl:gap-12 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_430px] items-start pt-1 pb-12">
+          <div className="grid gap-8 xl:gap-12 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_430px] lg:items-stretch lg:h-full lg:min-h-0 items-start pt-1 pb-12 lg:pb-0 lg:pt-0 flex-1 min-h-0">
 
             {/* LEFT: ONE SINGLE LARGE WHITE EDITOR CARD CONTAINING EVERYTHING */}
-            <div className="w-full max-w-[740px] mx-auto min-w-0">
+            <div className="w-full max-w-[740px] mx-auto min-w-0 lg:h-full lg:min-h-0 flex flex-col">
               {editingProductId ? (
                 <ProductEditor
                   productId={editingProductId}
@@ -2900,7 +2900,7 @@ export default function StoreBuilderPage() {
                   />
                 )
               ) : (
-                <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-6">
+                <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-6 lg:h-full lg:min-h-0 lg:overflow-y-auto subtle-scrollbar">
 
                 {/* 1. COMPACT STOREFRONT STATUS ROW */}
                 <div className="flex items-center justify-between gap-3 pb-4 border-b border-[#E5E5E3] text-xs">
@@ -3326,7 +3326,7 @@ export default function StoreBuilderPage() {
             </div>
 
             {/* RIGHT: STOREFRONT PREVIEW COLUMN */}
-            <div className="flex flex-col items-center w-full max-w-[420px] mx-auto lg:sticky lg:top-6">
+            <div className="flex flex-col items-center justify-center w-full max-w-[420px] mx-auto lg:h-full lg:min-h-0 shrink-0 lg:sticky lg:top-0">
 
               {/* PREVIEW CONTAINER WITH ATTACHED SIDE CONTROLS */}
               <div className="relative w-[min(360px,100%)] flex items-center justify-center">
@@ -3357,7 +3357,7 @@ export default function StoreBuilderPage() {
                 </div>
 
                 {/* LIVE STOREFRONT PHONE PREVIEW */}
-                <div className="w-full h-[720px] rounded-[28px] border border-[#E5E5E3] bg-[#FBFBFB] shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col relative">
+                <div className="w-full max-h-[calc(100vh-120px)] h-[720px] rounded-[28px] border border-[#E5E5E3] bg-[#FBFBFB] shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col relative shrink-0">
                   <div className="flex-1 overflow-y-auto no-scrollbar">
                     <StorePreview
                       device="mobile"
@@ -5376,9 +5376,9 @@ function DesignStudioPage({
   }
 
   return (
-    <div className="space-y-6 text-[#010619] w-full">
+    <div className="space-y-6 text-[#010619] w-full lg:h-full lg:min-h-0 flex flex-col">
       {/* 1. TOP HEADER & MOBILE NAVIGATION */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[var(--border-subtle,#303030)] pb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[var(--border-subtle,#303030)] pb-4 shrink-0">
         {onBackToContent && (
           <button
             type="button"
@@ -5392,7 +5392,7 @@ function DesignStudioPage({
       </div>
 
       {/* MOBILE RESPONSIVE TOGGLE BAR (Visible on screens < lg) */}
-      <div className="lg:hidden flex items-center justify-center gap-1 rounded-full border border-[var(--border-subtle,#303030)] bg-[var(--bg-surface-hover,#2A2A2A)] p-1 w-full max-w-sm mx-auto">
+      <div className="lg:hidden flex items-center justify-center gap-1 rounded-full border border-[var(--border-subtle,#303030)] bg-[var(--bg-surface-hover,#2A2A2A)] p-1 w-full max-w-sm mx-auto shrink-0">
         <button
           type="button"
           onClick={() => setMobileViewMode('customize')}
@@ -5412,9 +5412,9 @@ function DesignStudioPage({
       </div>
 
       {/* 2-COLUMN STUDIO LAYOUT */}
-      <div className="grid gap-8 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_420px] items-start">
+      <div className="grid gap-8 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_420px] lg:items-stretch lg:h-full lg:min-h-0 items-start flex-1 min-h-0">
         {/* LEFT COLUMN: CUSTOMIZATION EDITOR */}
-        <div className={`w-full max-w-[660px] mx-auto space-y-5 min-w-0 ${mobileViewMode === 'preview' ? 'hidden lg:block' : 'block'}`}>
+        <div className={`w-full max-w-[660px] mx-auto space-y-5 min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto subtle-scrollbar ${mobileViewMode === 'preview' ? 'hidden lg:block' : 'block'}`}>
           {/* TOP APPEARANCE STATUS BAR */}
           <div className="p-4 rounded-[24px] border border-[#D8DFFA] bg-white shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
             <div className="flex items-center gap-3.5 min-w-0">
@@ -5783,9 +5783,9 @@ function DesignStudioPage({
         </div>
 
         {/* RIGHT COLUMN: STICKY PHONE PREVIEW CANVAS */}
-        <div className={`flex-col items-center gap-4 w-full max-w-[420px] sticky top-6 ${mobileViewMode === 'customize' ? 'hidden lg:flex' : 'flex'}`}>
+        <div className={`flex-col items-center justify-center gap-4 w-full max-w-[420px] lg:h-full lg:min-h-0 shrink-0 sticky top-6 ${mobileViewMode === 'customize' ? 'hidden lg:flex' : 'flex'}`}>
           {/* TOP PREVIEW URL BAR */}
-          <div className="w-[min(390px,100%)] h-[44px] rounded-full border border-[#D8DFFA] bg-[#F2F5FE] px-4 flex items-center justify-between text-xs font-bold text-[#010619] shadow-sm">
+          <div className="w-[min(390px,100%)] h-[44px] rounded-full border border-[#D8DFFA] bg-[#F2F5FE] px-4 flex items-center justify-between text-xs font-bold text-[#010619] shadow-sm shrink-0">
             <span className="truncate text-[#666666]">
               creatorstore.store/<span className="text-[#010619] font-bold">{storeSlug || me?.store?.username || 'store'}</span>
             </span>
@@ -5803,7 +5803,7 @@ function DesignStudioPage({
           </div>
 
           {/* 390px x 844px MOBILE PHONE PREVIEW FRAME */}
-          <div className="w-[min(390px,calc(100%-16px))] h-[844px] rounded-[44px] border-[10px] border-[var(--border-subtle,#303030)] bg-[var(--bg-sidebar,#0D0D0D)] shadow-2xl overflow-hidden flex flex-col relative shrink-0">
+          <div className="w-[min(390px,calc(100%-16px))] max-h-[calc(100vh-180px)] h-[844px] rounded-[44px] border-[10px] border-[var(--border-subtle,#303030)] bg-[var(--bg-sidebar,#0D0D0D)] shadow-2xl overflow-hidden flex flex-col relative shrink-0">
             <div className="flex-1 overflow-y-auto no-scrollbar pt-1">
               <StorePreview
                 key={`${theme.headerLayout || 'classic'}-${theme.avatarUrl || store?.avatarUrl || profile?.avatarUrl || 'none'}`}
