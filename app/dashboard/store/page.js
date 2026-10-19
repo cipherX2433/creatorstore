@@ -59,6 +59,10 @@ import ThemeMatchModal from '@/components/dashboard/design/ThemeMatchModal'
 import { extractImagePalette } from '@/lib/imageContrast'
 import StorefrontStatusCard from '@/components/dashboard/StorefrontStatusCard'
 import ProductEditor from '@/components/products/ProductEditor'
+import GalleryEditor from '@/components/dashboard/editors/GalleryEditor'
+import LinkEditor from '@/components/dashboard/editors/LinkEditor'
+import CollectionEditor from '@/components/dashboard/editors/CollectionEditor'
+import MediaEditor from '@/components/dashboard/editors/MediaEditor'
 import { IconBadge, ICON_BADGE_COLORS } from '@/components/ui/icon-badge'
 import { AddOptionRow, SettingsRow, SettingsValuePill } from '@/components/ui/settings-row'
 import CoachingBookingWizardModal, { CoachingBookingWizardContent } from '@/components/coaching/CoachingBookingWizardModal'
@@ -202,6 +206,7 @@ function CollectionContentCard({
   movingUpId,
   isFirst,
   setEditingCollection,
+  setEditingSectionId,
   setAddContentModalOpen,
   setAddContentType,
   isDropTarget = false,
@@ -319,7 +324,11 @@ function CollectionContentCard({
           </div>
 
           {/* FOLDER ICON */}
-          <div className="h-9 w-9 rounded-xl bg-[#F5F5F3] text-[#1F1F1F] flex items-center justify-center shrink-0">
+          <div
+            onClick={() => setEditingSectionId?.(s.id)}
+            className="h-9 w-9 rounded-xl bg-[#F5F5F3] hover:bg-[#EBEBEA] text-[#1F1F1F] flex items-center justify-center shrink-0 cursor-pointer transition-colors"
+            title="Edit collection"
+          >
             <Folder className="h-4 w-4" />
           </div>
 
@@ -406,11 +415,23 @@ function CollectionContentCard({
                     type="button"
                     onClick={() => {
                       setMenuOpen(false)
-                      setIsEditingTitle(true)
+                      setEditingSectionId?.(s.id)
                     }}
                     className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#1F1F1F] hover:bg-[#F5F5F3] flex items-center gap-2 cursor-pointer"
                   >
                     <Edit3 className="h-3.5 w-3.5 text-[#1F1F1F]" />
+                    <span>Edit collection</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      setIsEditingTitle(true)
+                    }}
+                    className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#1F1F1F] hover:bg-[#F5F5F3] flex items-center gap-2 cursor-pointer"
+                  >
+                    <Pencil className="h-3.5 w-3.5 text-[#1F1F1F]" />
                     <span>Rename</span>
                   </button>
 
@@ -636,6 +657,7 @@ function StoreContentCard({
   setCourseWizardId,
   setCoachingWizardProductId,
   setEditingProductId,
+  setEditingSectionId,
   resumeDigitalProductDraft,
   inlineProdKey,
   setInlineProdKey,
@@ -672,6 +694,7 @@ function StoreContentCard({
         movingUpId={movingUpId}
         isFirst={isFirst}
         setEditingCollection={setEditingCollection}
+        setEditingSectionId={setEditingSectionId}
         setAddContentModalOpen={setAddContentModalOpen}
         setAddContentType={setAddContentType}
         isDropTarget={dropTargetCollectionId === s.id}
@@ -713,17 +736,26 @@ function StoreContentCard({
   const handleEdit = () => {
     if (s.type === 'collection' || s.type === 'product_collection') {
       setSelectedId(s.id)
-      setEditingCollection(s)
+      setEditingProductId?.(null)
+      setEditingCollection?.(s)
+      setEditingSectionId?.(s.id)
     } else if (s.type === 'form') {
       setSelectedFormType(s.props?.formType || 'contact')
       setEditingFormSection(s)
       setAddModalType('form_config')
       setAddModalOpen(true)
-    } else if (['video', 'youtube', 'gallery', 'audio', 'pdf'].includes(s.type)) {
-      setSelectedMediaType(s.type)
-      setEditingMediaSection(s)
-      setAddModalType('media_config')
-      setAddModalOpen(true)
+    } else if (s.type === 'gallery') {
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
+    } else if (['button', 'link', 'url'].includes(s.type)) {
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
+    } else if (['video', 'youtube', 'audio', 'pdf'].includes(s.type)) {
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
     } else if (prod?.type === 'COURSE' || String(prod?.type).toLowerCase() === 'course') {
       setCourseWizardId(prod.courseId || prod.id)
       setAddModalType('course')
@@ -733,6 +765,7 @@ function StoreContentCard({
       setAddModalType('coaching')
       setAddModalOpen(true)
     } else if (prod) {
+      setEditingSectionId?.(null)
       setEditingProductId(prod.id)
     }
   }
@@ -1048,8 +1081,13 @@ export default function StoreBuilderPage() {
   const [editingFormSection, setEditingFormSection] = useState(null)
   const [selectedMediaType, setSelectedMediaType] = useState('video')
   const [editingMediaSection, setEditingMediaSection] = useState(null)
-  const [wizardStep, setWizardStep] = useState(1)
   const [editingProductId, setEditingProductId] = useState(null)
+  const [editingSectionId, setEditingSectionId] = useState(null)
+
+  const editingSection = useMemo(() => {
+    if (!editingSectionId) return null
+    return (store?.sections || []).find((s) => s.id === editingSectionId) || null
+  }, [editingSectionId, store?.sections])
   const [coachingWizardOpen, setCoachingWizardOpen] = useState(false)
   const [coachingWizardProductId, setCoachingWizardProductId] = useState(null)
   const [courseWizardOpen, setCourseWizardOpen] = useState(false)
@@ -2247,6 +2285,7 @@ export default function StoreBuilderPage() {
     } catch {
       scheduleSave({ ...(storeRef.current || {}), sections: nextSections })
     }
+    return section
   }
 
   function safeUrlValidate(urlStr) {
@@ -2772,7 +2811,7 @@ export default function StoreBuilderPage() {
                         if (!prev || !Array.isArray(prev.sections)) return prev
                         const nextSections = prev.sections.map((sec) =>
                           sec.props?.productId === updatedProd.id
-                            ? { ...sec, props: { ...sec.props, layout: updatedProd.displayMode } }
+                            ? { ...sec, props: { ...sec.props, layout: updatedProd.displayMode, displayMode: updatedProd.displayMode } }
                             : sec
                         )
                         storeRef.current = { ...(storeRef.current || {}), sections: nextSections }
@@ -2781,6 +2820,85 @@ export default function StoreBuilderPage() {
                     }
                   }}
                 />
+              ) : editingSection ? (
+                editingSection.type === 'gallery' ? (
+                  <GalleryEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : editingSection.type === 'collection' || editingSection.type === 'product_collection' ? (
+                  <CollectionEditor
+                    section={editingSection}
+                    products={products}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateCollectionProps(editingSection.id, patch)}
+                    onAddItem={(item) => addItemToCollection(editingSection.id, item)}
+                    onRemoveItem={(itemId) => removeItemFromCollection(editingSection.id, itemId)}
+                    onMoveItem={(fromIdx, dirOrTo) => {
+                      const dir = (dirOrTo === -1 || dirOrTo === 1) ? dirOrTo : (dirOrTo > fromIdx ? 1 : -1)
+                      moveItemInCollection(editingSection.id, fromIdx, dir)
+                    }}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                    setAddContentModalOpen={setAddContentModalOpen}
+                    setAddContentType={setAddContentType}
+                  />
+                ) : ['button', 'link', 'url'].includes(editingSection.type) ? (
+                  <LinkEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : (
+                  <MediaEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                )
               ) : (
                 <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-6">
 
@@ -3131,6 +3249,7 @@ export default function StoreBuilderPage() {
                           setCourseWizardId={setCourseWizardId}
                           setCoachingWizardProductId={setCoachingWizardProductId}
                           setEditingProductId={setEditingProductId}
+                          setEditingSectionId={setEditingSectionId}
                           resumeDigitalProductDraft={resumeDigitalProductDraft}
                           inlineProdKey={inlineProdKey}
                           setInlineProdKey={setInlineProdKey}
@@ -3625,11 +3744,23 @@ export default function StoreBuilderPage() {
                 setSelectedFormType(fType)
                 setEditingFormSection(null)
                 setAddModalType('form_config')
+              } else if (opt.type === 'gallery') {
+                setAddModalOpen(false)
+                addSectionWithProps('gallery', {
+                  title: 'gallery',
+                  images: [],
+                  layout: 'classic',
+                  displayMode: 'classic',
+                }).then((newSec) => {
+                  if (newSec?.id) {
+                    setEditingProductId(null)
+                    setEditingSectionId(newSec.id)
+                  }
+                })
               } else if (
                 opt.type === 'media' ||
                 opt.type === 'youtube' ||
                 opt.type === 'video' ||
-                opt.type === 'gallery' ||
                 opt.type === 'audio' ||
                 opt.type === 'pdf'
               ) {
