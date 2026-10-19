@@ -1081,6 +1081,7 @@ export default function StoreBuilderPage() {
   const [editingFormSection, setEditingFormSection] = useState(null)
   const [selectedMediaType, setSelectedMediaType] = useState('video')
   const [editingMediaSection, setEditingMediaSection] = useState(null)
+  const [wizardStep, setWizardStep] = useState(1)
   const [editingProductId, setEditingProductId] = useState(null)
   const [editingSectionId, setEditingSectionId] = useState(null)
 
