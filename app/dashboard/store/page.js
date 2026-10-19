@@ -14,6 +14,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { BaseModal, ModalFooterActions } from '@/components/ui/base-modal'
 import { TextInput } from '@/components/ui/text-input'
 import { SelectableCard, SelectableCardGrid } from '@/components/ui/selectable-card'
+import { Switch } from '@/components/ui/switch'
+import { CreatorStoreMark } from '@/components/brand/CreatorStoreBrand'
 import {
   Loader2, Plus, Trash2, Copy, Eye, EyeOff, GripVertical, Smartphone, Monitor,
   User, Type, AlignLeft, MousePointerClick, Image as ImageIcon, Package, Grid3x3,
@@ -21,7 +23,7 @@ import {
   ChevronDown, ChevronUp, ChevronRight, CheckCircle2, Layers, Camera, Instagram, Search, ArrowRight,
   ShoppingBag, Video, FileText, Link2, X, Upload, ArrowLeft, AlertCircle, Edit3, Folder, FolderPlus, MoveUp, MoveDown,
   Pencil, ClipboardList, Mail, Star, Send, HelpCircle, Play, Images, Headphones, Music, GraduationCap,
-  MoreVertical, Archive, SlidersHorizontal, Users, Wrench, Power, Globe, Youtube
+  MoreVertical, Archive, SlidersHorizontal, Users, Wrench, Power, Globe, Youtube, Zap
 } from 'lucide-react'
 import AddFormConfig, { FORM_TYPES } from '@/components/dashboard/AddFormConfig'
 import AddMediaConfig from '@/components/dashboard/AddMediaConfig'
@@ -1286,6 +1288,62 @@ export default function StoreBuilderPage() {
     (!sub?.trialEndsAt || new Date(sub.trialEndsAt).getTime() > Date.now())
   )
   const canCreate = isPaid || isTrialActive
+
+  const canRemoveFooterBranding = Boolean(
+    (isPaid || isTrialActive) &&
+    (sub?.planId === 'PRO' || sub?.plan === 'PRO' || sub?.entitlements?.removeBranding)
+  )
+
+  const previewStore = useMemo(() => {
+    if (!store) return {}
+    return {
+      ...store,
+      theme: {
+        ...(store.theme || {}),
+        showFooterBranding: canRemoveFooterBranding ? (store.theme?.showFooterBranding ?? true) : true,
+      },
+    }
+  }, [store, canRemoveFooterBranding])
+
+  const handleToggleFooterBranding = useCallback(async (newVal) => {
+    if (!newVal && !canRemoveFooterBranding) {
+      toast.error('A Pro subscription is required to hide the CreatorStore footer branding.')
+      setPricingModalOpen(true)
+      return
+    }
+
+    updateStore((prev) => ({
+      ...prev,
+      theme: {
+        ...(prev?.theme || {}),
+        showFooterBranding: newVal,
+      },
+    }))
+
+    try {
+      await api.patch('/creator/store/settings', {
+        theme: {
+          showFooterBranding: newVal,
+        },
+      })
+      toast.success(newVal ? 'Footer branding enabled' : 'Footer branding hidden')
+      if (refreshMe) await refreshMe()
+    } catch (err) {
+      updateStore((prev) => ({
+        ...prev,
+        theme: {
+          ...(prev?.theme || {}),
+          showFooterBranding: !newVal,
+        },
+      }))
+      if (err?.code === 'PLAN_UPGRADE_REQUIRED' || err?.status === 403) {
+        toast.error('A Pro subscription is required to hide the CreatorStore footer branding.')
+        setPricingModalOpen(true)
+      } else {
+        toast.error(err?.message || 'Failed to update footer branding.')
+      }
+    }
+  }, [canRemoveFooterBranding, updateStore, refreshMe, setPricingModalOpen])
 
   const handleToggleStoreLive = useCallback(async () => {
     const isLive = Boolean(store?.published)
@@ -2605,7 +2663,7 @@ export default function StoreBuilderPage() {
             <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar w-full">
               <StorePreview
                 key={`${store?.theme?.presetId || 'preset'}-mobile-${tab}`}
-                store={store}
+                store={previewStore}
                 username={storeSlug}
                 profile={{ ...(profile || {}), username: storeSlug || profile?.username }}
                 products={products}
@@ -2641,7 +2699,7 @@ export default function StoreBuilderPage() {
               <div className="max-w-[1000px] mx-auto py-6 px-4 sm:px-8">
                 <StorePreview
                   key={`${store?.theme?.presetId || 'preset'}-desktop-${tab}`}
-                  store={store}
+                  store={previewStore}
                   username={storeSlug}
                   profile={{ ...(profile || {}), username: storeSlug || profile?.username }}
                   products={products}
@@ -2683,6 +2741,7 @@ export default function StoreBuilderPage() {
             setShareOpen={setShareOpen}
             onPersistAvatar={persistAvatarUrl}
             onBackToContent={() => handleTabChange('section')}
+            canRemoveFooterBranding={canRemoveFooterBranding}
           />
         ) : (
           /* 2-COLUMN WORKSPACE: LEFT SINGLE UNIFIED EDITOR CARD (60-65%) & RIGHT PREVIEW (35-40%) */
@@ -3119,6 +3178,30 @@ export default function StoreBuilderPage() {
                   )}
                 </div>
 
+                {/* 7. CREATORSTORE BRANDED FOOTER CARD WITH PRO TOGGLE */}
+                <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] p-5 sm:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.02)] space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold text-[#1F1F1F]">
+                      CreatorStore footer
+                    </span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="h-6 w-6 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#71717A]" title="Pro Feature">
+                        <Zap className="h-3.5 w-3.5 fill-current text-[#71717A]" />
+                      </span>
+                      <Switch
+                        checked={store?.theme?.showFooterBranding !== false}
+                        onCheckedChange={(checked) => handleToggleFooterBranding(checked)}
+                        className="data-[state=checked]:bg-[#16A34A] data-[state=unchecked]:bg-[#E4E4E7]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center gap-1.5 text-base sm:text-lg font-bold text-[#111827] tracking-tight">
+                    <span>CreatorStore</span>
+                    <CreatorStoreMark size="sm" color="brand" className="h-4 w-4 inline-block" />
+                  </div>
+                </div>
+
               </div>
             )}
             </div>
@@ -3160,7 +3243,7 @@ export default function StoreBuilderPage() {
                     <StorePreview
                       device="mobile"
                       editor
-                      store={store || {}}
+                      store={previewStore}
                       username={storeSlug}
                       profile={{
                         ...(profile || {}),
@@ -3816,6 +3899,11 @@ export default function StoreBuilderPage() {
                 mediaType={selectedMediaType}
                 initialProps={editingMediaSection?.props}
                 isEditing={Boolean(editingMediaSection)}
+                onChange={(liveProps) => {
+                  if (editingMediaSection) {
+                    updateSectionProps(editingMediaSection.id, liveProps)
+                  }
+                }}
                 onCancel={() => {
                   if (editingMediaSection) {
                     setAddModalOpen(false)
@@ -4941,6 +5029,7 @@ function DesignStudioPage({
   setShareOpen,
   onPersistAvatar,
   onBackToContent,
+  canRemoveFooterBranding = false,
 }) {
   const [activeSection, setActiveSection] = useState(null) // null | 'theme' | 'header' | 'wallpaper' | 'buttons' | 'text' | 'colors' | 'footer'
   const [mobileViewMode, setMobileViewMode] = useState('customize') // 'customize' | 'preview'
@@ -4952,6 +5041,17 @@ function DesignStudioPage({
   const [suggestedPalette, setSuggestedPalette] = useState(null)
   const avatarFileRef = useRef(null)
   const { setHeaderConfig, setPricingModalOpen } = useDashboardHeader()
+
+  const previewStore = useMemo(() => {
+    if (!store) return {}
+    return {
+      ...store,
+      theme: {
+        ...(savedTheme || store.theme || {}),
+        showFooterBranding: canRemoveFooterBranding ? ((savedTheme || store.theme)?.showFooterBranding ?? true) : true,
+      },
+    }
+  }, [store, savedTheme, canRemoveFooterBranding])
 
   const handleSuggestThemeMatch = async (imgUrl) => {
     if (!imgUrl) return
@@ -5462,9 +5562,16 @@ function DesignStudioPage({
                   </div>
 
                   <SwitchToggle
-                    label="Show CreatorStore Branding ('Join CreatorStore' button)"
+                    label="Show CreatorStore Branding ('CreatorStore' footer)"
                     checked={theme.showFooterBranding !== false}
-                    onChange={(val) => onChange({ showFooterBranding: val })}
+                    onChange={(val) => {
+                      if (!val && !canRemoveFooterBranding) {
+                        toast.error('A Pro subscription is required to hide the CreatorStore footer branding.')
+                        setPricingModalOpen(true)
+                        return
+                      }
+                      onChange({ showFooterBranding: val })
+                    }}
                   />
 
                   <SwitchToggle
@@ -5571,7 +5678,7 @@ function DesignStudioPage({
                 key={`${theme.headerLayout || 'classic'}-${theme.avatarUrl || store?.avatarUrl || profile?.avatarUrl || 'none'}`}
                 device="mobile"
                 editor
-                store={store || {}}
+                store={previewStore}
                 username={storeSlug}
                 profile={{
                   ...(profile || {}),

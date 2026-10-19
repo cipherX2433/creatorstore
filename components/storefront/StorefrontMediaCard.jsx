@@ -179,16 +179,16 @@ export default function StorefrontMediaCard({
               }
               setActiveGalleryIndex(0)
             }}
-            className="w-full max-w-md mx-auto p-3 sm:p-3.5 transition-all duration-200 cursor-pointer shadow-xs hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-between gap-3 text-left"
+            className="w-full max-w-md mx-auto p-3 sm:p-3.5 transition-all duration-200 cursor-pointer shadow-sm hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-between gap-3 text-left"
             style={{
               borderRadius: cardRadius,
-              backgroundColor: tokens?.presetId === 'default' ? '#FFFFFF' : surfaceTheme.cardBg,
-              border: tokens?.presetId === 'default' ? '1px solid rgba(0,0,0,0.04)' : `1px solid ${surfaceTheme.cardBorder}`,
+              backgroundColor: surfaceTheme.cardBg,
+              border: `1px solid ${surfaceTheme.cardBorder}`,
             }}
           >
             <div className="flex items-center gap-3 min-w-0">
               {/* Thumbnail of first image */}
-              <div className="h-11 w-11 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 shrink-0 shadow-xs flex items-center justify-center">
+              <div className="h-11 w-11 rounded-xl overflow-hidden bg-black/30 border border-white/10 shrink-0 shadow-xs flex items-center justify-center">
                 {images[0]?.url ? (
                   <img
                     src={images[0].url}
@@ -203,14 +203,14 @@ export default function StorefrontMediaCard({
               {/* Title & Photo Count Subtitle */}
               <div className="min-w-0">
                 <h4
-                  className="text-sm font-semibold tracking-tight truncate group-hover:underline"
-                  style={{ color: tokens?.presetId === 'default' ? '#0F172A' : (surfaceTheme.heading || surfaceTheme.text) }}
+                  className="text-sm font-bold tracking-tight truncate group-hover:underline"
+                  style={{ color: surfaceTheme.heading || surfaceTheme.text }}
                 >
                   {title || 'gallery'}
                 </h4>
                 <p
                   className="text-xs truncate flex items-center gap-1.5 mt-0.5"
-                  style={{ color: tokens?.presetId === 'default' ? '#64748B' : (surfaceTheme.muted || surfaceTheme.textMuted) }}
+                  style={{ color: surfaceTheme.muted || surfaceTheme.textMuted }}
                 >
                   <Camera className="h-3 w-3 shrink-0 opacity-70" />
                   <span>Gallery · {images.length} {images.length === 1 ? 'photo' : 'photos'}</span>
@@ -221,9 +221,9 @@ export default function StorefrontMediaCard({
             {/* Right More/Eye Icon */}
             <div
               className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 opacity-60 group-hover:opacity-100 transition-opacity"
-              style={{ color: tokens?.presetId === 'default' ? '#9CA3AF' : surfaceTheme.text }}
+              style={{ color: surfaceTheme.text }}
             >
-              {tokens?.presetId === 'default' ? <MoreVertical className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              <Eye className="h-4 w-4" />
             </div>
           </div>
         ) : (
@@ -424,39 +424,6 @@ export default function StorefrontMediaCard({
   if (sectionType === 'pdf') {
     const fileName = props.fileName || 'document.pdf'
     const fileSize = props.fileSize || ''
-
-    if (tokens?.presetId === 'default') {
-      return (
-        <a
-          href={editor ? undefined : url}
-          target="_blank"
-          rel="noreferrer"
-          download={fileName}
-          className="w-full max-w-md mx-auto p-3 sm:p-3.5 bg-white rounded-2xl shadow-xs border border-black/[0.04] transition-all duration-200 cursor-pointer hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-between gap-3 text-left block"
-          style={{ borderRadius: cardRadius }}
-        >
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="h-11 w-11 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 shrink-0 flex items-center justify-center">
-              {props.thumbnail ? (
-                <img src={props.thumbnail} alt={fileName} className="w-full h-full object-cover" />
-              ) : (
-                <FileText className="h-5 w-5 text-neutral-600" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h4 className="text-sm font-semibold tracking-tight truncate text-neutral-900 group-hover:underline">
-                {title || fileName}
-              </h4>
-              <p className="text-xs truncate flex items-center gap-1.5 mt-0.5 text-neutral-500">
-                <FileText className="h-3 w-3 shrink-0 opacity-70" />
-                <span>PDF{fileSize ? ` · ${fileSize}` : ''}</span>
-              </p>
-            </div>
-          </div>
-          <MoreVertical className="h-4 w-4 text-neutral-400 group-hover:text-neutral-600 shrink-0" />
-        </a>
-      )
-    }
 
     return (
       <div

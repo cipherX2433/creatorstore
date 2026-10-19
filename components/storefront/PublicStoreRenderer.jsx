@@ -28,8 +28,9 @@ import {
   buttonRadiusCss,
   buttonFaceStyle,
 } from '@/lib/storefrontLayout'
-import { CreatorStoreLogoIcon } from '@/components/brand/CreatorStoreBrand'
+import { CreatorStoreMark, CreatorStoreLogoIcon } from '@/components/brand/CreatorStoreBrand'
 import ProductPurchaseModalFlow from '@/components/storefront/ProductPurchaseModalFlow'
+import GalleryWizardModal from '@/components/storefront/GalleryWizardModal'
 
 export const SOCIAL_ICONS = {
   instagram: Instagram,
@@ -167,25 +168,24 @@ function ProductThumbnail({ thumbnail, title, aspect = 'aspect-[2.1/1]', classNa
   )
 }
 
-/* ---------------- Storefront Footer with CTA & Utility Links ---------------- */
+/* ---------------- Storefront Footer with CreatorStore Branding ---------------- */
 export function StorefrontFooter({ editor = false, showBranding = true, tokens }) {
   if (showBranding === false) return null
 
   const isLight = tokens?.contrast?.isLight ?? false
   const textColor = tokens?.colors?.text || (isLight ? '#0F172A' : '#FFFFFF')
-  const mutedColor = tokens?.colors?.mutedText || (isLight ? '#475569' : '#94A3B8')
   const btnBg = isLight ? '#F4F4F4' : '#1A1A1A'
   const btnBorder = isLight ? '#E5E5E5' : '#2E2E2E'
 
   return (
-    <footer className="pt-8 pb-4 flex flex-col items-center gap-3 text-center shrink-0 w-full">
-      {/* Join CreatorStore CTA Button */}
+    <footer className="pt-8 pb-6 flex flex-col items-center justify-center gap-2 text-center shrink-0 w-full">
+      {/* CreatorStore Branded CTA Button */}
       <Link
         href="/signup"
         target={editor ? undefined : '_blank'}
         rel="noopener noreferrer"
         onClick={editor ? (e) => e.preventDefault() : undefined}
-        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full transition-all duration-200 shadow-sm text-xs font-semibold tracking-tight cursor-pointer group hover:scale-[1.02]"
+        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full transition-all duration-200 shadow-sm text-xs font-semibold tracking-tight cursor-pointer group hover:scale-[1.02] active:scale-[0.98]"
         style={{
           background: btnBg,
           borderColor: btnBorder,
@@ -194,34 +194,9 @@ export function StorefrontFooter({ editor = false, showBranding = true, tokens }
           color: textColor,
         }}
       >
-        <CreatorStoreLogoIcon size="xs" className="h-4 w-4" alt="" />
-        <span>Join CreatorStore</span>
+        <span>CreatorStore</span>
+        <CreatorStoreMark size="xs" color="brand" className="h-3.5 w-3.5" />
       </Link>
-
-      {/* Utility Links */}
-      <div className="flex items-center justify-center gap-3 text-[11px]" style={{ color: mutedColor }}>
-        <Link
-          href="/privacy"
-          target={editor ? undefined : '_blank'}
-          rel="noopener noreferrer"
-          onClick={editor ? (e) => e.preventDefault() : undefined}
-          className="hover:underline transition-colors cursor-pointer"
-          style={{ color: mutedColor }}
-        >
-          Privacy Policy
-        </Link>
-        <span style={{ opacity: 0.5 }}>•</span>
-        <Link
-          href="/terms"
-          target={editor ? undefined : '_blank'}
-          rel="noopener noreferrer"
-          onClick={editor ? (e) => e.preventDefault() : undefined}
-          className="hover:underline transition-colors cursor-pointer"
-          style={{ color: mutedColor }}
-        >
-          Terms of Service
-        </Link>
-      </div>
     </footer>
   )
 }
@@ -362,6 +337,9 @@ export default function PublicStoreRenderer({
   selectedId,
   onSelect,
   className = '',
+  initialProduct = null,
+  initialProductId = null,
+  initialProductSlug = null,
 }) {
   const resolvedUsername = username || store?.slug || store?.username || profile?.username
   const resolvedPages = pages.length > 0 ? pages : (Array.isArray(store?.pages) ? store.pages : [])
@@ -388,12 +366,47 @@ export default function PublicStoreRenderer({
   const profileSec = allSections.find((s) => s.type === 'profile')
 
   // Product Purchase & Download Modal Flow State
-  const [modalProduct, setModalProduct] = useState(null)
+  const [modalProduct, setModalProduct] = useState(() => {
+    if (initialProduct) return initialProduct
+    if (initialProductId && products?.length) {
+      return products.find((p) => String(p.id) === String(initialProductId)) || null
+    }
+    if (initialProductSlug && products?.length) {
+      return products.find((p) => p.slug === initialProductSlug) || null
+    }
+    return null
+  })
   const [modalStep, setModalStep] = useState('preview')
+
+  useEffect(() => {
+    if (initialProduct) {
+      setModalProduct(initialProduct)
+      setModalStep('preview')
+    } else if (initialProductId && products?.length) {
+      const match = products.find((p) => String(p.id) === String(initialProductId))
+      if (match) {
+        setModalProduct(match)
+        setModalStep('preview')
+      }
+    } else if (initialProductSlug && products?.length) {
+      const match = products.find((p) => p.slug === initialProductSlug)
+      if (match) {
+        setModalProduct(match)
+        setModalStep('preview')
+      }
+    }
+  }, [initialProduct, initialProductId, initialProductSlug, products])
 
   const handleProductClick = useCallback((clickedProduct) => {
     setModalProduct(clickedProduct)
     setModalStep('preview')
+  }, [])
+
+  // Dedicated Gallery Click-to-Open Image Wizard State (Reference Image 1)
+  const [modalGallery, setModalGallery] = useState(null)
+
+  const handleGalleryClick = useCallback((gallerySection) => {
+    setModalGallery(gallerySection)
   }, [])
 
   // Filter sections by active page for both live storefront and dashboard editor
@@ -583,6 +596,7 @@ export default function PublicStoreRenderer({
                           store={store}
                           collectionProductIds={collectionProductIds}
                           onProductClick={handleProductClick}
+                          onGalleryClick={handleGalleryClick}
                         />
                       </div>
                     </div>
@@ -683,6 +697,7 @@ export default function PublicStoreRenderer({
                           store={store}
                           collectionProductIds={collectionProductIds}
                           onProductClick={handleProductClick}
+                          onGalleryClick={handleGalleryClick}
                         />
                       </div>
                     </div>
@@ -715,12 +730,27 @@ export default function PublicStoreRenderer({
           initialStep={modalStep}
         />
       )}
+
+      {/* Dedicated Gallery Click-to-Open Image Wizard (Reference Image 1) */}
+      {modalGallery && (
+        <GalleryWizardModal
+          gallery={modalGallery}
+          creator={{
+            name: profile?.name || store?.storeName || 'Creator',
+            username: resolvedUsername,
+            avatarUrl: profile?.avatarUrl || store?.avatarUrl || null,
+          }}
+          isOpen={Boolean(modalGallery)}
+          onClose={() => setModalGallery(null)}
+          onProductClick={handleProductClick}
+        />
+      )}
     </div>
   )
 }
 
 /* ---------------- HERO STOREFRONT LAYOUT ENGINE ---------------- */
-function HeroStorefrontLayout({ store, profile, products, sections, tokens, username, editor, device, selectedId, onSelect }) {
+function HeroStorefrontLayout({ store, profile, products, sections, tokens, username, editor, device, selectedId, onSelect, onProductClick, onGalleryClick }) {
   const { colors, typography, layout, cards, hero, layoutPreset } = tokens
   const name = profile?.name || 'Creator Name'
   const bio = profile?.bio || 'Digital Creator & Educator'
@@ -865,6 +895,7 @@ function HeroStorefrontLayout({ store, profile, products, sections, tokens, user
               device={device}
               selectedId={selectedId}
               onSelect={onSelect}
+              onProductClick={onProductClick}
             />
           </div>
         ) : layoutPreset === 'glass-creator' ? (
@@ -880,6 +911,7 @@ function HeroStorefrontLayout({ store, profile, products, sections, tokens, user
               device={device}
               selectedId={selectedId}
               onSelect={onSelect}
+              onProductClick={onProductClick}
             />
           </div>
         ) : (
@@ -895,6 +927,7 @@ function HeroStorefrontLayout({ store, profile, products, sections, tokens, user
               device={device}
               selectedId={selectedId}
               onSelect={onSelect}
+              onProductClick={onProductClick}
             />
           </div>
         )}
@@ -909,7 +942,7 @@ function HeroStorefrontLayout({ store, profile, products, sections, tokens, user
   )
 }
 
-function SectionsStack({ sections, tokens, profile, products, username, editor, device, selectedId, onSelect }) {
+function SectionsStack({ sections, tokens, profile, products, username, editor, device, selectedId, onSelect, onProductClick }) {
   if (!sections.length) {
     return (
       <div className="rounded-2xl border border-dashed border-white/15 bg-surface-raised/40 p-8 text-center space-y-1">
@@ -948,6 +981,8 @@ function SectionsStack({ sections, tokens, profile, products, username, editor, 
               username={username}
               editor={editor}
               device={device}
+              onProductClick={onProductClick}
+              onGalleryClick={onGalleryClick}
             />
           </div>
         </div>
@@ -956,7 +991,7 @@ function SectionsStack({ sections, tokens, profile, products, username, editor, 
   )
 }
 
-function SectionRenderer({ section, tokens, profile, products, username, editor, device, store, collectionProductIds, onProductClick }) {
+function SectionRenderer({ section, tokens, profile, products, username, editor, device, store, collectionProductIds, onProductClick, onGalleryClick }) {
   const { colors, typography, layout, cards, buttons, profile: profileTokens, social } = tokens
   const align = section.props?.align || 'center'
   const alignClass = align === 'left' ? 'text-left items-start' : align === 'right' ? 'text-right items-end' : 'text-center items-center'
@@ -1079,22 +1114,24 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
         )
         return (
           <div className="w-full max-w-md mx-auto">
-            {editor ? (
-              <div onClick={() => onProductClick?.(p)} className="cursor-pointer">{pill}</div>
-            ) : (
-              <a
-                href={href}
-                onClick={(e) => {
-                  if (!e.metaKey && !e.ctrlKey && onProductClick) {
-                    e.preventDefault()
-                    onProductClick(p)
-                  }
-                }}
-                className="block cursor-pointer"
-              >
-                {pill}
-              </a>
-            )}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onProductClick?.(p)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  onProductClick?.(p)
+                }
+              }}
+              className="block cursor-pointer text-left"
+            >
+              {pill}
+            </div>
           </div>
         )
       }
@@ -1328,6 +1365,9 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
           tokens={tokens}
           editor={editor}
           username={username}
+          products={products}
+          onProductClick={onProductClick}
+          onGalleryClick={onGalleryClick}
         />
       )
 
@@ -1506,18 +1546,24 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
         {children}
       </div>
     ) : (
-      <a
-        href={href}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={(e) => {
-          if (!e.metaKey && !e.ctrlKey && onProductClick) {
+          e.preventDefault()
+          e.stopPropagation()
+          onProductClick?.(product)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
-            onProductClick(product)
+            onProductClick?.(product)
           }
         }}
-        className="block group h-full min-w-0 cursor-pointer"
+        className="block group h-full min-w-0 cursor-pointer text-left"
       >
         {children}
-      </a>
+      </div>
     )
 
   const hasDiscount = product.originalPrice && Number(product.originalPrice) > Number(product.price)
