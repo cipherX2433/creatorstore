@@ -8,12 +8,14 @@ import { Loader2, CheckCircle2, AlertCircle, Mail, ArrowRight, RefreshCw, Pencil
 import { api } from '@/lib/clientApi'
 import { useAuth } from '@/components/auth/AuthContext'
 import CreatorStoreBrand from '@/components/brand/CreatorStoreBrand'
+import { getRequestedReturnUrl, getPostAuthDestination } from '@/lib/redirectUtils'
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { refresh } = useAuth()
   const emailParam = searchParams.get('email')
+  const requestedDestination = getRequestedReturnUrl(searchParams)
 
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
@@ -24,7 +26,7 @@ function VerifyEmailContent() {
   const [resendCooldown, setResendCooldown] = useState(0)
   const [isEditingEmail, setIsEditingEmail] = useState(false)
   const [tempEmail, setTempEmail] = useState('')
-  const [redirectPath, setRedirectPath] = useState('/dashboard')
+  const [redirectPath, setRedirectPath] = useState('/dashboard/store')
 
   const inputRefs = useRef([])
 
@@ -158,9 +160,11 @@ function VerifyEmailContent() {
 
       // Immediately refresh authenticated context
       const me = await refresh().catch(() => null)
-      const isCustomer = (me?.user?.role === 'CUSTOMER' || res?.user?.role === 'CUSTOMER')
-      const isComplete = me?.profile?.onboardingComplete || me?.profile?.onboardingStatus === 'COMPLETED'
-      const target = isCustomer ? '/account' : (isComplete ? '/dashboard' : '/onboarding')
+      const target = getPostAuthDestination({
+        user: me?.user || res?.user,
+        profile: me?.profile,
+        requestedDestination,
+      })
       setRedirectPath(target)
       setStatus('success')
       toast.success(res.message || 'Email verified successfully!')
@@ -198,8 +202,12 @@ function VerifyEmailContent() {
       if (res.alreadyVerified) {
         toast.success(res.message || 'Your email is already verified.')
         const me = await refresh().catch(() => null)
-        const isComplete = me?.profile?.onboardingComplete || me?.profile?.onboardingStatus === 'COMPLETED'
-        router.replace(isComplete ? '/dashboard' : '/onboarding')
+        const target = getPostAuthDestination({
+          user: me?.user,
+          profile: me?.profile,
+          requestedDestination,
+        })
+        router.replace(target)
       } else {
         toast.success(res.message || 'New 6-digit code sent to your email.')
         setOtp(['', '', '', '', '', ''])
@@ -233,7 +241,8 @@ function VerifyEmailContent() {
 
   // 1. Success State
   if (status === 'success') {
-    const isToDashboard = redirectPath === '/dashboard'
+    const isToStoreOrDashboard = redirectPath === '/dashboard/store' || redirectPath.startsWith('/dashboard')
+    const isToAccount = redirectPath.startsWith('/account')
     return (
       <main className="min-h-screen w-full bg-[#F2F5FE] text-[#010619] flex flex-col items-center justify-center px-4 sm:px-6 py-10 sm:py-16 selection:bg-[#194DF5] selection:text-white">
         <div className="w-full max-w-[440px] mx-auto flex flex-col items-center">
@@ -257,9 +266,11 @@ function VerifyEmailContent() {
                 Email verified successfully!
               </h1>
               <p className="text-sm text-[#3A4060] font-medium leading-relaxed">
-                {isToDashboard
-                  ? 'Your CreatorStore account is verified. Redirecting to your dashboard...'
-                  : 'Your CreatorStore account is verified. Redirecting to store setup...'}
+                {isToStoreOrDashboard
+                  ? 'Your CreatorStore account is verified. Redirecting to your store...'
+                  : (isToAccount
+                      ? 'Your CreatorStore account is verified. Redirecting to your account...'
+                      : 'Your CreatorStore account is verified. Redirecting to store setup...')}
               </p>
             </div>
 
@@ -268,7 +279,7 @@ function VerifyEmailContent() {
               onClick={() => router.replace(redirectPath)}
               className="w-full h-[48px] rounded-full bg-[#194DF5] hover:bg-[#1441D9] text-white font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>{isToDashboard ? 'Go to Dashboard' : 'Continue to Onboarding'}</span>
+              <span>{isToStoreOrDashboard ? 'Go to Store' : (isToAccount ? 'Go to Account' : 'Continue to Onboarding')}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>

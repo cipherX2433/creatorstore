@@ -12,6 +12,7 @@ import { trackPricingPlanSelected } from '@/lib/analytics'
 import CountrySelect from '@/components/ui/CountrySelect'
 import { openRazorpaySubscriptionCheckout } from '@/lib/razorpayClient'
 import { getCountryName } from '@/lib/countries'
+import { CreatorPricingCard, ProPricingCard } from '@/components/pricing/PricingCards'
 
 export default function PricingModal({ isOpen, onClose, defaultPlan = 'PRO', defaultInterval = 'monthly', isTrialExpired = false }) {
   const router = useRouter()
@@ -310,216 +311,70 @@ export default function PricingModal({ isOpen, onClose, defaultPlan = 'PRO', def
         )}
 
         {/* 2 Paid Plan Cards: CREATOR vs PRO */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-stretch pt-2">
+          <CreatorPricingCard
+            pricing={pricing}
+            isAnnual={isAnnual}
+            onSelect={() => handleSelectPlan('CREATOR')}
+            isCurrent={isCreatorCurrent}
+            isLoading={loadingPlan === 'CREATOR'}
+            disabled={loadingPlan !== null || isCreatorCurrent}
+            buttonText={
+              loadingPlan === 'CREATOR' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Processing...
+                </>
+              ) : isCreatorCurrent ? (
+                'Current Plan'
+              ) : isPaidActive && activePlanId === 'PRO' ? (
+                `Downgrade to Creator — ${isAnnual ? pricing.CREATOR.annual.priceFormatted + '/year' : pricing.CREATOR.monthly.priceFormatted + '/mo'}`
+              ) : isAnnual ? (
+                `Start Creator Annual — ${pricing.CREATOR.annual.priceFormatted}/year`
+              ) : (
+                `Start with Creator — ${pricing.CREATOR.monthly.priceFormatted}/mo`
+              )
+            }
+            subtext={
+              isPaidActive && activePlanId === 'PRO' && !isCreatorCurrent
+                ? 'Downgrade takes effect at the end of your billing cycle.'
+                : null
+            }
+          />
 
-          {/* Plan 1: CREATOR */}
-          <div className={`bg-[#FFFFFF] p-6 sm:p-7 rounded-[20px] border flex flex-col justify-between space-y-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-colors ${
-            isCreatorCurrent ? 'border-primary ring-2 ring-primary/20' : 'border-[#E5E5E3] hover:border-[#1F1F1F]/40'
-          }`}>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#1F1F1F] bg-[#F2F1EF] px-3 py-1 rounded-full border border-[#E5E5E3]">
-                  CREATOR PLAN
-                </span>
-                {isCreatorCurrent ? (
-                  <span className="text-[10px] font-black uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20">
-                    CURRENT PLAN
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-bold text-[#16A34A]">0% PLATFORM FEE</span>
-                )}
-              </div>
-
-              <div>
-                {isAnnual ? (
-                  <div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-black text-[#1F1F1F]">{pricing.CREATOR.annual.priceFormatted}</span>
-                      <span className="text-xs text-[#6F6F6B] font-medium">/year</span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-[#999995] line-through">
-                        {pricing.CREATOR.annual.originalPriceFormatted}/year
-                      </span>
-                      <span className="text-[11px] font-bold text-[#16A34A]">Save 20%</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-4xl font-black text-[#1F1F1F]">{pricing.CREATOR.monthly.priceFormatted}</span>
-                      <span className="text-xs text-[#6F6F6B] font-medium">/month</span>
-                    </div>
-                  </div>
-                )}
-                <p className="text-xs font-bold text-[#1F1F1F] mt-1.5">Start Selling</p>
-                <p className="text-[11px] text-[#6F6F6B] mt-0.5">Everything you need to launch your creator business.</p>
-              </div>
-
-              {/* Benefits list */}
-              <div className="space-y-2.5 pt-3 border-t border-[#E5E5E3] text-xs">
-                {[
-                  'Unlimited digital products & product checkout',
-                  'Instant digital download file delivery',
-                  'Unlimited Instagram DMs',
-                  'Up to 3 storefront pages',
-                  'Product collections & storefront grouping',
-                  'Basic sales & customer analytics',
-                  'Standard store customization & lead collection',
-                  '0% CreatorStore platform fee',
-                ].map((b, i) => (
-                  <div key={i} className="flex items-center gap-2.5">
-                    <Check className="h-4 w-4 text-[#16A34A] shrink-0 stroke-[3]" />
-                    <span className="text-[#1F1F1F] font-medium">{b}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Button
-                onClick={() => handleSelectPlan('CREATOR')}
-                disabled={loadingPlan !== null || isCreatorCurrent}
-                className={`w-full py-3 text-xs rounded-full font-bold shadow-none transition-all ${
-                  isCreatorCurrent
-                    ? 'bg-[#E5E5E3] text-[#8E8E89] cursor-not-allowed hover:bg-[#E5E5E3]'
-                    : isPaidActive && activePlanId === 'PRO'
-                      ? 'bg-[#FFFFFF] hover:bg-[#F5F5F3] text-[#DC2626] border border-[#DC2626]/40 cursor-pointer'
-                      : 'bg-[#FFFFFF] hover:bg-[#F5F5F3] text-[#1F1F1F] border border-[#E5E5E3] cursor-pointer'
-                }`}
-              >
-                {loadingPlan === 'CREATOR' ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> Processing...
-                  </>
-                ) : isCreatorCurrent ? (
-                  'Current Plan'
-                ) : isPaidActive && activePlanId === 'PRO' ? (
-                  `Downgrade to Creator — ${isAnnual ? pricing.CREATOR.annual.priceFormatted + '/year' : pricing.CREATOR.monthly.priceFormatted + '/mo'}`
-                ) : isAnnual ? (
-                  `Start Creator Annual — ${pricing.CREATOR.annual.priceFormatted}/year`
-                ) : (
-                  `Start with Creator — ${pricing.CREATOR.monthly.priceFormatted}/mo`
-                )}
-              </Button>
-              {isPaidActive && activePlanId === 'PRO' && !isCreatorCurrent && (
-                <p className="text-[10px] text-center text-[#6F6F6B]">
-                  Downgrade takes effect at the end of your billing cycle.
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Plan 2: PRO - HIGHLIGHTED */}
-          <div className={`bg-[#FFFFFF] p-6 sm:p-7 rounded-[20px] border-2 flex flex-col justify-between space-y-6 relative overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)] ${
-            isProCurrent ? 'border-primary ring-2 ring-primary/20' : 'border-[#1F1F1F]'
-          }`}>
-            <div className="absolute top-0 right-0 bg-[#1F1F1F] text-white font-bold text-[9px] uppercase px-3 py-1 rounded-bl-xl">
-              BEST FOR GROWING CREATORS
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wider text-white bg-[#1F1F1F] px-3 py-1 rounded-full">
-                  PRO PLAN
-                </span>
-                {isProCurrent && (
-                  <span className="text-[10px] font-black uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20 mr-28">
-                    CURRENT PLAN
-                  </span>
-                )}
-              </div>
-
-              <div>
-                {isAnnual ? (
-                  <div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-black text-[#1F1F1F]">{pricing.PRO.annual.priceFormatted}</span>
-                      <span className="text-xs text-[#6F6F6B] font-medium">/year</span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-[#999995] line-through">
-                        {pricing.PRO.annual.originalPriceFormatted}/year
-                      </span>
-                      <span className="text-[11px] font-bold text-[#16A34A]">Save 20%</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-4xl font-black text-[#1F1F1F]">{pricing.PRO.monthly.priceFormatted}</span>
-                      <span className="text-xs text-[#6F6F6B] font-medium">/month</span>
-                    </div>
-                  </div>
-                )}
-                <p className="text-xs font-bold text-[#1F1F1F] mt-1.5">Turn your audience into a business</p>
-                <p className="text-[11px] text-[#6F6F6B] mt-0.5">Powerful tools to automate, analyze and scale.</p>
-              </div>
-
-              {/* Benefits list */}
-              <div className="space-y-2.5 pt-3 border-t border-[#E5E5E3] text-xs">
-                {[
-                  'Everything in Creator included',
-                  'Leads & Lead Magnets',
-                  'Coupons & Discounts',
-                  'Email Broadcasts',
-                  'Unlimited Instagram DMs',
-                  'Unlimited store pages & navigation links',
-                  'Advanced creator & conversion analytics',
-                  'Unlimited product variants & pricing tiers',
-                  'Lead export (CSV & CRM sync)',
-                  'Remove CreatorStore branding',
-                  'Priority creator customer support',
-                  '0% CreatorStore platform fee',
-                ].map((b, i) => (
-                  <div key={i} className="flex items-center gap-2.5">
-                    <Check className="h-4 w-4 text-[#16A34A] shrink-0 stroke-[3]" />
-                    <span className="text-[#1F1F1F] font-medium">{b}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Button
-                onClick={() => handleSelectPlan('PRO')}
-                disabled={loadingPlan !== null || isProCurrent}
-                className={`w-full py-3 text-xs rounded-full font-bold shadow-none transition-all ${
-                  isProCurrent
-                    ? 'bg-[#E5E5E3] text-[#8E8E89] cursor-not-allowed hover:bg-[#E5E5E3]'
-                    : isPaidActive && activePlanId === 'CREATOR'
-                      ? 'bg-primary text-black font-black hover:bg-primary-hover shadow-md cursor-pointer'
-                      : 'bg-[#1F1F1F] text-white hover:bg-[#000000] active:bg-[#111111] cursor-pointer'
-                }`}
-              >
-                {loadingPlan === 'PRO' ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> Connecting...
-                  </>
-                ) : isProCurrent ? (
-                  'Current Plan'
-                ) : isPaidActive && activePlanId === 'CREATOR' ? (
-                  <>
-                    Upgrade to Pro — {isAnnual ? pricing.PRO.annual.priceFormatted + '/year' : pricing.PRO.monthly.priceFormatted + '/mo'} <ArrowRight className="h-4 w-4 ml-1.5" />
-                  </>
-                ) : isAnnual ? (
-                  <>
-                    Start Pro Annual — {pricing.PRO.annual.priceFormatted}/year <ArrowRight className="h-4 w-4 ml-1.5" />
-                  </>
-                ) : (
-                  <>
-                    Go Pro — {pricing.PRO.monthly.priceFormatted}/mo <ArrowRight className="h-4 w-4 ml-1.5" />
-                  </>
-                )}
-              </Button>
-              {isPaidActive && activePlanId === 'CREATOR' && !isProCurrent && (
-                <p className="text-[10px] text-center text-[#16A34A] font-medium">
-                  Immediate upgrade • Unused Creator balance is prorated
-                </p>
-              )}
-            </div>
-          </div>
-
+          <ProPricingCard
+            pricing={pricing}
+            isAnnual={isAnnual}
+            onSelect={() => handleSelectPlan('PRO')}
+            isCurrent={isProCurrent}
+            isLoading={loadingPlan === 'PRO'}
+            disabled={loadingPlan !== null || isProCurrent}
+            buttonText={
+              loadingPlan === 'PRO' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Connecting...
+                </>
+              ) : isProCurrent ? (
+                'Current Plan'
+              ) : isPaidActive && activePlanId === 'CREATOR' ? (
+                <>
+                  Upgrade to Pro — {isAnnual ? pricing.PRO.annual.priceFormatted + '/year' : pricing.PRO.monthly.priceFormatted + '/mo'} <ArrowRight className="h-4 w-4 ml-1.5" />
+                </>
+              ) : isAnnual ? (
+                <>
+                  Start Pro Annual — {pricing.PRO.annual.priceFormatted}/year <ArrowRight className="h-4 w-4 ml-1.5" />
+                </>
+              ) : (
+                <>
+                  Go Pro — {pricing.PRO.monthly.priceFormatted}/mo <ArrowRight className="h-4 w-4 ml-1.5" />
+                </>
+              )
+            }
+            subtext={
+              isPaidActive && activePlanId === 'CREATOR' && !isProCurrent
+                ? 'Immediate upgrade • Unused Creator balance is prorated'
+                : null
+            }
+          />
         </div>
 
         {/* Footer info & Disclaimer */}

@@ -18,6 +18,7 @@ import { useAuth } from '@/components/auth/AuthContext'
 import { getSubscriptionPricing, COMPARISON_TABLE_ROWS } from '@/lib/plans'
 import PricingModal from '@/components/dashboard/PricingModal'
 import { trackPricingViewed, trackPricingPlanSelected } from '@/lib/analytics'
+import { CreatorPricingCard, ProPricingCard } from '@/components/pricing/PricingCards'
 
 export default function PublicPricingPage() {
   const router = useRouter()
@@ -33,12 +34,6 @@ export default function PublicPricingPage() {
 
   const pricing = getSubscriptionPricing('USD', billingInterval)
 
-  // Scale plan calculations (USD)
-  const scaleMonthlyPrice = 29
-  const scaleAnnualPrice = 279
-  const scaleDisplayPrice = isAnnual ? `$${scaleAnnualPrice}` : `$${scaleMonthlyPrice}`
-  const scaleOriginalAnnual = `$${scaleMonthlyPrice * 12}`
-
   function handleSelectPlan(planId) {
     trackPricingPlanSelected({
       plan_id: planId,
@@ -46,11 +41,10 @@ export default function PublicPricingPage() {
       currency: 'USD',
     })
     if (!isAuthenticated) {
-      const targetPlan = planId === 'SCALE' ? 'PRO' : planId
-      router.push(`/signup?plan=${targetPlan}&interval=${billingInterval}`)
+      router.push(`/signup?plan=${planId}&interval=${billingInterval}`)
       return
     }
-    setCheckoutPlan(planId === 'SCALE' ? 'PRO' : planId)
+    setCheckoutPlan(planId)
   }
 
   return (
@@ -109,215 +103,20 @@ export default function PublicPricingPage() {
         </div>
 
         {/* ==============================================================
-            MAIN PRICING CONTAINER (Unified Card Deck with 3 Columns)
+            MAIN PRICING CONTAINER (Unified Card Deck with 2 Columns)
            ============================================================== */}
-        <div className="bg-white rounded-[28px] sm:rounded-[32px] p-3 sm:p-4 shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-[#E5E5E8]">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5 sm:gap-3 items-stretch">
-            
-            {/* ── CARD 1: CREATOR (Light Column) ────────────────────── */}
-            <div className="bg-[#F7F7F9] rounded-2xl sm:rounded-[24px] p-6 sm:p-8 flex flex-col justify-between border border-transparent hover:border-[#E0E0E4] transition-all">
-              <div>
-                {/* Title & Description */}
-                <h2 className="text-xl font-semibold text-[#111111] tracking-tight">
-                  Creator
-                </h2>
-                <p className="text-xs text-[#666666] leading-relaxed mt-1 min-h-[34px]">
-                  High-impact storefront &amp; bio link designed to convert audience into customers.
-                </p>
-
-                {/* Price Display */}
-                <div className="mt-5 flex items-baseline gap-1">
-                  <span className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#111111]">
-                    {isAnnual ? pricing.CREATOR.annual.priceFormatted : pricing.CREATOR.monthly.priceFormatted}
-                  </span>
-                  <span className="text-xs text-[#777777] font-medium">
-                    {isAnnual ? '/year' : '/mo'}
-                  </span>
-                  {isAnnual && (
-                    <span className="text-[11px] text-[#999999] line-through ml-2">
-                      {pricing.CREATOR.annual.originalPriceInrFormatted || pricing.CREATOR.annual.originalPriceFormatted}
-                    </span>
-                  )}
-                </div>
-
-                {/* Divider Line */}
-                <div className="border-b border-[#E4E4E8] my-6" />
-
-                {/* Full-width Black Pill Action Button */}
-                <button
-                  type="button"
-                  onClick={() => handleSelectPlan('CREATOR')}
-                  className="w-full py-3 px-4 rounded-full bg-[#111111] hover:bg-black text-white text-xs sm:text-sm font-semibold transition-all duration-150 shadow-xs cursor-pointer text-center"
-                >
-                  Get Started with Creator
-                </button>
-
-                {/* Feature Checklist with `+ ` prefix */}
-                <div className="space-y-3 pt-7 text-xs sm:text-sm text-[#444444]">
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#999999] font-mono select-none">+</span>
-                    <span>Single bio link storefront</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#999999] font-mono select-none">+</span>
-                    <span>Unlimited digital products &amp; sales</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#999999] font-mono select-none">+</span>
-                    <span>Instant checkout &amp; digital delivery</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#999999] font-mono select-none">+</span>
-                    <span>0% CreatorStore platform fees</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#999999] font-mono select-none">+</span>
-                    <span>Built-in UPI, cards &amp; Stripe settlement</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#999999] font-mono select-none">+</span>
-                    <span>Customer lead &amp; email collection</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ── CARD 2: PRO (Light Column) ────────────────────────── */}
-            <div className="bg-[#F7F7F9] rounded-2xl sm:rounded-[24px] p-6 sm:p-8 flex flex-col justify-between border border-transparent hover:border-[#E0E0E4] transition-all">
-              <div>
-                {/* Title & Description */}
-                <h2 className="text-xl font-semibold text-[#111111] tracking-tight">
-                  Pro
-                </h2>
-                <p className="text-xs text-[#666666] leading-relaxed mt-1 min-h-[34px]">
-                  Full creator suite with automated Instagram DMs and viral growth workflows.
-                </p>
-
-                {/* Price Display */}
-                <div className="mt-5 flex items-baseline gap-1">
-                  <span className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#111111]">
-                    {isAnnual ? pricing.PRO.annual.priceFormatted : pricing.PRO.monthly.priceFormatted}
-                  </span>
-                  <span className="text-xs text-[#777777] font-medium">
-                    {isAnnual ? '/year' : '/mo'}
-                  </span>
-                  {isAnnual && (
-                    <span className="text-[11px] text-[#999999] line-through ml-2">
-                      {pricing.PRO.annual.originalPriceInrFormatted || pricing.PRO.annual.originalPriceFormatted}
-                    </span>
-                  )}
-                </div>
-
-                {/* Divider Line */}
-                <div className="border-b border-[#E4E4E8] my-6" />
-
-                {/* Full-width Black Pill Action Button */}
-                <button
-                  type="button"
-                  onClick={() => handleSelectPlan('PRO')}
-                  className="w-full py-3 px-4 rounded-full bg-[#111111] hover:bg-black text-white text-xs sm:text-sm font-semibold transition-all duration-150 shadow-xs cursor-pointer text-center"
-                >
-                  Get Started with Pro
-                </button>
-
-                {/* Feature Checklist with `+ ` prefix */}
-                <div className="space-y-3 pt-7 text-xs sm:text-sm text-[#444444]">
-                  <div className="flex items-start gap-2 font-medium text-[#111111]">
-                    <span className="text-[#999999] font-mono select-none">+</span>
-                    <span>Everything in Creator, plus:</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#999999] font-mono select-none">+</span>
-                    <span>Unlimited Instagram Auto-DMs</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#999999] font-mono select-none">+</span>
-                    <span>Meta Graph API Delivery Guard protection</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#999999] font-mono select-none">+</span>
-                    <span>Custom branded domain connection</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#999999] font-mono select-none">+</span>
-                    <span>Discount coupons &amp; promo codes</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#999999] font-mono select-none">+</span>
-                    <span>Priority email &amp; Discord support</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ── CARD 3: SCALE (Elevated Inverted Dark Column) ───────── */}
-            <div className="bg-[#18181A] text-white rounded-2xl sm:rounded-[24px] p-6 sm:p-8 flex flex-col justify-between shadow-[0_12px_36px_rgba(0,0,0,0.18)] relative border border-white/5">
-              <div>
-                {/* Title & Description */}
-                <h2 className="text-xl font-semibold text-white tracking-tight">
-                  Scale
-                </h2>
-                <p className="text-xs text-[#999999] leading-relaxed mt-1 min-h-[34px]">
-                  Dedicated scaling infrastructure and ongoing expertise to keep your product moving forward.
-                </p>
-
-                {/* Price Display */}
-                <div className="mt-5 flex items-baseline gap-1">
-                  <span className="text-3xl sm:text-4xl font-semibold tracking-tight text-white">
-                    {scaleDisplayPrice}
-                  </span>
-                  <span className="text-xs text-[#888888] font-medium">
-                    {isAnnual ? '/year' : '/mo'}
-                  </span>
-                  {isAnnual && (
-                    <span className="text-[11px] text-[#666666] line-through ml-2">
-                      {scaleOriginalAnnual}
-                    </span>
-                  )}
-                </div>
-
-                {/* Divider Line */}
-                <div className="border-b border-white/10 my-6" />
-
-                {/* Full-width White Pill Action Button */}
-                <button
-                  type="button"
-                  onClick={() => handleSelectPlan('SCALE')}
-                  className="w-full py-3 px-4 rounded-full bg-white hover:bg-[#F2F2F2] text-black text-xs sm:text-sm font-semibold transition-all duration-150 shadow-md cursor-pointer text-center"
-                >
-                  Get Started with Scale
-                </button>
-
-                {/* Feature Checklist with `+ ` prefix */}
-                <div className="space-y-3 pt-7 text-xs sm:text-sm text-[#CCCCCC]">
-                  <div className="flex items-start gap-2 font-medium text-white">
-                    <span className="text-[#777777] font-mono select-none">+</span>
-                    <span>Everything in Pro, plus:</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#777777] font-mono select-none">+</span>
-                    <span>Unlimited automated message pipelines</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#777777] font-mono select-none">+</span>
-                    <span>Up to 5 team member sub-accounts</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#777777] font-mono select-none">+</span>
-                    <span>Custom domain SSL &amp; zero platform branding</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#777777] font-mono select-none">+</span>
-                    <span>1-on-1 migration &amp; onboarding session</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-[#777777] font-mono select-none">+</span>
-                    <span>Dedicated VIP priority support</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+        <div className="max-w-4xl mx-auto bg-white rounded-[28px] sm:rounded-[32px] p-3 sm:p-4 shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-[#E5E5E8]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3 items-stretch">
+            <CreatorPricingCard
+              pricing={pricing}
+              isAnnual={isAnnual}
+              onSelect={() => handleSelectPlan('CREATOR')}
+            />
+            <ProPricingCard
+              pricing={pricing}
+              isAnnual={isAnnual}
+              onSelect={() => handleSelectPlan('PRO')}
+            />
           </div>
 
           {/* Bottom Micro-Strip on Main Deck */}

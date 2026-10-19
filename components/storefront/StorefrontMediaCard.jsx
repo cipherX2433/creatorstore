@@ -3,16 +3,21 @@
 import { useState, useMemo } from 'react'
 import {
   Play, Video, Images, Headphones, FileText, Download,
-  ExternalLink, Eye, ChevronLeft, ChevronRight, Music
+  ExternalLink, Eye, ChevronLeft, ChevronRight, Music,
+  X, Camera, MoreVertical
 } from 'lucide-react'
 import { getContrastColor, getResourceButtonStyles } from '@/lib/colorContrast'
 import { extractVideoEmbed, extractAudioEmbed } from '@/components/dashboard/AddMediaConfig'
+import GalleryWizardModal from '@/components/storefront/GalleryWizardModal'
 
 export default function StorefrontMediaCard({
   section,
   tokens = {},
   editor = false,
   username = '',
+  products = [],
+  onProductClick,
+  onGalleryClick,
 }) {
   const props = section.props || {}
   const sectionType = section.type || props.mediaType || 'video'
@@ -31,8 +36,9 @@ export default function StorefrontMediaCard({
     return getResourceButtonStyles(bgHex, rawBtnBg, surfaceTheme.cardBg)
   }, [bgHex, buttons.color, colors.buttonColor, colors.primaryColor, surfaceTheme.cardBg])
 
-  // Selected image index for gallery lightbox / modal preview
-  const [activeGalleryIndex, setActiveGalleryIndex] = useState(0)
+  // Selected image index for gallery lightbox / modal preview (null = closed)
+  const [activeGalleryIndex, setActiveGalleryIndex] = useState(null)
+  const [isGalleryWizardOpen, setIsGalleryWizardOpen] = useState(false)
 
   // Card container styles
   const cardRadius = cards.radius ? `${cards.radius}px` : '18px'
@@ -133,6 +139,8 @@ export default function StorefrontMediaCard({
   /* ========================================================================= */
   if (sectionType === 'gallery') {
     const images = Array.isArray(props.images) ? props.images : []
+    const layout = props.layout || props.displayMode || 'classic'
+    const isClassic = layout === 'classic'
 
     if (!images.length) {
       return (
@@ -159,51 +167,155 @@ export default function StorefrontMediaCard({
           : 'grid-cols-2 sm:grid-cols-3'
 
     return (
-      <div
-        className="w-full max-w-md mx-auto p-4 space-y-3 overflow-hidden shadow-sm"
-        style={{
-          borderRadius: cardRadius,
-          backgroundColor: surfaceTheme.cardBg,
-          border: `1px solid ${surfaceTheme.cardBorder}`,
-        }}
-      >
-        {/* Gallery Title & Header */}
-        {title && (
-          <div className="text-left pb-1">
-            <h4 className="text-sm font-bold tracking-tight" style={{ color: surfaceTheme.heading || surfaceTheme.text }}>
-              {title}
-            </h4>
-            {caption && (
-              <p className="text-xs mt-0.5" style={{ color: surfaceTheme.muted || surfaceTheme.textMuted }}>
-                {caption}
-              </p>
+      <>
+        {/* CLASSIC STYLE: Compact Link-Style Gallery Pill */}
+        {isClassic ? (
+          <div
+            onClick={() => {
+              if (onGalleryClick) {
+                onGalleryClick(section)
+              } else {
+                setIsGalleryWizardOpen(true)
+              }
+              setActiveGalleryIndex(0)
+            }}
+            className="w-full max-w-md mx-auto p-3 sm:p-3.5 transition-all duration-200 cursor-pointer shadow-xs hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-between gap-3 text-left"
+            style={{
+              borderRadius: cardRadius,
+              backgroundColor: tokens?.presetId === 'default' ? '#FFFFFF' : surfaceTheme.cardBg,
+              border: tokens?.presetId === 'default' ? '1px solid rgba(0,0,0,0.04)' : `1px solid ${surfaceTheme.cardBorder}`,
+            }}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Thumbnail of first image */}
+              <div className="h-11 w-11 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 shrink-0 shadow-xs flex items-center justify-center">
+                {images[0]?.url ? (
+                  <img
+                    src={images[0].url}
+                    alt={images[0].name || title || 'Gallery'}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                ) : (
+                  <Images className="h-5 w-5 opacity-60" style={{ color: surfaceTheme.text }} />
+                )}
+              </div>
+
+              {/* Title & Photo Count Subtitle */}
+              <div className="min-w-0">
+                <h4
+                  className="text-sm font-semibold tracking-tight truncate group-hover:underline"
+                  style={{ color: tokens?.presetId === 'default' ? '#0F172A' : (surfaceTheme.heading || surfaceTheme.text) }}
+                >
+                  {title || 'gallery'}
+                </h4>
+                <p
+                  className="text-xs truncate flex items-center gap-1.5 mt-0.5"
+                  style={{ color: tokens?.presetId === 'default' ? '#64748B' : (surfaceTheme.muted || surfaceTheme.textMuted) }}
+                >
+                  <Camera className="h-3 w-3 shrink-0 opacity-70" />
+                  <span>Gallery · {images.length} {images.length === 1 ? 'photo' : 'photos'}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Right More/Eye Icon */}
+            <div
+              className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 opacity-60 group-hover:opacity-100 transition-opacity"
+              style={{ color: tokens?.presetId === 'default' ? '#9CA3AF' : surfaceTheme.text }}
+            >
+              {tokens?.presetId === 'default' ? <MoreVertical className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </div>
+          </div>
+        ) : (
+          /* FEATURED STYLE: Prominent Visual Card Presentation */
+          <div
+            onClick={() => {
+              if (onGalleryClick) {
+                onGalleryClick(section)
+              } else {
+                setIsGalleryWizardOpen(true)
+              }
+              setActiveGalleryIndex(0)
+            }}
+            className="w-full max-w-md mx-auto p-4 space-y-3 overflow-hidden shadow-sm transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.99] group"
+            style={{
+              borderRadius: cardRadius,
+              backgroundColor: surfaceTheme.cardBg,
+              border: `1px solid ${surfaceTheme.cardBorder}`,
+            }}
+          >
+            {/* Gallery Title & Header */}
+            {title && (
+              <div className="text-left pb-1 flex items-center justify-between">
+                <div className="min-w-0">
+                  <h4 className="text-sm font-bold tracking-tight" style={{ color: surfaceTheme.heading || surfaceTheme.text }}>
+                    {title}
+                  </h4>
+                  {caption && (
+                    <p className="text-xs mt-0.5" style={{ color: surfaceTheme.muted || surfaceTheme.textMuted }}>
+                      {caption}
+                    </p>
+                  )}
+                </div>
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1"
+                  style={{
+                    backgroundColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)',
+                    color: surfaceTheme.text,
+                  }}
+                >
+                  <Camera className="h-3 w-3" />
+                  {images.length}
+                </span>
+              </div>
             )}
+
+            {/* Gallery Grid */}
+            <div className={`grid ${gridClass} gap-2`}>
+              {images.map((img, idx) => (
+                <div
+                  key={img.id || idx}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (onGalleryClick) {
+                      onGalleryClick(section)
+                    } else {
+                      setIsGalleryWizardOpen(true)
+                    }
+                    setActiveGalleryIndex(idx)
+                  }}
+                  className="relative aspect-square rounded-xl overflow-hidden group/item cursor-pointer bg-black/20 border border-white/5 shadow-xs"
+                >
+                  <img
+                    src={img.url}
+                    alt={img.name || `Gallery photo ${idx + 1}`}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover/item:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover/item:bg-black/25 transition-colors flex items-center justify-center opacity-0 group-hover/item:opacity-100">
+                    <div className="h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center shadow-md">
+                      <Eye className="h-4 w-4" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Gallery Grid */}
-        <div className={`grid ${gridClass} gap-2`}>
-          {images.map((img, idx) => (
-            <div
-              key={img.id || idx}
-              onClick={() => setActiveGalleryIndex(idx)}
-              className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer bg-black/20 border border-white/5 shadow-xs"
-            >
-              <img
-                src={img.url}
-                alt={img.name || `Gallery photo ${idx + 1}`}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                <div className="h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center">
-                  <Eye className="h-4 w-4" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+        {/* DEDICATED GALLERY WIZARD MODAL (Reference Image 1) */}
+        {!onGalleryClick && (
+          <GalleryWizardModal
+            gallery={section}
+            isOpen={isGalleryWizardOpen}
+            onClose={() => {
+              setIsGalleryWizardOpen(false)
+              setActiveGalleryIndex(null)
+            }}
+            onProductClick={onProductClick}
+          />
+        )}
+      </>
     )
   }
 
@@ -312,6 +424,39 @@ export default function StorefrontMediaCard({
   if (sectionType === 'pdf') {
     const fileName = props.fileName || 'document.pdf'
     const fileSize = props.fileSize || ''
+
+    if (tokens?.presetId === 'default') {
+      return (
+        <a
+          href={editor ? undefined : url}
+          target="_blank"
+          rel="noreferrer"
+          download={fileName}
+          className="w-full max-w-md mx-auto p-3 sm:p-3.5 bg-white rounded-2xl shadow-xs border border-black/[0.04] transition-all duration-200 cursor-pointer hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-between gap-3 text-left block"
+          style={{ borderRadius: cardRadius }}
+        >
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="h-11 w-11 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 shrink-0 flex items-center justify-center">
+              {props.thumbnail ? (
+                <img src={props.thumbnail} alt={fileName} className="w-full h-full object-cover" />
+              ) : (
+                <FileText className="h-5 w-5 text-neutral-600" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h4 className="text-sm font-semibold tracking-tight truncate text-neutral-900 group-hover:underline">
+                {title || fileName}
+              </h4>
+              <p className="text-xs truncate flex items-center gap-1.5 mt-0.5 text-neutral-500">
+                <FileText className="h-3 w-3 shrink-0 opacity-70" />
+                <span>PDF{fileSize ? ` · ${fileSize}` : ''}</span>
+              </p>
+            </div>
+          </div>
+          <MoreVertical className="h-4 w-4 text-neutral-400 group-hover:text-neutral-600 shrink-0" />
+        </a>
+      )
+    }
 
     return (
       <div
