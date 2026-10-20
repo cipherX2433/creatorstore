@@ -1822,7 +1822,7 @@ export default function StoreBuilderPage() {
 
   async function handleConnectInstagram() {
     try {
-      const res = await api.get('/integrations/instagram/oauth')
+      const res = await api.get('/integrations/instagram/oauth?returnUrl=/dashboard/store')
       if (res?.url) {
         window.location.href = res.url
       }
@@ -1840,6 +1840,9 @@ export default function StoreBuilderPage() {
       toast.error(err.message || 'Failed to disconnect Instagram')
     }
   }
+
+  const connectInstagram = handleConnectInstagram
+  const disconnectInstagram = handleDisconnectInstagram
 
   // --- Multi-page management -----------------------------------------------
   async function handleAddPage() {
@@ -4075,9 +4078,9 @@ export default function StoreBuilderPage() {
                 setAddModalOpen(false)
               } else if (opt.type === 'instagram') {
                 if (igAccount?.connected) {
-                  disconnectInstagram()
+                  handleDisconnectInstagram()
                 } else {
-                  connectInstagram()
+                  handleConnectInstagram()
                 }
               } else if (opt.type === 'forms_menu') {
                 setAddModalType('forms_menu')
