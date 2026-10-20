@@ -32,6 +32,7 @@ import { CreatorStoreMark, CreatorStoreLogoIcon } from '@/components/brand/Creat
 import ProductPurchaseModalFlow from '@/components/storefront/ProductPurchaseModalFlow'
 import PublicBookingModal from '@/components/storefront/PublicBookingModal'
 import GalleryWizardModal from '@/components/storefront/GalleryWizardModal'
+import { getSocialPlatform } from '@/lib/socialPlatforms'
 
 export const SOCIAL_ICONS = {
   instagram: Instagram,
@@ -1111,6 +1112,70 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       )
     }
 
+    case 'social':
+    case 'instagram': {
+      const platformId = section.props?.platform || (section.type === 'instagram' ? 'instagram' : 'generic')
+      const platform = getSocialPlatform(platformId)
+      const PlatformIcon = platform.icon
+      const label = section.props?.title || section.props?.label || platform.name
+      const url = section.props?.url || '#'
+      const thumbnail = section.props?.thumbnail || section.props?.customThumbnail
+      const isFeatured = section.props?.layout === 'image' || section.props?.layout === 'cards' || section.props?.displayMode === 'featured' || section.props?.displayMode === 'image'
+
+      if (isFeatured) {
+        const card = (
+          <div
+            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card space-y-2.5"
+            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+          >
+            <div className="aspect-[2.1/1] w-full overflow-hidden bg-slate-900 relative flex items-center justify-center">
+              {thumbnail ? (
+                <img src={thumbnail} alt={label} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${platform.color}25` }}>
+                  <PlatformIcon className="h-12 w-12" style={{ color: platform.color }} />
+                </div>
+              )}
+              <div
+                className="absolute bottom-2.5 right-2.5 h-7 w-7 rounded-full flex items-center justify-center shadow"
+                style={{ backgroundColor: platform.color, color: '#FFFFFF' }}
+              >
+                <PlatformIcon className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="px-4 pb-4 space-y-2.5">
+              <div className="space-y-0.5">
+                <h3 className="text-sm sm:text-base font-bold text-white">{label}</h3>
+                {url && url !== '#' && <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">{url}</p>}
+              </div>
+              <StyledButton label={`Follow on ${platform.name}`} tokens={tokens} fullWidth />
+            </div>
+          </div>
+        )
+        return (
+          <div className="w-full max-w-[420px] mx-auto">
+            {editor || !url || url === '#' ? card : (
+              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{card}</a>
+            )}
+          </div>
+        )
+      }
+
+      // Classic pill
+      const media = thumbnail
+        ? { type: 'image', src: thumbnail }
+        : { type: 'icon', Icon: PlatformIcon, color: platform.color }
+
+      const pill = <ClassicLinkPill label={label} media={media} tokens={tokens} />
+      return (
+        <div className={`flex flex-col ${alignClass} w-full max-w-md mx-auto`}>
+          {editor || !url || url === '#' ? pill : (
+            <a href={url} target="_blank" rel="noopener noreferrer" className="block w-full">{pill}</a>
+          )}
+        </div>
+      )
+    }
+
     case 'image':
       return section.props?.url ? (
         <img
@@ -1882,6 +1947,10 @@ function ClassicLinkPill({ label, meta, media, tokens }) {
       >
         {media?.type === 'image' ? (
           <img src={media.src} alt="" className="h-full w-full object-cover" />
+        ) : media?.type === 'icon' && media.Icon ? (
+          <div className="h-full w-full flex items-center justify-center" style={{ backgroundColor: `${media.color || '#3B82F6'}20`, color: media.color || '#3B82F6' }}>
+            <media.Icon className="h-5 w-5" />
+          </div>
         ) : (
           <span className="text-xs font-black">{media?.letter || '?'}</span>
         )}

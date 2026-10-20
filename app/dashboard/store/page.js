@@ -70,6 +70,9 @@ import YouTubeEditor from '@/components/dashboard/editors/YouTubeEditor'
 import MediaContentEditor from '@/components/dashboard/editors/MediaContentEditor'
 import AddYouTubeModalView from '@/components/dashboard/AddYouTubeModalView'
 import AddMediaModalView from '@/components/dashboard/AddMediaModalView'
+import SocialDisplaySelectModalView from '@/components/dashboard/SocialDisplaySelectModalView'
+import SocialItemEditor from '@/components/dashboard/editors/SocialItemEditor'
+import { getSocialPlatform } from '@/lib/socialPlatforms'
 import { isBookingItem, resolveSectionProduct } from '@/lib/bookingItemUtils'
 export { isBookingItem, resolveSectionProduct }
 import { IconBadge, ICON_BADGE_COLORS } from '@/components/ui/icon-badge'
@@ -170,6 +173,8 @@ const LABELS = {
   tiktok: 'TikTok Video',
   vimeo: 'Vimeo',
   video: 'Video',
+  social: 'Social Link',
+  instagram: 'Instagram',
 }
 
 function defaultProps(type, products = []) {
@@ -181,6 +186,17 @@ function defaultProps(type, products = []) {
     case 'text_block':
     case 'paragraph_text': return { text: 'Explore my exclusive digital products and courses.', content: 'Explore my exclusive digital products and courses.', align: 'left' }
     case 'button': return { label: 'Follow me', url: '', layout: 'classic' }
+    case 'social':
+    case 'instagram': return {
+      platform: 'instagram',
+      title: 'Instagram',
+      label: 'Instagram',
+      url: '',
+      layout: 'classic',
+      displayMode: 'classic',
+      thumbnail: null,
+      customThumbnail: null,
+    }
     case 'image': return { url: '', alt: '' }
     case 'product': return { productId: products[0]?.id, layout: 'classic' }
     case 'booking':
@@ -813,6 +829,10 @@ function StoreContentCard({
     if (s.type === 'video' || s.props?.mediaType === 'video' || s.props?.embedType === 'video') return { bg: 'bg-[#F7FEE7]', text: 'text-[#65A30D]', border: 'border-[#ECFCCB]', icon: Video, label: 'Video' }
     if (s.type === 'gallery') return { bg: 'bg-[#FAF5FF]', text: 'text-[#9333EA]', border: 'border-[#F3E8FF]', icon: Images, label: 'Gallery' }
     if (s.type === 'audio') return { bg: 'bg-[#ECFEFF]', text: 'text-[#0891B2]', border: 'border-[#CFFAFE]', icon: Headphones, label: 'Audio' }
+    if (s.type === 'social' || s.type === 'instagram' || s.props?.platform) {
+      const p = getSocialPlatform(s.props?.platform || (s.type === 'instagram' ? 'instagram' : 'generic'))
+      return { bg: 'bg-[#F4F4F5]', text: 'text-[#18181B]', border: 'border-[#E4E4E7]', icon: p?.icon || Share2, label: p?.name || 'Social' }
+    }
     if (s.type === 'form') return { bg: 'bg-[#F0FDFA]', text: 'text-[#0D9488]', border: 'border-[#CCFBF1]', icon: ClipboardList, label: 'Form' }
     if (s.type === 'collection' || s.type === 'product_collection') return { bg: 'bg-[#EEF2FF]', text: 'text-[#4F46E5]', border: 'border-[#E0E7FF]', icon: Layers, label: 'Collection' }
     if (s.type === 'course' || prod?.type === 'COURSE') return { bg: 'bg-[#F5F5F3]', text: 'text-[#1F1F1F]', border: 'border-[#E5E5E3]', icon: GraduationCap, label: 'Course' }
@@ -840,6 +860,10 @@ function StoreContentCard({
       setEditingProductId?.(null)
       setEditingSectionId?.(s.id)
     } else if (s.type === 'gallery') {
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
+    } else if (['social', 'instagram'].includes(s.type) || s.props?.platform) {
       setSelectedId(s.id)
       setEditingProductId?.(null)
       setEditingSectionId?.(s.id)
@@ -1180,6 +1204,7 @@ export default function StoreBuilderPage() {
   const [editingFormSection, setEditingFormSection] = useState(null)
   const [selectedMediaType, setSelectedMediaType] = useState('video')
   const [editingMediaSection, setEditingMediaSection] = useState(null)
+  const [selectedSocialPlatform, setSelectedSocialPlatform] = useState('instagram')
   const [wizardStep, setWizardStep] = useState(1)
   const [editingProductId, setEditingProductId] = useState(null)
   const [editingSectionId, setEditingSectionId] = useState(null)
@@ -3092,6 +3117,27 @@ export default function StoreBuilderPage() {
                     setAddContentModalOpen={setAddContentModalOpen}
                     setAddContentType={setAddContentType}
                   />
+                ) : ['social', 'instagram'].includes(editingSection.type) || Boolean(editingSection.props?.platform) ? (
+                  <SocialItemEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                    igAccount={igAccount}
+                    onConnectInstagram={handleConnectInstagram}
+                    onDisconnectInstagram={handleDisconnectInstagram}
+                  />
                 ) : ['button', 'link', 'url'].includes(editingSection.type) ? (
                   <LinkEditor
                     section={editingSection}
@@ -3924,14 +3970,14 @@ export default function StoreBuilderPage() {
         className={
           addModalType === 'coaching' || addModalType === 'course'
             ? 'sm:max-w-4xl max-w-4xl w-[95vw] sm:w-full max-h-[90vh] p-0 gap-0 overflow-hidden'
-            : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video'].includes(addModalType)
+            : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)
             ? 'sm:max-w-[780px] w-[95vw] sm:w-full h-[88vh] sm:h-[640px] max-h-[92vh] p-4 sm:p-7 rounded-[28px] bg-white border border-[#E5E5E3] shadow-[0_24px_70px_rgba(0,0,0,0.15)] gap-0 overflow-hidden flex flex-col'
             : 'sm:max-w-[700px]'
         }
         bodyClassName={
           addModalType === 'coaching' || addModalType === 'course'
             ? 'p-0 min-h-[500px] flex flex-col flex-1'
-            : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video'].includes(addModalType)
+            : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)
             ? 'p-0 flex flex-col flex-1 min-h-0 overflow-hidden'
             : 'pt-5'
         }
@@ -3945,6 +3991,8 @@ export default function StoreBuilderPage() {
                 <span className="sr-only">Add to your store</span>
               </div>
             )
+            : addModalType === 'social_display_select'
+              ? `Add ${getSocialPlatform(selectedSocialPlatform)?.name || 'Social'}`
             : addModalType === 'add_youtube'
               ? 'Add YouTube'
             : addModalType === 'add_tiktok'
@@ -3997,7 +4045,7 @@ export default function StoreBuilderPage() {
                   setAddModalType('menu')
                   setWizardStep(1)
                 }
-              } else if (['add_youtube', 'add_tiktok', 'add_vimeo', 'add_video'].includes(addModalType)) {
+              } else if (['add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)) {
                 setAddModalType('menu')
               } else if (addModalType === 'form_config') {
                 if (editingFormSection) {
@@ -4077,11 +4125,12 @@ export default function StoreBuilderPage() {
                 addSectionWithProps('heading', { text: 'Featured Collection' })
                 setAddModalOpen(false)
               } else if (opt.type === 'instagram') {
-                if (igAccount?.connected) {
-                  handleDisconnectInstagram()
-                } else {
-                  handleConnectInstagram()
-                }
+                setSelectedSocialPlatform('instagram')
+                setAddModalType('social_display_select')
+                // Direct connect / reconnect actions in editor: handleDisconnectInstagram and handleConnectInstagram
+              } else if (opt.type === 'social') {
+                setSelectedSocialPlatform(opt.platform || 'generic')
+                setAddModalType('social_display_select')
               } else if (opt.type === 'forms_menu') {
                 setAddModalType('forms_menu')
               } else if (
@@ -4492,6 +4541,40 @@ export default function StoreBuilderPage() {
                   isUpload: Boolean(videoData.isUpload),
                   fileName: videoData.fileName || null,
                   fileSize: videoData.fileSize || null,
+                })
+                if (newSec?.id) {
+                  setEditingProductId(null)
+                  setEditingSectionId(newSec.id)
+                  setSelectedId(newSec.id)
+                }
+              }}
+              onCancel={() => setAddModalType('menu')}
+            />
+          )}
+          {addModalType === 'social_display_select' && (
+            <SocialDisplaySelectModalView
+              platform={selectedSocialPlatform}
+              store={store}
+              theme={store?.theme || {}}
+              isPro={canCreate}
+              onOpenPricing={() => {
+                setPricingModalOpen(true)
+                setAddModalOpen(false)
+              }}
+              onSelectStyle={async (styleKey) => {
+                setAddModalOpen(false)
+                setAddModalType('menu')
+                const platformInfo = getSocialPlatform(selectedSocialPlatform)
+                const defaultTitle = platformInfo?.name || 'Social'
+                const newSec = await addSectionWithProps('social', {
+                  platform: selectedSocialPlatform,
+                  title: defaultTitle,
+                  label: defaultTitle,
+                  url: '',
+                  layout: styleKey === 'cards' ? 'image' : styleKey,
+                  displayMode: styleKey === 'cards' ? 'featured' : styleKey,
+                  thumbnail: null,
+                  customThumbnail: null,
                 })
                 if (newSec?.id) {
                   setEditingProductId(null)

@@ -16,6 +16,8 @@ import AddMediaConfig from '@/components/dashboard/AddMediaConfig'
 import AddToStoreMenuView from '@/components/dashboard/AddToStoreMenuView'
 import AddYouTubeModalView from '@/components/dashboard/AddYouTubeModalView'
 import AddMediaModalView from '@/components/dashboard/AddMediaModalView'
+import SocialDisplaySelectModalView from '@/components/dashboard/SocialDisplaySelectModalView'
+import { getSocialPlatform } from '@/lib/socialPlatforms'
 import { CoachingBookingWizardContent } from '@/components/coaching/CoachingBookingWizardModal'
 import { CourseWizardContent } from '@/components/course/CourseWizardModal'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
@@ -929,6 +931,7 @@ export default function AddToStoreModal({
   const [editingFormSection, setEditingFormSection] = useState(null)
   const [selectedMediaType, setSelectedMediaType] = useState('video')
   const [editingMediaSection, setEditingMediaSection] = useState(null)
+  const [selectedSocialPlatform, setSelectedSocialPlatform] = useState('instagram')
   const [wizardStep, setWizardStep] = useState(1)
   const [editingProductId, setEditingProductId] = useState(null)
   const [coachingWizardProductId, setCoachingWizardProductId] = useState(null)
@@ -1251,14 +1254,14 @@ export default function AddToStoreModal({
       className={
         addModalType === 'coaching' || addModalType === 'course'
           ? 'sm:max-w-4xl max-w-4xl w-[95vw] sm:w-full max-h-[90vh] p-0 gap-0 overflow-hidden'
-          : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video'].includes(addModalType)
+          : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)
           ? 'sm:max-w-[780px] w-[95vw] sm:w-full h-[88vh] sm:h-[640px] max-h-[92vh] p-4 sm:p-7 rounded-[28px] bg-white border border-[#E5E5E3] shadow-[0_24px_70px_rgba(0,0,0,0.15)] gap-0 overflow-hidden flex flex-col'
           : 'sm:max-w-[700px]'
       }
       bodyClassName={
         addModalType === 'coaching' || addModalType === 'course'
           ? 'p-0 min-h-[500px] flex flex-col flex-1'
-          : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video'].includes(addModalType)
+          : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)
           ? 'p-0 flex flex-col flex-1 min-h-0 overflow-hidden'
           : 'pt-5'
       }
@@ -1271,6 +1274,8 @@ export default function AddToStoreModal({
               Add
             </div>
           )
+          : addModalType === 'social_display_select'
+          ? `Add ${getSocialPlatform(selectedSocialPlatform)?.name || 'Social'}`
           : addModalType === 'add_youtube'
           ? 'Add YouTube'
           : addModalType === 'add_tiktok'
@@ -1347,7 +1352,7 @@ export default function AddToStoreModal({
                   setAddModalType('menu')
                   setWizardStep(1)
                 }
-              } else if (['add_youtube', 'add_tiktok', 'add_vimeo', 'add_video'].includes(addModalType)) {
+              } else if (['add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)) {
                 setAddModalType('menu')
               } else if (addModalType === 'form_config') {
                 if (editingFormSection) {
@@ -1412,12 +1417,11 @@ export default function AddToStoreModal({
               }
               closeWizard()
             } else if (opt.type === 'instagram') {
-              if (igAccount?.connected) {
-                if (onDisconnectInstagram) onDisconnectInstagram()
-              } else {
-                if (onConnectInstagram) onConnectInstagram()
-                else toast.info('Instagram integration')
-              }
+              setSelectedSocialPlatform('instagram')
+              setAddModalType('social_display_select')
+            } else if (opt.type === 'social') {
+              setSelectedSocialPlatform(opt.platform || 'generic')
+              setAddModalType('social_display_select')
             } else if (opt.type === 'forms_menu') {
               setAddModalType('forms_menu')
             } else if (
@@ -1754,6 +1758,36 @@ export default function AddToStoreModal({
                 })
               }
               closeWizard()
+            }}
+            onCancel={() => setAddModalType('menu')}
+          />
+        )}
+
+        {/* SOCIAL DISPLAY SELECT VIEW */}
+        {addModalType === 'social_display_select' && (
+          <SocialDisplaySelectModalView
+            platform={selectedSocialPlatform}
+            isPro={canCreate}
+            onOpenPricing={() => {
+              setPricingModalOpen?.(true)
+              closeWizard()
+            }}
+            onSelectStyle={async (styleKey) => {
+              closeWizard()
+              const platformInfo = getSocialPlatform(selectedSocialPlatform)
+              const defaultTitle = platformInfo?.name || 'Social'
+              if (onAddSection) {
+                onAddSection('social', {
+                  platform: selectedSocialPlatform,
+                  title: defaultTitle,
+                  label: defaultTitle,
+                  url: '',
+                  layout: styleKey === 'cards' ? 'image' : styleKey,
+                  displayMode: styleKey === 'cards' ? 'featured' : styleKey,
+                  thumbnail: null,
+                  customThumbnail: null,
+                })
+              }
             }}
             onCancel={() => setAddModalType('menu')}
           />
