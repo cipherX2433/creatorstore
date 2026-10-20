@@ -394,6 +394,7 @@ export default function PublicBookingModal({
         productId: product.id,
         startTime: selectedSlot.startTime,
         endTime: selectedSlot.endTime,
+        timezone: selectedTimezone,
         customerEmail: cleanEmail,
         customerName: cleanName,
         customerPhone: phone.trim(),
@@ -452,6 +453,7 @@ export default function PublicBookingModal({
           productId: product.id,
           startTime: selectedSlot.startTime,
           endTime: selectedSlot.endTime,
+          timezone: selectedTimezone,
           customerEmail: cleanEmail,
           customerName: cleanName,
           customerPhone: phone.trim(),
@@ -1496,21 +1498,9 @@ export default function PublicBookingModal({
                       <div className="text-xs font-semibold text-gray-900">
                         Meeting link
                       </div>
-                      {confirmedBooking?.meetingUrl ? (
-                        <a
-                          href={confirmedBooking.meetingUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-gray-600 hover:text-black hover:underline inline-flex items-center gap-1 font-medium group"
-                        >
-                          <span>{meetingProviderLabel}</span>
-                          <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-black inline" />
-                        </a>
-                      ) : (
-                        <div className="text-xs text-gray-500 font-medium">
-                          {meetingProviderLabel}
-                        </div>
-                      )}
+                      <div className="text-xs text-gray-600 font-medium select-text">
+                        {meetingProviderLabel}
+                      </div>
                     </div>
                   )}
                 </div>
