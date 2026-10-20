@@ -15,7 +15,7 @@ import {
   razorpayAccountService, payoutService, earningsService, courseService, publicCourseService, learningService, certificateService, coachingService, communityService, webinarService, membershipService, customService, externalLink, customerAccountService, creatorSubscriptionService, accountUpgradeService, checkoutFieldsService,
   leadService, couponService, marketingService, emailMarketingService, onboardingService, successCenterService,
   instagramService, automationService, instagramMessagingService, httpError,
-  emailService,
+  emailService, businessCardService,
 } from '@/lib/services'
 import { purchaseOtpService, PURCHASE_SESSION_COOKIE } from '@/lib/purchaseOtpService'
 import { getAppUrl } from '@/config/site'
@@ -2060,6 +2060,36 @@ async function processRoute(request, context = {}) {
     if (path[0] === 'creator' && path[1] === 'success-center' && method === 'GET') {
       await requireCreatorUser(request)
       return json(await successCenterService.getResources())
+    }
+
+    if (path[0] === 'business-card') {
+      if (!path[1] && method === 'GET') {
+        const user = await requireCreatorUser(request)
+        return json(await businessCardService.get(user.id))
+      }
+      if (!path[1] && (method === 'PUT' || method === 'POST' || method === 'PATCH')) {
+        const user = await requireCreatorUser(request)
+        const body = await request.json()
+        return json(await businessCardService.save(user.id, body))
+      }
+      if (path[1] === 'contact' && method === 'POST') {
+        const body = await request.json()
+        const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+        return json(await businessCardService.submitVisitorContact(body, clientIp))
+      }
+      if (path[1] === 'vcard' && method === 'GET') {
+        const username = url.searchParams.get('username')
+        const creatorId = url.searchParams.get('creatorId')
+        const vcard = await businessCardService.getVCard({ username, creatorId })
+        return new Response(vcard.content, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/vcard; charset=utf-8',
+            'Content-Disposition': `attachment; filename="${vcard.filename}"`,
+            'Cache-Control': 'no-store, max-age=0'
+          }
+        })
+      }
     }
 
     if (path[0] === 'leads' && !path[1] && method === 'GET') {
