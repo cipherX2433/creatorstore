@@ -32,7 +32,7 @@ import { CreatorStoreMark, CreatorStoreLogoIcon } from '@/components/brand/Creat
 import ProductPurchaseModalFlow from '@/components/storefront/ProductPurchaseModalFlow'
 import PublicBookingModal from '@/components/storefront/PublicBookingModal'
 import GalleryWizardModal from '@/components/storefront/GalleryWizardModal'
-import { getSocialPlatform } from '@/lib/socialPlatforms'
+import { getSocialPlatform, resolveSocialStyle } from '@/lib/socialPlatforms'
 
 export const SOCIAL_ICONS = {
   instagram: Instagram,
@@ -1120,9 +1120,9 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       const label = section.props?.title || section.props?.label || platform.name
       const url = section.props?.url || '#'
       const thumbnail = section.props?.thumbnail || section.props?.customThumbnail
-      const isFeatured = section.props?.layout === 'image' || section.props?.layout === 'cards' || section.props?.displayMode === 'featured' || section.props?.displayMode === 'image'
+      const style = resolveSocialStyle(section.props?.layout || section.props?.displayMode || section.props?.displayStyle)
 
-      if (isFeatured) {
+      if (style === 'cards') {
         const card = (
           <div
             className="overflow-hidden border border-white/10 bg-[#000000] shadow-card space-y-2.5"
@@ -1161,7 +1161,212 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
         )
       }
 
-      // Classic pill
+      if (style === 'grid') {
+        const gridTiles = [
+          thumbnail ? { src: thumbnail } : { color: platform.color, icon: true },
+          { color: `${platform.color}45`, icon: false },
+          { color: `${platform.color}25`, icon: false },
+          { color: `${platform.color}35`, icon: false },
+        ]
+
+        const gridCard = (
+          <div
+            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card p-3.5 space-y-3"
+            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+          >
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className="h-7 w-7 rounded-full flex items-center justify-center shrink-0 shadow"
+                  style={{ backgroundColor: platform.color, color: '#FFFFFF' }}
+                >
+                  <PlatformIcon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-white truncate">{label}</h3>
+                  {url && url !== '#' && <p className="text-[11px] text-[rgba(244,242,236,0.5)] truncate">{url.replace(/^https?:\/\//, '')}</p>}
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {gridTiles.map((tile, i) => (
+                <div
+                  key={i}
+                  className="aspect-square rounded-lg overflow-hidden bg-slate-900/80 border border-white/10 relative flex items-center justify-center"
+                >
+                  {tile.src ? (
+                    <img src={tile.src} alt="" className="w-full h-full object-cover" />
+                  ) : tile.icon ? (
+                    <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${tile.color}25` }}>
+                      <PlatformIcon className="h-8 w-8" style={{ color: tile.color }} />
+                    </div>
+                  ) : (
+                    <div className="w-full h-full" style={{ backgroundColor: tile.color }} />
+                  )}
+                </div>
+              ))}
+            </div>
+            <StyledButton label={`Follow on ${platform.name}`} tokens={tokens} fullWidth />
+          </div>
+        )
+        return (
+          <div className="w-full max-w-[420px] mx-auto">
+            {editor || !url || url === '#' ? gridCard : (
+              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{gridCard}</a>
+            )}
+          </div>
+        )
+      }
+
+      if (style === 'carousel') {
+        const carouselSlides = [
+          thumbnail ? { src: thumbnail } : { color: platform.color, icon: true },
+          { color: `${platform.color}45`, icon: false },
+          { color: `${platform.color}25`, icon: false },
+        ]
+
+        const carouselCard = (
+          <div
+            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card p-3.5 space-y-3"
+            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+          >
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className="h-7 w-7 rounded-full flex items-center justify-center shrink-0 shadow"
+                  style={{ backgroundColor: platform.color, color: '#FFFFFF' }}
+                >
+                  <PlatformIcon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-white truncate">{label}</h3>
+                  {url && url !== '#' && <p className="text-[11px] text-[rgba(244,242,236,0.5)] truncate">{url.replace(/^https?:\/\//, '')}</p>}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
+              {carouselSlides.map((slide, i) => (
+                <div
+                  key={i}
+                  className="w-32 h-44 shrink-0 rounded-xl overflow-hidden bg-slate-900/80 border border-white/10 relative flex items-center justify-center"
+                >
+                  {slide.src ? (
+                    <img src={slide.src} alt="" className="w-full h-full object-cover" />
+                  ) : slide.icon ? (
+                    <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${slide.color}25` }}>
+                      <PlatformIcon className="h-10 w-10" style={{ color: slide.color }} />
+                    </div>
+                  ) : (
+                    <div className="w-full h-full" style={{ backgroundColor: slide.color }} />
+                  )}
+                </div>
+              ))}
+            </div>
+            <StyledButton label={`Follow on ${platform.name}`} tokens={tokens} fullWidth />
+          </div>
+        )
+        return (
+          <div className="w-full max-w-[420px] mx-auto">
+            {editor || !url || url === '#' ? carouselCard : (
+              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{carouselCard}</a>
+            )}
+          </div>
+        )
+      }
+
+      if (style === 'profile') {
+        const profileCard = (
+          <div
+            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card p-4 space-y-3.5 text-center"
+            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+          >
+            <div className="relative inline-block mx-auto">
+              <div className="h-16 w-16 rounded-full overflow-hidden bg-slate-900 border-2 border-white/20 mx-auto flex items-center justify-center">
+                {thumbnail ? (
+                  <img src={thumbnail} alt={label} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${platform.color}30` }}>
+                    <PlatformIcon className="h-8 w-8" style={{ color: platform.color }} />
+                  </div>
+                )}
+              </div>
+              <div
+                className="absolute bottom-0 right-0 h-6 w-6 rounded-full flex items-center justify-center shadow"
+                style={{ backgroundColor: platform.color, color: '#FFFFFF' }}
+              >
+                <PlatformIcon className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="space-y-0.5">
+              <h3 className="text-base font-bold text-white truncate">{label}</h3>
+              {url && url !== '#' && <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">{url.replace(/^https?:\/\//, '')}</p>}
+            </div>
+            <div className="grid grid-cols-3 gap-2 py-2 border-y border-white/10">
+              <div className="text-center">
+                <div className="text-xs font-bold text-white">Posts</div>
+                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">Feed</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-bold text-white">Connect</div>
+                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">{platform.name}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-bold text-white">Share</div>
+                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">Profile</div>
+              </div>
+            </div>
+            <StyledButton label={`Follow on ${platform.name}`} tokens={tokens} fullWidth />
+          </div>
+        )
+        return (
+          <div className="w-full max-w-[420px] mx-auto">
+            {editor || !url || url === '#' ? profileCard : (
+              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{profileCard}</a>
+            )}
+          </div>
+        )
+      }
+
+      if (style === 'single') {
+        const singleCard = (
+          <div
+            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card space-y-2.5"
+            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+          >
+            <div className="aspect-square w-full overflow-hidden bg-slate-900 relative flex items-center justify-center">
+              {thumbnail ? (
+                <img src={thumbnail} alt={label} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${platform.color}25` }}>
+                  <PlatformIcon className="h-16 w-16" style={{ color: platform.color }} />
+                </div>
+              )}
+              <div
+                className="absolute top-3 right-3 h-7 w-7 rounded-full flex items-center justify-center shadow"
+                style={{ backgroundColor: platform.color, color: '#FFFFFF' }}
+              >
+                <PlatformIcon className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="px-4 pb-4 space-y-2.5">
+              <div className="space-y-0.5">
+                <h3 className="text-sm sm:text-base font-bold text-white">{label}</h3>
+                {url && url !== '#' && <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">{url}</p>}
+              </div>
+              <StyledButton label={`View on ${platform.name}`} tokens={tokens} fullWidth />
+            </div>
+          </div>
+        )
+        return (
+          <div className="w-full max-w-[420px] mx-auto">
+            {editor || !url || url === '#' ? singleCard : (
+              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{singleCard}</a>
+            )}
+          </div>
+        )
+      }
+
+      // Classic pill (default)
       const media = thumbnail
         ? { type: 'image', src: thumbnail }
         : { type: 'icon', Icon: PlatformIcon, color: platform.color }

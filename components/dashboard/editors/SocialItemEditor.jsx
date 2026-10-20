@@ -19,7 +19,9 @@ import StoreItemEditorShell from '@/components/dashboard/StoreItemEditorShell'
 import {
   getSocialPlatform,
   SOCIAL_DISPLAY_STYLES,
+  resolveSocialStyle,
 } from '@/lib/socialPlatforms'
+import SocialStylePicker from '@/components/dashboard/SocialStylePicker'
 
 export default function SocialItemEditor({
   section,
@@ -33,6 +35,8 @@ export default function SocialItemEditor({
   onToggleHidden,
   onDuplicate,
   onOpenMobilePreview,
+  isPro = false,
+  onOpenPricing,
 }) {
   const initialProps = section?.props || {}
   const platformId = initialProps.platform || (section?.type === 'instagram' ? 'instagram' : 'generic')
@@ -42,7 +46,7 @@ export default function SocialItemEditor({
   const [title, setTitle] = useState(initialProps.title || initialProps.label || platform.name)
   const [url, setUrl] = useState(initialProps.url || '')
   const [thumbnail, setThumbnail] = useState(initialProps.thumbnail || initialProps.customThumbnail || '')
-  const [layout, setLayout] = useState(initialProps.layout === 'image' || initialProps.layout === 'cards' || initialProps.displayMode === 'image' || initialProps.displayMode === 'featured' ? 'image' : 'classic')
+  const [layout, setLayout] = useState(resolveSocialStyle(initialProps))
 
   const [activeTab, setActiveTab] = useState('details')
   const [saveState, setSaveState] = useState('saved')
@@ -60,7 +64,7 @@ export default function SocialItemEditor({
       if (section.props.title !== undefined && section.props.title !== title) setTitle(section.props.title)
       if (section.props.url !== undefined && section.props.url !== url) setUrl(section.props.url)
       if (section.props.thumbnail !== undefined && section.props.thumbnail !== thumbnail) setThumbnail(section.props.thumbnail)
-      const currentLayout = section.props.layout === 'image' || section.props.layout === 'cards' ? 'image' : 'classic'
+      const currentLayout = resolveSocialStyle(section.props)
       if (currentLayout !== layout) setLayout(currentLayout)
     }
   }, [section?.props])
@@ -101,13 +105,15 @@ export default function SocialItemEditor({
     setSaveState('saving')
     try {
       const canonicalUrl = url.trim() ? (url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`) : ''
+      const resolved = resolveSocialStyle(layout)
       const patch = {
         title: title.trim(),
         label: title.trim(),
         url: canonicalUrl,
         platform: platform.id,
-        layout: layout === 'image' ? 'image' : 'classic',
-        displayMode: layout === 'image' ? 'featured' : 'classic',
+        layout: resolved,
+        displayMode: resolved,
+        displayStyle: resolved,
         thumbnail: thumbnail || null,
         customThumbnail: thumbnail || null,
       }
@@ -166,11 +172,13 @@ export default function SocialItemEditor({
   }
 
   const handleLayoutChange = (newLayout) => {
-    setLayout(newLayout)
+    const resolved = resolveSocialStyle(newLayout)
+    setLayout(resolved)
     setIsDirty(true)
     onUpdateProps?.({
-      layout: newLayout,
-      displayMode: newLayout === 'image' ? 'featured' : 'classic',
+      layout: resolved,
+      displayMode: resolved,
+      displayStyle: resolved,
     })
   }
 
@@ -203,7 +211,7 @@ export default function SocialItemEditor({
               Storefront Preview
             </span>
 
-            {layout === 'classic' ? (
+            {layout === 'classic' && (
               <div className="w-full max-w-[340px] p-3 rounded-full bg-white border border-[#E5E5E3] shadow-xs flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div
@@ -227,7 +235,9 @@ export default function SocialItemEditor({
                 </div>
                 <MoreVertical className="h-4 w-4 text-[#999995] shrink-0" />
               </div>
-            ) : (
+            )}
+
+            {layout === 'cards' && (
               <div className="w-full max-w-[340px] p-4 rounded-[20px] bg-white border border-[#E5E5E3] shadow-sm space-y-3">
                 <div className="h-40 w-full rounded-xl overflow-hidden bg-[#0A0A0A] flex items-center justify-center relative">
                   {thumbnail ? (
@@ -256,6 +266,154 @@ export default function SocialItemEditor({
                   style={{ backgroundColor: platform.color }}
                 >
                   Follow on {platform.name}
+                </button>
+              </div>
+            )}
+
+            {layout === 'grid' && (
+              <div className="w-full max-w-[340px] p-4 rounded-[20px] bg-white border border-[#E5E5E3] shadow-sm space-y-3">
+                <div className="grid grid-cols-2 gap-2 aspect-[2/1] rounded-xl overflow-hidden bg-[#0A0A0A] p-1">
+                  <div className="rounded-lg overflow-hidden relative flex items-center justify-center bg-slate-800">
+                    {thumbnail ? (
+                      <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <PlatformIcon className="h-6 w-6 text-white/60" />
+                    )}
+                  </div>
+                  <div className="grid grid-rows-2 gap-1">
+                    <div className="rounded-md" style={{ backgroundColor: `${platform.color}35` }} />
+                    <div className="rounded-md" style={{ backgroundColor: `${platform.color}20` }} />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-sm font-bold text-[#1F1F1F] truncate">{title || platform.name}</h4>
+                    <p className="text-xs text-[#6F6F6B] truncate">
+                      {isInstagram && isIgConnected ? `@${igAccount.username}` : url ? url.replace(/^https?:\/\//, '') : platform.name}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="py-1.5 px-3 rounded-full text-xs font-semibold text-white shadow-xs shrink-0"
+                    style={{ backgroundColor: platform.color }}
+                  >
+                    Follow
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {layout === 'carousel' && (
+              <div className="w-full max-w-[340px] p-4 rounded-[20px] bg-white border border-[#E5E5E3] shadow-sm space-y-3">
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                  <div className="h-28 w-24 rounded-xl overflow-hidden shrink-0 shadow-xs border border-[#E5E5E3] relative flex items-center justify-center bg-slate-900">
+                    {thumbnail ? (
+                      <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <PlatformIcon className="h-8 w-8 text-white/60" />
+                    )}
+                  </div>
+                  <div
+                    className="h-28 w-24 rounded-xl overflow-hidden shrink-0 shadow-xs border border-[#E5E5E3] flex items-center justify-center"
+                    style={{ backgroundColor: `${platform.color}20` }}
+                  />
+                  <div
+                    className="h-28 w-24 rounded-xl overflow-hidden shrink-0 shadow-xs border border-[#E5E5E3] flex items-center justify-center"
+                    style={{ backgroundColor: `${platform.color}10` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-sm font-bold text-[#1F1F1F] truncate">{title || platform.name}</h4>
+                    <p className="text-xs text-[#6F6F6B] truncate">
+                      {isInstagram && isIgConnected ? `@${igAccount.username}` : url ? url.replace(/^https?:\/\//, '') : platform.name}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="py-1.5 px-3 rounded-full text-xs font-semibold text-white shadow-xs shrink-0"
+                    style={{ backgroundColor: platform.color }}
+                  >
+                    Follow
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {layout === 'profile' && (
+              <div className="w-full max-w-[340px] p-4 rounded-[20px] bg-white border border-[#E5E5E3] shadow-sm space-y-3 text-center">
+                <div className="relative inline-block mx-auto">
+                  <div className="h-16 w-16 rounded-full overflow-hidden bg-slate-900 border-2 border-[#E5E5E3] flex items-center justify-center">
+                    {thumbnail ? (
+                      <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <PlatformIcon className="h-8 w-8 text-white/80" />
+                    )}
+                  </div>
+                  <div
+                    className="absolute bottom-0 right-0 h-5 w-5 rounded-full flex items-center justify-center shadow"
+                    style={{ backgroundColor: platform.color, color: '#FFFFFF' }}
+                  >
+                    <PlatformIcon className="h-3 w-3" />
+                  </div>
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="text-sm font-bold text-[#1F1F1F] truncate">{title || platform.name}</h4>
+                  <p className="text-xs text-[#6F6F6B] truncate">
+                    {isInstagram && isIgConnected ? `@${igAccount.username}` : url ? url.replace(/^https?:\/\//, '') : platform.name}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-1 py-1 border-y border-[#E5E5E3] text-center">
+                  <div>
+                    <p className="text-xs font-bold text-[#1F1F1F]">Posts</p>
+                    <p className="text-[10px] text-[#6F6F6B]">Feed</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[#1F1F1F]">Connect</p>
+                    <p className="text-[10px] text-[#6F6F6B]">{platform.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[#1F1F1F]">Share</p>
+                    <p className="text-[10px] text-[#6F6F6B]">Profile</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="w-full py-2 px-3 rounded-full text-xs font-semibold text-white shadow-xs"
+                  style={{ backgroundColor: platform.color }}
+                >
+                  Follow on {platform.name}
+                </button>
+              </div>
+            )}
+
+            {layout === 'single' && (
+              <div className="w-full max-w-[340px] p-4 rounded-[20px] bg-white border border-[#E5E5E3] shadow-sm space-y-3">
+                <div className="aspect-square w-full rounded-xl overflow-hidden bg-[#0A0A0A] relative flex items-center justify-center">
+                  {thumbnail ? (
+                    <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <PlatformIcon className="h-12 w-12 text-white/70" />
+                  )}
+                  <div
+                    className="absolute top-2.5 right-2.5 h-7 w-7 rounded-full flex items-center justify-center shadow"
+                    style={{ backgroundColor: platform.color, color: '#FFFFFF' }}
+                  >
+                    <PlatformIcon className="h-4 w-4" />
+                  </div>
+                </div>
+                <div className="text-center space-y-0.5">
+                  <h4 className="text-sm font-bold text-[#1F1F1F] truncate">{title || platform.name}</h4>
+                  <p className="text-xs text-[#6F6F6B] truncate">
+                    {isInstagram && isIgConnected ? `@${igAccount.username}` : url ? url.replace(/^https?:\/\//, '') : platform.name}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="w-full py-2 px-3 rounded-full text-xs font-semibold text-white shadow-xs"
+                  style={{ backgroundColor: platform.color }}
+                >
+                  View on {platform.name}
                 </button>
               </div>
             )}
@@ -429,78 +587,13 @@ export default function SocialItemEditor({
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* OPTION 1: CLASSIC */}
-              <div
-                id="social-editor-classic-btn"
-                onClick={() => handleLayoutChange('classic')}
-                className={`p-4 rounded-[18px] border-2 transition-all cursor-pointer flex flex-col justify-between gap-4 ${
-                  layout === 'classic'
-                    ? 'border-[#1F1F1F] bg-[#FFFFFF] shadow-sm'
-                    : 'border-[#E5E5E3] bg-[#F9F9F8] hover:border-[#999995]'
-                }`}
-              >
-                <div className="h-24 rounded-[12px] bg-[#EFEFEF] p-3 flex items-center justify-center">
-                  <div className="w-full bg-white rounded-full p-2 shadow-xs flex items-center gap-2 border border-[#E5E5E3]">
-                    <div
-                      className="h-6 w-6 rounded-full flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: `${platform.color}20`, color: platform.color }}
-                    >
-                      <PlatformIcon className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="h-2 w-20 bg-[#1F1F1F]/40 rounded-full" />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-[#1F1F1F]">Classic</h4>
-                    <p className="text-xs text-[#6F6F6B]">Clean compact link pill</p>
-                  </div>
-                  <div
-                    className={`h-5 w-5 rounded-full border flex items-center justify-center ${
-                      layout === 'classic' ? 'border-[#1F1F1F] bg-[#1F1F1F] text-white' : 'border-[#D9D9D9] bg-white'
-                    }`}
-                  >
-                    {layout === 'classic' && <Check className="h-3 w-3" />}
-                  </div>
-                </div>
-              </div>
-
-              {/* OPTION 2: IMAGE / CARDS */}
-              <div
-                id="social-editor-cards-btn"
-                onClick={() => handleLayoutChange('image')}
-                className={`p-4 rounded-[18px] border-2 transition-all cursor-pointer flex flex-col justify-between gap-4 ${
-                  layout === 'image'
-                    ? 'border-[#1F1F1F] bg-[#FFFFFF] shadow-sm'
-                    : 'border-[#E5E5E3] bg-[#F9F9F8] hover:border-[#999995]'
-                }`}
-              >
-                <div className="h-24 rounded-[12px] bg-[#EFEFEF] p-2 flex items-center justify-center">
-                  <div className="w-full h-full bg-white rounded-[10px] overflow-hidden shadow-xs flex flex-col border border-[#E5E5E3]">
-                    <div className="flex-1 bg-[#1F1F1F] flex items-center justify-center relative">
-                      <PlatformIcon className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="p-1.5 bg-white">
-                      <div className="h-1.5 w-2/3 bg-[#1F1F1F] rounded-full" />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-[#1F1F1F]">Cards / Image</h4>
-                    <p className="text-xs text-[#6F6F6B]">Prominent visual showcase card</p>
-                  </div>
-                  <div
-                    className={`h-5 w-5 rounded-full border flex items-center justify-center ${
-                      layout === 'image' ? 'border-[#1F1F1F] bg-[#1F1F1F] text-white' : 'border-[#D9D9D9] bg-white'
-                    }`}
-                  >
-                    {layout === 'image' && <Check className="h-3 w-3" />}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <SocialStylePicker
+              selectedStyle={layout}
+              onSelectStyle={handleLayoutChange}
+              platform={platform}
+              isPro={isPro}
+              onOpenPricing={onOpenPricing}
+            />
           </div>
 
           {/* 5. SECTION: THUMBNAIL CUSTOMIZATION */}

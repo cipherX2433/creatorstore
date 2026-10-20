@@ -3137,6 +3137,8 @@ export default function StoreBuilderPage() {
                     igAccount={igAccount}
                     onConnectInstagram={handleConnectInstagram}
                     onDisconnectInstagram={handleDisconnectInstagram}
+                    isPro={canCreate}
+                    onOpenPricing={() => setPricingModalOpen(true)}
                   />
                 ) : ['button', 'link', 'url'].includes(editingSection.type) ? (
                   <LinkEditor
@@ -4571,8 +4573,9 @@ export default function StoreBuilderPage() {
                   title: defaultTitle,
                   label: defaultTitle,
                   url: '',
-                  layout: styleKey === 'cards' ? 'image' : styleKey,
-                  displayMode: styleKey === 'cards' ? 'featured' : styleKey,
+                  layout: styleKey,
+                  displayMode: styleKey,
+                  displayStyle: styleKey,
                   thumbnail: null,
                   customThumbnail: null,
                 })

@@ -113,7 +113,9 @@ assert.ok(editorContent.includes('api.upload'), 'Editor must use existing api.up
 assert.ok(editorContent.includes('setThumbnail(uploadedUrl)') || editorContent.includes('setThumbnail(res.url)'), 'Editor must store uploaded thumbnail URL')
 assert.ok(editorContent.includes('setThumbnail(null)') || editorContent.includes("setThumbnail('')"), 'Editor must support removing thumbnail')
 assert.ok(editorContent.includes('layout === \'classic\''), 'Editor must support Classic layout')
-assert.ok(editorContent.includes('layout === \'image\''), 'Editor must support Image layout')
+assert.ok(editorContent.includes('layout === \'cards\'') || editorContent.includes('layout === \'image\'') || editorContent.includes('SocialStylePicker'), 'Editor must support Cards/Image layout via unified picker')
+assert.ok(editorContent.includes('SocialStylePicker'), 'Editor must use shared SocialStylePicker component')
+assert.ok(editorContent.includes('isPro'), 'Editor must accept isPro entitlement prop')
 
 console.log('✅ Scenario 8, 9 & 10 PASSED: Thumbnail management and layout controls validated.\n')
 
@@ -200,8 +202,23 @@ const rendererContent = fs.readFileSync(rendererPath, 'utf8')
 assert.ok(rendererContent.includes("case 'social':") || rendererContent.includes("sec.type === 'social'"), 'Storefront must render social tiles')
 assert.ok(rendererContent.includes("case 'instagram':") || rendererContent.includes("sec.type === 'instagram'"), 'Storefront must handle legacy or explicit instagram sections')
 assert.ok(rendererContent.includes('getSocialPlatform'), 'Storefront must resolve platform styling dynamically')
+assert.ok(rendererContent.includes("style === 'cards'"), 'Storefront must render cards display style')
+assert.ok(rendererContent.includes("style === 'grid'"), 'Storefront must render grid display style')
+assert.ok(rendererContent.includes("style === 'carousel'"), 'Storefront must render carousel display style')
+assert.ok(rendererContent.includes("style === 'profile'"), 'Storefront must render profile display style')
+assert.ok(rendererContent.includes("style === 'single'"), 'Storefront must render single display style')
 
-console.log('✅ Scenario 16 PASSED: Storefront renderer includes social card and pill rendering.\n')
+// Verify shared architecture between Add Modal and Card Editor
+const pickerPath = path.join(ROOT, 'components/dashboard/SocialStylePicker.jsx')
+assert.ok(fs.existsSync(pickerPath), 'SocialStylePicker.jsx must exist as shared component')
+const pickerContent = fs.readFileSync(pickerPath, 'utf8')
+assert.ok(modalViewContent.includes('SocialStylePicker'), 'Add Modal must consume SocialStylePicker')
+assert.ok(editorContent.includes('SocialStylePicker'), 'Card Editor must consume SocialStylePicker')
+for (const s of SOCIAL_DISPLAY_STYLES) {
+  assert.ok(pickerContent.includes(s.id), `SocialStylePicker must include style ${s.id}`)
+}
+
+console.log('✅ Scenario 16 PASSED: Storefront renderer includes all 6 styles and shared picker architecture verified.\n')
 
 // ============================================================================
 // Scenario 17: Mobile and Desktop Responsive Architecture

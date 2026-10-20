@@ -15,6 +15,7 @@ import {
   getSocialPlatform,
   SOCIAL_DISPLAY_STYLES,
 } from '@/lib/socialPlatforms'
+import SocialStylePicker from '@/components/dashboard/SocialStylePicker'
 
 export default function SocialDisplaySelectModalView({
   platformId,
@@ -49,11 +50,11 @@ export default function SocialDisplaySelectModalView({
     setIsSubmitting(true)
     try {
       if (onSelectStyle) {
-        await onSelectStyle(selectedStyle === 'cards' ? 'image' : selectedStyle)
+        await onSelectStyle(selectedStyle)
       } else if (onConfirm) {
         await onConfirm({
-          style: selectedStyle === 'cards' ? 'image' : selectedStyle,
-          displayMode: selectedStyle === 'cards' ? 'image' : selectedStyle,
+          style: selectedStyle,
+          displayMode: selectedStyle,
           platform: platform.id,
           title: platform.name,
         })
@@ -84,191 +85,13 @@ export default function SocialDisplaySelectModalView({
               </p>
             </div>
 
-            {/* 6 DISPLAY TILES GRID (2 cols x 3 rows) */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              {/* STYLE 1: CLASSIC */}
-              <div
-                id="social-style-classic-btn"
-                onClick={() => setSelectedStyle('classic')}
-                className={`p-3.5 rounded-[16px] border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 relative ${
-                  selectedStyle === 'classic'
-                    ? 'border-[#1F1F1F] bg-[#FFFFFF] shadow-sm ring-1 ring-[#1F1F1F]'
-                    : 'border-[#E5E5E3] bg-[#F9F9F8] hover:border-[#999995]'
-                }`}
-              >
-                <div className="h-16 w-full rounded-[10px] bg-[#EFEFEF] p-2 flex items-center justify-center">
-                  <div className="w-full bg-white rounded-full px-2 py-1.5 shadow-xs flex items-center gap-2 border border-[#E5E5E3]">
-                    <div
-                      className="h-4 w-4 rounded-full flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: `${platform.color}25`, color: platform.color }}
-                    >
-                      <PlatformIcon className="h-2.5 w-2.5" />
-                    </div>
-                    <div className="h-1.5 w-12 bg-[#1F1F1F]/40 rounded-full" />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm font-bold text-[#1F1F1F]">Classic</span>
-                  {selectedStyle === 'classic' && (
-                    <div className="h-4 w-4 rounded-full bg-[#1F1F1F] text-white flex items-center justify-center">
-                      <Check className="h-2.5 w-2.5" />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* STYLE 2: CARDS / IMAGE */}
-              <div
-                id="social-style-cards-btn"
-                onClick={() => setSelectedStyle('cards')}
-                className={`p-3.5 rounded-[16px] border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 relative ${
-                  selectedStyle === 'cards'
-                    ? 'border-[#1F1F1F] bg-[#FFFFFF] shadow-sm ring-1 ring-[#1F1F1F]'
-                    : 'border-[#E5E5E3] bg-[#F9F9F8] hover:border-[#999995]'
-                }`}
-              >
-                <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-bold text-[#6F6F6B] bg-[#E5E5E3] px-1.5 py-0.5 rounded-full">
-                  <Zap className="h-2.5 w-2.5 fill-current" />
-                </div>
-                <div className="h-16 w-full rounded-[10px] bg-[#EFEFEF] p-2 flex items-center justify-center relative overflow-hidden">
-                  <div className="w-8 h-12 bg-white rounded-md shadow-xs rotate-[-12deg] absolute left-4 border border-[#E5E5E3]" />
-                  <div className="w-8 h-12 bg-white rounded-md shadow-xs rotate-[12deg] absolute right-4 border border-[#E5E5E3]" />
-                  <div className="w-10 h-13 bg-white rounded-md shadow-md z-10 flex flex-col p-1 border border-[#E5E5E3]">
-                    <div className="flex-1 bg-black/10 rounded-xs mb-1" />
-                    <div className="h-1 w-3/4 bg-black/40 rounded-full" />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm font-bold text-[#1F1F1F]">Cards</span>
-                  {selectedStyle === 'cards' && (
-                    <div className="h-4 w-4 rounded-full bg-[#1F1F1F] text-white flex items-center justify-center">
-                      <Check className="h-2.5 w-2.5" />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* STYLE 3: GRID (PRO) */}
-              <div
-                id="social-style-grid-btn"
-                onClick={() => setSelectedStyle('grid')}
-                className={`p-3.5 rounded-[16px] border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 relative ${
-                  selectedStyle === 'grid'
-                    ? 'border-[#1F1F1F] bg-[#FFFFFF] shadow-sm ring-1 ring-[#1F1F1F]'
-                    : 'border-[#E5E5E3] bg-[#F9F9F8] hover:border-[#999995]'
-                }`}
-              >
-                <div className="absolute top-2 right-2 flex items-center gap-0.5 text-[10px] font-bold text-[#7C3AED] bg-[#EDE9FE] px-1.5 py-0.5 rounded-full">
-                  <span>Pro</span>
-                  <Zap className="h-2.5 w-2.5 fill-current" />
-                </div>
-                <div className="h-16 w-full rounded-[10px] bg-[#EFEFEF] p-2 flex items-center justify-center">
-                  <div className="grid grid-cols-2 gap-1 w-full h-full p-1 bg-white rounded-md border border-[#E5E5E3]">
-                    <div className="bg-black/15 rounded-xs" />
-                    <div className="bg-black/15 rounded-xs" />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm font-bold text-[#1F1F1F]">Grid</span>
-                  {selectedStyle === 'grid' && (
-                    <div className="h-4 w-4 rounded-full bg-[#1F1F1F] text-white flex items-center justify-center">
-                      <Check className="h-2.5 w-2.5" />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* STYLE 4: CAROUSEL (PRO) */}
-              <div
-                id="social-style-carousel-btn"
-                onClick={() => setSelectedStyle('carousel')}
-                className={`p-3.5 rounded-[16px] border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 relative ${
-                  selectedStyle === 'carousel'
-                    ? 'border-[#1F1F1F] bg-[#FFFFFF] shadow-sm ring-1 ring-[#1F1F1F]'
-                    : 'border-[#E5E5E3] bg-[#F9F9F8] hover:border-[#999995]'
-                }`}
-              >
-                <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-bold text-[#6F6F6B] bg-[#E5E5E3] px-1.5 py-0.5 rounded-full">
-                  <Zap className="h-2.5 w-2.5 fill-current" />
-                </div>
-                <div className="h-16 w-full rounded-[10px] bg-[#EFEFEF] p-2 flex items-center gap-1 overflow-hidden">
-                  <div className="w-10 h-12 bg-white rounded-md shrink-0 shadow-xs border border-[#E5E5E3]" />
-                  <div className="w-10 h-12 bg-white rounded-md shrink-0 shadow-xs border border-[#E5E5E3]" />
-                  <div className="w-10 h-12 bg-white rounded-md shrink-0 shadow-xs border border-[#E5E5E3]" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm font-bold text-[#1F1F1F]">Carousel</span>
-                  {selectedStyle === 'carousel' && (
-                    <div className="h-4 w-4 rounded-full bg-[#1F1F1F] text-white flex items-center justify-center">
-                      <Check className="h-2.5 w-2.5" />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* STYLE 5: PROFILE (PRO) */}
-              <div
-                id="social-style-profile-btn"
-                onClick={() => setSelectedStyle('profile')}
-                className={`p-3.5 rounded-[16px] border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 relative ${
-                  selectedStyle === 'profile'
-                    ? 'border-[#1F1F1F] bg-[#FFFFFF] shadow-sm ring-1 ring-[#1F1F1F]'
-                    : 'border-[#E5E5E3] bg-[#F9F9F8] hover:border-[#999995]'
-                }`}
-              >
-                <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-bold text-[#6F6F6B] bg-[#E5E5E3] px-1.5 py-0.5 rounded-full">
-                  <Zap className="h-2.5 w-2.5 fill-current" />
-                </div>
-                <div className="h-16 w-full rounded-[10px] bg-[#EFEFEF] p-2 flex flex-col justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <div className="h-5 w-5 rounded-full bg-black/20" />
-                    <div className="h-1.5 w-12 bg-black/40 rounded-full" />
-                  </div>
-                  <div className="grid grid-cols-3 gap-1">
-                    <div className="h-4 bg-white rounded-xs border border-[#E5E5E3]" />
-                    <div className="h-4 bg-white rounded-xs border border-[#E5E5E3]" />
-                    <div className="h-4 bg-white rounded-xs border border-[#E5E5E3]" />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm font-bold text-[#1F1F1F]">Profile</span>
-                  {selectedStyle === 'profile' && (
-                    <div className="h-4 w-4 rounded-full bg-[#1F1F1F] text-white flex items-center justify-center">
-                      <Check className="h-2.5 w-2.5" />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* STYLE 6: SINGLE (PRO) */}
-              <div
-                id="social-style-single-btn"
-                onClick={() => setSelectedStyle('single')}
-                className={`p-3.5 rounded-[16px] border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 relative ${
-                  selectedStyle === 'single'
-                    ? 'border-[#1F1F1F] bg-[#FFFFFF] shadow-sm ring-1 ring-[#1F1F1F]'
-                    : 'border-[#E5E5E3] bg-[#F9F9F8] hover:border-[#999995]'
-                }`}
-              >
-                <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-bold text-[#6F6F6B] bg-[#E5E5E3] px-1.5 py-0.5 rounded-full">
-                  <Zap className="h-2.5 w-2.5 fill-current" />
-                </div>
-                <div className="h-16 w-full rounded-[10px] bg-[#EFEFEF] p-2 flex items-center justify-center">
-                  <div className="h-full w-14 bg-white rounded-md shadow-xs border border-[#E5E5E3] p-1 flex flex-col">
-                    <div className="flex-1 bg-black/15 rounded-xs mb-1" />
-                    <div className="h-1 w-2/3 bg-black/40 rounded-full" />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm font-bold text-[#1F1F1F]">Single</span>
-                  {selectedStyle === 'single' && (
-                    <div className="h-4 w-4 rounded-full bg-[#1F1F1F] text-white flex items-center justify-center">
-                      <Check className="h-2.5 w-2.5" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <SocialStylePicker
+              selectedStyle={selectedStyle}
+              onSelectStyle={setSelectedStyle}
+              platform={platform}
+              isPro={isPro}
+              onOpenPricing={onOpenPricing}
+            />
           </div>
 
           {/* RIGHT COLUMN: STOREFRONT LIVE PREVIEW */}
