@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
@@ -14,7 +14,6 @@ import {
   X,
   Check,
   Plus,
-  ExternalLink,
   Copy,
   Download,
   Loader2,
@@ -23,12 +22,8 @@ import {
   Phone,
   Globe,
   Sparkles,
-  MessageSquare,
   Smartphone,
-  Eye,
-  CheckCircle2,
-  AlertCircle,
-  HelpCircle
+  AlertCircle
 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import ContactDetailsModal from '@/components/dashboard/business-cards/ContactDetailsModal'
@@ -66,8 +61,9 @@ function isColorDark(hex) {
 export default function BusinessCardsClient() {
   const { me } = useDashboard()
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [savedSuccess, setSavedSuccess] = useState(false)
+
+  // Autosave status: 'idle' | 'saving' | 'saved' | 'error'
+  const [saveStatus, setSaveStatus] = useState('idle')
 
   // Card settings state
   const [displayName, setDisplayName] = useState('')
@@ -86,8 +82,42 @@ export default function BusinessCardsClient() {
   // UI state
   const [introDismissed, setIntroDismissed] = useState(false)
   const [contactModalOpen, setContactModalOpen] = useState(false)
-  const [previewTab, setPreviewTab] = useState('card') // 'card' | 'store'
   const customColorInputRef = useRef(null)
+
+  // Concurrency & Autosave Refs
+  const isInitialLoadRef = useRef(true)
+  const isSavingRef = useRef(false)
+  const pendingSaveRef = useRef(false)
+  const requestIdRef = useRef(0)
+  const lastSavedStateRef = useRef('')
+  const debounceTimerRef = useRef(null)
+  const savedStatusTimeoutRef = useRef(null)
+
+  // Current state ref for concurrency safe reading in async callbacks
+  const latestStateRef = useRef({
+    displayName: '',
+    backgroundColor: '#D2E823',
+    allowContactShare: false,
+    contactDetails: {
+      fullName: '',
+      title: '',
+      organization: '',
+      email: '',
+      phone: '',
+      website: '',
+      note: '',
+    },
+  })
+
+  // Keep latestStateRef in sync with React state
+  useEffect(() => {
+    latestStateRef.current = {
+      displayName,
+      backgroundColor,
+      allowContactShare,
+      contactDetails,
+    }
+  }, [displayName, backgroundColor, allowContactShare, contactDetails])
 
   // Username and store URL
   const username = me?.store?.username || me?.store?.slug || me?.profile?.username || ''
@@ -115,7 +145,81 @@ export default function BusinessCardsClient() {
     }
   }
 
-  // Load business card settings from API
+  /**
+   * Concurrency-safe Autosave Core
+   * - Serializes in-flight requests
+   * - Queues newest state if edits happen mid-save
+   * - Avoids duplicate network calls
+   * - Does not overwrite with stale requests
+   */
+  const triggerSave = useCallback(async (stateToSave) => {
+    if (isInitialLoadRef.current) return
+
+    const serialized = JSON.stringify({
+      displayName: stateToSave.displayName.trim(),
+      backgroundColor: stateToSave.backgroundColor,
+      allowContactShare: Boolean(stateToSave.allowContactShare),
+      contactDetails: stateToSave.contactDetails,
+    })
+
+    // If identical to confirmed server state and not waiting on pending edits, skip
+    if (serialized === lastSavedStateRef.current && !pendingSaveRef.current) {
+      return
+    }
+
+    // If a request is currently in-flight, queue the latest state
+    if (isSavingRef.current) {
+      pendingSaveRef.current = true
+      return
+    }
+
+    isSavingRef.current = true
+    pendingSaveRef.current = false
+    setSaveStatus('saving')
+
+    if (savedStatusTimeoutRef.current) {
+      clearTimeout(savedStatusTimeoutRef.current)
+    }
+
+    const currentRequestId = ++requestIdRef.current
+
+    try {
+      const payload = {
+        displayName: stateToSave.displayName.trim(),
+        backgroundColor: stateToSave.backgroundColor,
+        allowContactShare: Boolean(stateToSave.allowContactShare),
+        contactDetails: stateToSave.contactDetails,
+      }
+
+      await api.put('/business-card', payload)
+
+      // Only update if this request is still the newest
+      if (currentRequestId === requestIdRef.current) {
+        lastSavedStateRef.current = serialized
+        isSavingRef.current = false
+
+        // If another edit occurred while saving, immediately persist the latest values
+        if (pendingSaveRef.current) {
+          pendingSaveRef.current = false
+          triggerSave(latestStateRef.current)
+        } else {
+          setSaveStatus('saved')
+          savedStatusTimeoutRef.current = setTimeout(() => {
+            setSaveStatus((prev) => (prev === 'saved' ? 'idle' : prev))
+          }, 3000)
+        }
+      }
+    } catch (err) {
+      console.error('Autosave error:', err)
+      if (currentRequestId === requestIdRef.current) {
+        isSavingRef.current = false
+        pendingSaveRef.current = false
+        setSaveStatus('error')
+      }
+    }
+  }, [])
+
+  // Load business card settings from API on mount
   useEffect(() => {
     let mounted = true
     setLoading(true)
@@ -123,63 +227,147 @@ export default function BusinessCardsClient() {
     api.get('/business-card')
       .then((res) => {
         if (!mounted) return
-        setDisplayName(res.displayName || '')
-        setBackgroundColor(res.backgroundColor || '#D2E823')
-        setAllowContactShare(Boolean(res.allowContactShare))
-        if (res.contactDetails) {
-          setContactDetails({
-            fullName: res.contactDetails.fullName || '',
-            title: res.contactDetails.title || '',
-            organization: res.contactDetails.organization || '',
-            email: res.contactDetails.email || '',
-            phone: res.contactDetails.phone || '',
-            website: res.contactDetails.website || '',
-            note: res.contactDetails.note || '',
-          })
+        const loadedName = res.displayName || ''
+        const loadedBg = res.backgroundColor || '#D2E823'
+        const loadedShare = Boolean(res.allowContactShare)
+        const loadedDetails = {
+          fullName: res.contactDetails?.fullName || '',
+          title: res.contactDetails?.title || '',
+          organization: res.contactDetails?.organization || '',
+          email: res.contactDetails?.email || '',
+          phone: res.contactDetails?.phone || '',
+          website: res.contactDetails?.website || '',
+          note: res.contactDetails?.note || '',
         }
+
+        setDisplayName(loadedName)
+        setBackgroundColor(loadedBg)
+        setAllowContactShare(loadedShare)
+        setContactDetails(loadedDetails)
+
+        const loadedState = {
+          displayName: loadedName,
+          backgroundColor: loadedBg,
+          allowContactShare: loadedShare,
+          contactDetails: loadedDetails,
+        }
+
+        latestStateRef.current = loadedState
+        lastSavedStateRef.current = JSON.stringify({
+          displayName: loadedName.trim(),
+          backgroundColor: loadedBg,
+          allowContactShare: loadedShare,
+          contactDetails: loadedDetails,
+        })
       })
       .catch((err) => {
         console.error('Failed to load business card settings:', err)
-        // Fallbacks from profile
         const defName = me?.store?.storeName || me?.profile?.name || (username ? `@${username}` : '')
         setDisplayName(defName)
+        latestStateRef.current.displayName = defName
       })
       .finally(() => {
-        if (mounted) setLoading(false)
+        if (mounted) {
+          setLoading(false)
+          // Delay clearing initial flag to next tick so state setters settle
+          setTimeout(() => {
+            isInitialLoadRef.current = false
+          }, 50)
+        }
       })
 
     return () => { mounted = false }
   }, [me, username])
 
-  // Save business card settings
-  async function handleSave() {
-    setSaving(true)
-    setSavedSuccess(false)
-    try {
-      const payload = {
-        displayName: displayName.trim(),
-        backgroundColor,
-        allowContactShare,
-        contactDetails,
+  // Flush pending changes when unloading / closing window
+  useEffect(() => {
+    function handleBeforeUnload() {
+      if (isInitialLoadRef.current) return
+      const currentSerialized = JSON.stringify({
+        displayName: latestStateRef.current.displayName.trim(),
+        backgroundColor: latestStateRef.current.backgroundColor,
+        allowContactShare: Boolean(latestStateRef.current.allowContactShare),
+        contactDetails: latestStateRef.current.contactDetails,
+      })
+
+      if (currentSerialized !== lastSavedStateRef.current) {
+        // Use Fetch with keepalive: true for guaranteed background delivery
+        try {
+          fetch('/api/business-card', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: currentSerialized,
+            keepalive: true,
+            credentials: 'same-origin',
+          })
+        } catch { }
       }
-      await api.put('/business-card', payload)
-      setSavedSuccess(true)
-      toast.success('Business card saved successfully!')
-      setTimeout(() => setSavedSuccess(false), 3000)
-    } catch (err) {
-      toast.error(err.message || 'Failed to save business card settings')
-    } finally {
-      setSaving(false)
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+      if (savedStatusTimeoutRef.current) clearTimeout(savedStatusTimeoutRef.current)
+    }
+  }, [])
+
+  // Handle Display Name Change with 600ms debounce
+  function handleDisplayNameChange(val) {
+    setDisplayName(val)
+    latestStateRef.current.displayName = val
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      triggerSave(latestStateRef.current)
+    }, 600)
+  }
+
+  // Handle Display Name Blur: immediately flush any pending debounced save
+  function handleDisplayNameBlur() {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = null
+      triggerSave(latestStateRef.current)
     }
   }
 
-  function handleSaveContactDetails(updated) {
-    setContactDetails(updated)
-    toast.success('Contact details updated. Remember to save your card.')
+  // Handle Background Color Change (prompt save)
+  function handleColorChange(newColor) {
+    if (newColor === backgroundColor) return
+    setBackgroundColor(newColor)
+    latestStateRef.current.backgroundColor = newColor
+
+    // Clear text debounce and save immediately
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = null
+    }
+
+    triggerSave(latestStateRef.current)
   }
 
+  // Handle Contact Sharing Switch Toggle
+  function handleToggleContactShare(checked) {
+    setAllowContactShare(checked)
+    latestStateRef.current.allowContactShare = checked
+    triggerSave(latestStateRef.current)
+  }
+
+  // Handle Contact Details Update from Modal
+  function handleSaveContactDetails(updated) {
+    setContactDetails(updated)
+    latestStateRef.current.contactDetails = updated
+    triggerSave(latestStateRef.current)
+    toast.success('Contact details updated.')
+  }
+
+  // Handle Contact Details Removal
   function handleRemoveContactDetails() {
-    setContactDetails({
+    const cleared = {
       fullName: '',
       title: '',
       organization: '',
@@ -187,8 +375,11 @@ export default function BusinessCardsClient() {
       phone: '',
       website: '',
       note: '',
-    })
-    toast.success('Contact details cleared.')
+    }
+    setContactDetails(cleared)
+    latestStateRef.current.contactDetails = cleared
+    triggerSave(latestStateRef.current)
+    toast.success('Contact details removed.')
   }
 
   function downloadQRCode() {
@@ -246,49 +437,13 @@ export default function BusinessCardsClient() {
   return (
     <div className="space-y-6 pb-12">
       {/* 1. PAGE HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#1F1F1F] tracking-tight">
-            Business cards
-          </h1>
-          <p className="text-xs sm:text-sm text-[#71717A] mt-1">
-            Personalize your digital business card, QR code, and contact-sharing settings.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {canonicalStoreUrl && (
-            <a
-              href={canonicalStoreUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#E5E5E3] bg-[#FFFFFF] hover:bg-[#F4F4F5] text-xs font-semibold text-[#1F1F1F] transition-colors"
-            >
-              <span>View Storefront</span>
-              <ExternalLink className="h-3.5 w-3.5 text-[#71717A]" />
-            </a>
-          )}
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#18181B] hover:bg-[#27272A] text-xs font-bold text-[#FFFFFF] shadow-sm transition-all disabled:opacity-50 cursor-pointer"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>Saving...</span>
-              </>
-            ) : savedSuccess ? (
-              <>
-                <Check className="h-3.5 w-3.5 text-emerald-400" />
-                <span>Saved!</span>
-              </>
-            ) : (
-              <span>Save Changes</span>
-            )}
-          </button>
-        </div>
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-[#1F1F1F] tracking-tight">
+          Business cards
+        </h1>
+        <p className="text-xs sm:text-sm text-[#71717A] mt-1">
+          Personalize your digital business card, QR code, and contact-sharing settings.
+        </p>
       </div>
 
       {/* 2. DISMISSIBLE INTRODUCTION CARD (Matching Screenshot 1) */}
@@ -376,17 +531,48 @@ export default function BusinessCardsClient() {
         </div>
       )}
 
-      {/* 3. TWO-COLUMN LAYOUT: SETTINGS (LEFT) + PREVIEW (RIGHT) */}
+      {/* 3. TWO-COLUMN LAYOUT: SETTINGS (LEFT) + LIVE PREVIEW (RIGHT) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* LEFT COLUMN: CUSTOMIZATION PANELS */}
         <div className="lg:col-span-7 space-y-6">
           {/* PANEL 1: CARD STYLE */}
           <div className="rounded-[24px] bg-[#FFFFFF] border border-[#E5E5E3] p-6 sm:p-7 shadow-sm space-y-6">
-            <div>
-              <h3 className="text-base sm:text-lg font-bold text-[#1F1F1F]">Card style</h3>
-              <p className="text-xs sm:text-sm text-[#71717A] mt-0.5">
-                Customize your display name and background, then preview your digital business card.
-              </p>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-[#1F1F1F]">Card style</h3>
+                <p className="text-xs sm:text-sm text-[#71717A] mt-0.5">
+                  Customize your display name and background, then preview your digital business card.
+                </p>
+              </div>
+
+              {/* Subtle Autosave Status Indicator */}
+              <div className="shrink-0 text-xs font-medium pt-1">
+                {saveStatus === 'saving' && (
+                  <span className="inline-flex items-center gap-1.5 text-[#71717A] animate-pulse">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#71717A]" />
+                    <span>Saving…</span>
+                  </span>
+                )}
+                {saveStatus === 'saved' && (
+                  <span className="inline-flex items-center gap-1.5 text-emerald-600 animate-in fade-in duration-200">
+                    <Check className="h-3.5 w-3.5" />
+                    <span>Saved</span>
+                  </span>
+                )}
+                {saveStatus === 'error' && (
+                  <span className="inline-flex items-center gap-1 text-red-600">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                    <span>Couldn't save changes.</span>
+                    <button
+                      type="button"
+                      onClick={() => triggerSave(latestStateRef.current)}
+                      className="underline hover:text-red-700 font-semibold cursor-pointer ml-0.5"
+                    >
+                      Retry
+                    </button>
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Display Name Input */}
@@ -397,7 +583,8 @@ export default function BusinessCardsClient() {
               <input
                 type="text"
                 value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
+                onChange={(e) => handleDisplayNameChange(e.target.value)}
+                onBlur={handleDisplayNameBlur}
                 placeholder={username ? `@${username}` : 'Your Name'}
                 maxLength={80}
                 className="w-full px-4 py-3 rounded-xl border border-[#E4E4E7] bg-[#FAFAFA] text-sm text-[#18181B] placeholder:text-[#A1A1AA] focus:bg-[#FFFFFF] focus:border-[#18181B] focus:ring-1 focus:ring-[#18181B] outline-none transition-all"
@@ -434,7 +621,7 @@ export default function BusinessCardsClient() {
                       ref={customColorInputRef}
                       type="color"
                       value={backgroundColor}
-                      onChange={(e) => setBackgroundColor(e.target.value)}
+                      onChange={(e) => handleColorChange(e.target.value)}
                       className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
                     />
                   </button>
@@ -447,7 +634,7 @@ export default function BusinessCardsClient() {
                     <button
                       key={preset.hex}
                       type="button"
-                      onClick={() => setBackgroundColor(preset.hex)}
+                      onClick={() => handleColorChange(preset.hex)}
                       title={preset.name}
                       className={`w-9 h-9 rounded-full relative flex items-center justify-center transition-transform hover:scale-105 shadow-sm border border-black/10 cursor-pointer ${
                         isSelected ? 'ring-2 ring-offset-2 ring-[#18181B]' : ''
@@ -483,7 +670,7 @@ export default function BusinessCardsClient() {
               <div className="shrink-0 pt-1">
                 <Switch
                   checked={allowContactShare}
-                  onCheckedChange={(checked) => setAllowContactShare(checked)}
+                  onCheckedChange={handleToggleContactShare}
                   aria-label="Toggle visitor contact collection"
                 />
               </div>
@@ -605,216 +792,123 @@ export default function BusinessCardsClient() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: LIVE BUSINESS CARD PREVIEW (STICKY DESKTOP) */}
+        {/* RIGHT COLUMN: LIVE BUSINESS CARD PREVIEW (STICKY DESKTOP, DIRECT CARD VIEW) */}
         <div className="lg:col-span-5 sticky top-6 space-y-4">
-          {/* Preview Tab Controls */}
-          <div className="flex items-center justify-between px-2">
+          {/* Preview Heading (Without mode selector tabs) */}
+          <div className="px-2">
             <span className="text-xs font-bold uppercase tracking-wider text-[#71717A]">
               Live Preview
             </span>
-            <div className="flex items-center gap-1 bg-[#F4F4F5] p-1 rounded-xl">
+          </div>
+
+          {/* DIGITAL BUSINESS CARD (Clean direct presentation matching Screenshot 1) */}
+          <div className="space-y-4">
+            <div
+              className="rounded-[32px] p-7 sm:p-9 shadow-lg border border-black/5 relative overflow-hidden transition-all duration-300 min-h-[460px] flex flex-col justify-between"
+              style={{ backgroundColor }}
+            >
+              {/* Card Top: Brand Mark */}
+              <div className="flex items-center justify-between">
+                <div
+                  className="p-2 rounded-xl transition-colors"
+                  style={{
+                    backgroundColor: isDarkCard ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                  }}
+                >
+                  <CreatorStoreMark
+                    size="sm"
+                    theme={isDarkCard ? 'dark' : 'light'}
+                    className="h-5 w-5"
+                  />
+                </div>
+                {allowContactShare && (
+                  <span
+                    className="px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide uppercase"
+                    style={{
+                      backgroundColor: isDarkCard ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                      color: textColor,
+                    }}
+                  >
+                    Connect Enabled
+                  </span>
+                )}
+              </div>
+
+              {/* Card Middle: Identity & URL */}
+              <div className="space-y-4 my-6">
+                <div>
+                  <span
+                    className="text-[10px] font-bold tracking-widest uppercase block mb-1"
+                    style={{ color: textMutedColor }}
+                  >
+                    NAME
+                  </span>
+                  <h2
+                    className="text-2xl sm:text-3xl font-extrabold tracking-tight truncate leading-tight"
+                    style={{ color: textColor }}
+                  >
+                    {displayName || (username ? `@${username}` : 'Your Name')}
+                  </h2>
+                </div>
+
+                <div>
+                  <span
+                    className="text-[10px] font-bold tracking-widest uppercase block mb-1"
+                    style={{ color: textMutedColor }}
+                  >
+                    URL
+                  </span>
+                  <p
+                    className="text-sm sm:text-base font-semibold truncate"
+                    style={{ color: textColor }}
+                  >
+                    {displayStoreUrl}
+                  </p>
+                </div>
+              </div>
+
+              {/* Card Bottom: Scannable QR Code */}
+              <div className="flex justify-center">
+                <div className="bg-white p-4 rounded-2xl shadow-md inline-flex items-center justify-center">
+                  {canonicalStoreUrl ? (
+                    <QRCodeCanvas
+                      id="business-card-qr-canvas"
+                      value={canonicalStoreUrl}
+                      size={156}
+                      level="H"
+                      bgColor="#ffffff"
+                      fgColor="#000000"
+                      includeMargin={false}
+                    />
+                  ) : (
+                    <div className="w-[156px] h-[156px] bg-zinc-100 flex items-center justify-center text-zinc-400">
+                      <QrCode className="h-12 w-12" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Toolbar Below Card */}
+            <div className="flex items-center justify-center gap-2 pt-1">
               <button
                 type="button"
-                onClick={() => setPreviewTab('card')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
-                  previewTab === 'card'
-                    ? 'bg-[#FFFFFF] text-[#1F1F1F] shadow-sm'
-                    : 'text-[#71717A] hover:text-[#1F1F1F]'
-                }`}
+                onClick={downloadQRCode}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-[#FFFFFF] border border-[#E5E5E3] hover:bg-[#F4F4F5] text-xs font-bold text-[#1F1F1F] transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
               >
-                Digital Card
+                <Download className="h-3.5 w-3.5" />
+                <span>Download QR</span>
               </button>
               <button
                 type="button"
-                onClick={() => setPreviewTab('store')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
-                  previewTab === 'store'
-                    ? 'bg-[#FFFFFF] text-[#1F1F1F] shadow-sm'
-                    : 'text-[#71717A] hover:text-[#1F1F1F]'
-                }`}
+                onClick={copyStoreLink}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-[#FFFFFF] border border-[#E5E5E3] hover:bg-[#F4F4F5] text-xs font-bold text-[#1F1F1F] transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
               >
-                Store Mockup
+                <Copy className="h-3.5 w-3.5" />
+                <span>Copy URL</span>
               </button>
             </div>
           </div>
-
-          {/* VIEW 1: DIGITAL BUSINESS CARD (Matching Screenshot 1) */}
-          {previewTab === 'card' ? (
-            <div className="space-y-4">
-              <div
-                className="rounded-[32px] p-7 sm:p-9 shadow-lg border border-black/5 relative overflow-hidden transition-all duration-300 min-h-[460px] flex flex-col justify-between"
-                style={{ backgroundColor }}
-              >
-                {/* Card Top: Brand Mark */}
-                <div className="flex items-center justify-between">
-                  <div
-                    className="p-2 rounded-xl transition-colors"
-                    style={{
-                      backgroundColor: isDarkCard ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-                    }}
-                  >
-                    <CreatorStoreMark
-                      size="sm"
-                      theme={isDarkCard ? 'dark' : 'light'}
-                      className="h-5 w-5"
-                    />
-                  </div>
-                  {allowContactShare && (
-                    <span
-                      className="px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide uppercase"
-                      style={{
-                        backgroundColor: isDarkCard ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-                        color: textColor,
-                      }}
-                    >
-                      Connect Enabled
-                    </span>
-                  )}
-                </div>
-
-                {/* Card Middle: Identity & URL */}
-                <div className="space-y-4 my-6">
-                  <div>
-                    <span
-                      className="text-[10px] font-bold tracking-widest uppercase block mb-1"
-                      style={{ color: textMutedColor }}
-                    >
-                      NAME
-                    </span>
-                    <h2
-                      className="text-2xl sm:text-3xl font-extrabold tracking-tight truncate leading-tight"
-                      style={{ color: textColor }}
-                    >
-                      {displayName || (username ? `@${username}` : 'Your Name')}
-                    </h2>
-                  </div>
-
-                  <div>
-                    <span
-                      className="text-[10px] font-bold tracking-widest uppercase block mb-1"
-                      style={{ color: textMutedColor }}
-                    >
-                      URL
-                    </span>
-                    <p
-                      className="text-sm sm:text-base font-semibold truncate"
-                      style={{ color: textColor }}
-                    >
-                      {displayStoreUrl}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Card Bottom: Scannable QR Code */}
-                <div className="flex justify-center">
-                  <div className="bg-white p-4 rounded-2xl shadow-md inline-flex items-center justify-center">
-                    {canonicalStoreUrl ? (
-                      <QRCodeCanvas
-                        id="business-card-qr-canvas"
-                        value={canonicalStoreUrl}
-                        size={156}
-                        level="H"
-                        bgColor="#ffffff"
-                        fgColor="#000000"
-                        includeMargin={false}
-                      />
-                    ) : (
-                      <div className="w-[156px] h-[156px] bg-zinc-100 flex items-center justify-center text-zinc-400">
-                        <QrCode className="h-12 w-12" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Toolbar Below Card */}
-              <div className="flex items-center justify-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={downloadQRCode}
-                  className="flex-1 py-2.5 px-3 rounded-xl bg-[#FFFFFF] border border-[#E5E5E3] hover:bg-[#F4F4F5] text-xs font-bold text-[#1F1F1F] transition-colors flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  <span>Download QR</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={copyStoreLink}
-                  className="flex-1 py-2.5 px-3 rounded-xl bg-[#FFFFFF] border border-[#E5E5E3] hover:bg-[#F4F4F5] text-xs font-bold text-[#1F1F1F] transition-colors flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                  <span>Copy URL</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            /* VIEW 2: STOREFRONT MOBILE MOCKUP (Matching Screenshot 1 & 2 Right Side) */
-            <div className="rounded-[32px] bg-[#FFFFFF] border border-[#E5E5E3] p-4 shadow-sm">
-              <div className="max-w-[320px] mx-auto rounded-[28px] bg-[#121212] text-white p-4 border border-zinc-800 shadow-xl space-y-4">
-                {/* Storefront Top Bar with Contact button */}
-                <div className="flex items-center justify-between">
-                  <div className="h-7 w-7 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-300">
-                    <Sparkles className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {(hasConfiguredContact || allowContactShare) && (
-                      <span className="px-2.5 py-1 rounded-full bg-zinc-800 text-[11px] font-semibold text-zinc-200 flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        <span>Contact</span>
-                      </span>
-                    )}
-                    <div className="h-7 w-7 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-300">
-                      <Share2 className="h-3 w-3" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Avatar & Profile */}
-                <div className="text-center space-y-2 pt-2">
-                  <div className="h-16 w-16 mx-auto rounded-full bg-zinc-800 border-2 border-zinc-700 flex items-center justify-center text-zinc-400 overflow-hidden">
-                    {me?.profile?.avatarUrl ? (
-                      <img
-                        src={me.profile.avatarUrl}
-                        alt="Avatar"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-xl font-bold">
-                        {(displayName || username || 'C').charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-white">
-                      {displayName || (username ? `@${username}` : 'Your Name')}
-                    </h3>
-                    <p className="text-[11px] text-zinc-400">
-                      {displayStoreUrl}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Mock Links / Products */}
-                <div className="space-y-2 pt-2">
-                  <div className="p-3 rounded-xl bg-zinc-800/80 border border-zinc-700/60 text-xs text-center font-medium text-zinc-200">
-                    Explore My Products &amp; Store
-                  </div>
-                  {allowContactShare && (
-                    <div className="p-2.5 rounded-xl bg-white/10 border border-white/20 text-xs text-center font-bold text-white flex items-center justify-center gap-1.5">
-                      <MessageSquare className="h-3.5 w-3.5" />
-                      <span>Leave Contact Details</span>
-                    </div>
-                  )}
-                  {hasConfiguredContact && (
-                    <div className="p-2.5 rounded-xl bg-white text-black text-xs text-center font-bold flex items-center justify-center gap-1.5 shadow-sm">
-                      <Download className="h-3.5 w-3.5" />
-                      <span>Save Contact to Phone</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

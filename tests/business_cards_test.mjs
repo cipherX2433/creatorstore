@@ -168,15 +168,33 @@ function testComponentFiles() {
     'BusinessCardsClient must NOT contain apple-wallet references'
   )
 
-  // Verify key UI elements
+  // Requirements: Removals
+  assert.ok(
+    !clientContent.includes('View Storefront'),
+    'BusinessCardsClient must NOT contain "View Storefront" button in header'
+  )
+  assert.ok(
+    !clientContent.includes('Store Mockup'),
+    'BusinessCardsClient must NOT contain "Store Mockup" mode toggle'
+  )
+  assert.ok(
+    !clientContent.includes('Save Changes'),
+    'BusinessCardsClient must NOT contain manual "Save Changes" button'
+  )
+
+  // Verify key UI elements & Autosave
   assert.ok(clientContent.includes('Business cards'), 'Page must contain "Business cards" title')
   assert.ok(clientContent.includes('Card style'), 'Page must contain "Card style" panel')
+  assert.ok(clientContent.includes('Saving…'), 'Page must include "Saving…" autosave indicator')
+  assert.ok(clientContent.includes('Saved'), 'Page must include "Saved" autosave indicator')
+  assert.ok(clientContent.includes("Couldn't save changes."), 'Page must include error retry indicator')
+  assert.ok(clientContent.includes('Live Preview'), 'Page must retain "Live Preview" heading')
   assert.ok(clientContent.includes('Let visitors share their details back'), 'Page must contain contact collection section')
   assert.ok(clientContent.includes('Let visitors save your contact'), 'Page must contain contact details section')
   assert.ok(clientContent.includes('QRCodeCanvas'), 'Page must include dynamic QRCodeCanvas')
   assert.ok(clientContent.includes('Download QR'), 'Page must include Download QR button')
 
-  console.log('✅ Test 4 PASSED: Component files exist, features present, wallet UI strictly excluded.')
+  console.log('✅ Test 4 PASSED: Removals verified, autosave indicators present, wallet UI strictly excluded.')
 }
 
 async function runAll() {
