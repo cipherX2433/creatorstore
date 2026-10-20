@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import {
   Play, Video, Images, Headphones, FileText, Download,
   ExternalLink, Eye, ChevronLeft, ChevronRight, Music,
-  X, Camera, MoreVertical, Youtube
+  X, Camera, MoreVertical, Youtube, Music2, PlayCircle
 } from 'lucide-react'
 import { getContrastColor, getResourceButtonStyles } from '@/lib/colorContrast'
 import { extractVideoEmbed, extractAudioEmbed } from '@/components/dashboard/AddMediaConfig'
@@ -20,7 +20,8 @@ export default function StorefrontMediaCard({
   onGalleryClick,
 }) {
   const props = section.props || {}
-  const sectionType = section.type || props.mediaType || 'video'
+  const rawType = section.type || props.mediaType || 'video'
+  const sectionType = ['youtube', 'tiktok', 'vimeo', 'video'].includes(rawType) ? rawType : (props.mediaType || 'video')
   const title = props.title || ''
   const caption = props.caption || ''
   const url = props.url || ''
@@ -44,13 +45,65 @@ export default function StorefrontMediaCard({
   const cardRadius = cards.radius ? `${cards.radius}px` : '18px'
 
   /* ========================================================================= */
-  /* YOUTUBE MEDIA RENDERER (Classic & Image layouts)                          */
+  /* YOUTUBE MEDIA RENDERER & SOCIAL MEDIA RENDERER (Classic & Image layouts)  */
   /* ========================================================================= */
-  if (sectionType === 'youtube' || props.mediaType === 'youtube' || props.embedType === 'youtube') {
+  const isCardMedia =
+    (sectionType === 'youtube' || props.mediaType === 'youtube' || props.embedType === 'youtube') ||
+    ['tiktok', 'vimeo'].includes(sectionType) ||
+    ['tiktok', 'vimeo'].includes(props.mediaType) ||
+    ['tiktok', 'vimeo'].includes(props.embedType) ||
+    ((sectionType === 'video' || props.mediaType === 'video') && (props.layout === 'classic' || props.layout === 'image' || props.displayMode === 'classic' || props.displayMode === 'featured' || props.isUpload))
+
+  if (isCardMedia) {
     const isImage = props.layout === 'image' || props.layout === 'featured' || props.displayMode === 'image' || props.displayMode === 'featured'
-    const ytId = props.videoId || extractVideoEmbed(url)?.videoId || (url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/) || [])[1]
+
+    // Determine platform
+    const platform =
+      sectionType === 'youtube' || props.mediaType === 'youtube' || props.embedType === 'youtube'
+        ? 'youtube'
+        : sectionType === 'tiktok' || props.mediaType === 'tiktok' || props.embedType === 'tiktok'
+          ? 'tiktok'
+          : sectionType === 'vimeo' || props.mediaType === 'vimeo' || props.embedType === 'vimeo'
+            ? 'vimeo'
+            : 'video'
+
+    // Platform-specific styling & icons
+    const PlatformIcon =
+      platform === 'youtube'
+        ? Youtube
+        : platform === 'tiktok'
+          ? Music2
+          : platform === 'vimeo'
+            ? PlayCircle
+            : Play
+
+    const platformColor =
+      platform === 'youtube'
+        ? '#EF4444'
+        : platform === 'tiktok'
+          ? '#18181B'
+          : platform === 'vimeo'
+            ? '#06B6D4'
+            : '#84CC16'
+
+    const platformLabel =
+      platform === 'youtube'
+        ? 'YouTube'
+        : platform === 'tiktok'
+          ? 'TikTok'
+          : platform === 'vimeo'
+            ? 'Vimeo'
+            : 'Video'
+
+    const ytId = platform === 'youtube'
+      ? (props.videoId || extractVideoEmbed(url)?.videoId || (url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/) || [])[1])
+      : null
     const defaultYtThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null
-    const activeThumbnail = props.customThumbnail || props.thumbnail || defaultYtThumb
+    const tiktokThumbFallback = null
+    const vimeoThumbFallback = null
+    const defaultVideoThumb = null
+    const fallbackThumb = defaultYtThumb || tiktokThumbFallback || vimeoThumbFallback || defaultVideoThumb
+    const activeThumbnail = props.customThumbnail || props.thumbnail || fallbackThumb
     const safeUrl = url || (ytId ? `https://www.youtube.com/watch?v=${ytId}` : '#')
 
     if (isImage) {
@@ -68,7 +121,7 @@ export default function StorefrontMediaCard({
             {activeThumbnail ? (
               <img
                 src={activeThumbnail}
-                alt={title || 'YouTube Video'}
+                alt={title || `${platformLabel} Video`}
                 onError={(e) => {
                   if (defaultYtThumb && e.currentTarget.src !== defaultYtThumb) {
                     e.currentTarget.src = defaultYtThumb
@@ -78,11 +131,14 @@ export default function StorefrontMediaCard({
               />
             ) : (
               <div className="flex flex-col items-center justify-center p-6 text-center gap-2">
-                <Youtube className="h-10 w-10 text-red-500" />
+                <PlatformIcon className="h-10 w-10" style={{ color: platformColor }} />
               </div>
             )}
             <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/20 transition-colors">
-              <div className="h-12 w-12 rounded-full bg-red-600 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+              <div
+                className="h-12 w-12 rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform"
+                style={{ backgroundColor: platformColor }}
+              >
                 <Play className="h-6 w-6 text-white fill-current ml-0.5" />
               </div>
             </div>
@@ -93,11 +149,14 @@ export default function StorefrontMediaCard({
                 className="text-sm font-bold tracking-tight line-clamp-2 leading-snug"
                 style={{ color: surfaceTheme.heading || surfaceTheme.text }}
               >
-                {title || 'YouTube Video'}
+                {title || `${platformLabel} Video`}
               </h4>
-              <p className="text-[11px] font-semibold text-red-500 mt-1 flex items-center gap-1.5">
-                <Youtube className="h-3.5 w-3.5" />
-                <span>YouTube</span>
+              <p
+                className="text-[11px] font-semibold mt-1 flex items-center gap-1.5"
+                style={{ color: platformColor }}
+              >
+                <PlatformIcon className="h-3.5 w-3.5" />
+                <span>{platformLabel}</span>
               </p>
             </div>
             <div className="h-8 w-8 rounded-full border border-black/10 dark:border-white/10 flex items-center justify-center text-[#6F6F6B] group-hover:text-[#1F1F1F] dark:group-hover:text-white transition-colors shrink-0">
@@ -143,12 +202,18 @@ export default function StorefrontMediaCard({
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="h-full w-full bg-red-600 flex items-center justify-center">
-              <Youtube className="h-5 w-5 text-white" />
+            <div
+              className="h-full w-full flex items-center justify-center"
+              style={{ backgroundColor: platformColor }}
+            >
+              <PlatformIcon className="h-5 w-5 text-white" />
             </div>
           )}
           <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-            <div className="h-4 w-4 rounded-full bg-red-600/90 flex items-center justify-center">
+            <div
+              className="h-4 w-4 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: platformColor }}
+            >
               <Play className="h-2 w-2 text-white fill-current ml-0.5" />
             </div>
           </div>
@@ -158,11 +223,14 @@ export default function StorefrontMediaCard({
             className="text-sm font-bold truncate leading-tight"
             style={{ color: surfaceTheme.heading || surfaceTheme.text }}
           >
-            {title || 'YouTube Video'}
+            {title || `${platformLabel} Video`}
           </div>
-          <div className="text-[11px] font-semibold text-red-500 mt-0.5 flex items-center gap-1">
-            <Youtube className="h-3 w-3" />
-            <span>YouTube</span>
+          <div
+            className="text-[11px] font-semibold mt-0.5 flex items-center gap-1"
+            style={{ color: platformColor }}
+          >
+            <PlatformIcon className="h-3 w-3" />
+            <span>{platformLabel}</span>
           </div>
         </div>
         <div className="text-[#999995] group-hover:text-[#1F1F1F] dark:group-hover:text-white transition-colors shrink-0 pr-1">

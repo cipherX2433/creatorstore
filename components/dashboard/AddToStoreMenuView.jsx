@@ -254,8 +254,7 @@ export const WIZARD_OPTIONS = [
     description: 'Share a TikTok video on your store',
     icon: Music2,
     color: '#000000',
-    type: 'link_preset',
-    presetUrl: 'https://tiktok.com',
+    type: 'tiktok',
     keywords: 'tiktok video reel short',
   },
   {
@@ -266,7 +265,7 @@ export const WIZARD_OPTIONS = [
     description: 'Add Vimeo videos to your store',
     icon: PlayCircle,
     color: '#06B6D4',
-    type: 'video',
+    type: 'vimeo',
     keywords: 'vimeo video stream player',
   },
   {

@@ -1397,6 +1397,8 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
 
     case 'video':
     case 'youtube':
+    case 'tiktok':
+    case 'vimeo':
     case 'gallery':
     case 'audio':
     case 'pdf':

@@ -23,7 +23,7 @@ import {
   ChevronDown, ChevronUp, ChevronRight, CheckCircle2, Layers, Camera, Instagram, Search, ArrowRight,
   ShoppingBag, Video, FileText, Link2, X, Upload, ArrowLeft, AlertCircle, Edit3, Folder, FolderPlus, MoveUp, MoveDown,
   Pencil, ClipboardList, Mail, Star, Send, HelpCircle, Play, Images, Headphones, Music, GraduationCap,
-  MoreVertical, Archive, SlidersHorizontal, Users, Wrench, Power, Globe, Youtube, Zap, Calendar
+  MoreVertical, Archive, SlidersHorizontal, Users, Wrench, Power, Globe, Youtube, Zap, Calendar, Music2, PlayCircle
 } from 'lucide-react'
 import AddFormConfig, { FORM_TYPES } from '@/components/dashboard/AddFormConfig'
 import AddMediaConfig from '@/components/dashboard/AddMediaConfig'
@@ -67,7 +67,9 @@ import BookingEditor from '@/components/dashboard/editors/BookingEditor'
 import HeadingEditor from '@/components/dashboard/editors/HeadingEditor'
 import TextBlockEditor from '@/components/dashboard/editors/TextBlockEditor'
 import YouTubeEditor from '@/components/dashboard/editors/YouTubeEditor'
+import MediaContentEditor from '@/components/dashboard/editors/MediaContentEditor'
 import AddYouTubeModalView from '@/components/dashboard/AddYouTubeModalView'
+import AddMediaModalView from '@/components/dashboard/AddMediaModalView'
 import { isBookingItem, resolveSectionProduct } from '@/lib/bookingItemUtils'
 export { isBookingItem, resolveSectionProduct }
 import { IconBadge, ICON_BADGE_COLORS } from '@/components/ui/icon-badge'
@@ -147,6 +149,9 @@ const ICONS = {
   sessions: Calendar,
   calendar: Calendar,
   youtube: Youtube,
+  tiktok: Music2,
+  vimeo: PlayCircle,
+  video: Play,
 }
 const LABELS = {
   ...Object.fromEntries(COMPONENTS.map((c) => [c.type, c.label])),
@@ -162,6 +167,9 @@ const LABELS = {
   session: 'Bookings',
   sessions: 'Bookings',
   youtube: 'YouTube',
+  tiktok: 'TikTok Video',
+  vimeo: 'Vimeo',
+  video: 'Video',
 }
 
 function defaultProps(type, products = []) {
@@ -208,13 +216,37 @@ function defaultProps(type, products = []) {
       layout: 'classic',
       displayMode: 'classic',
     }
+    case 'tiktok': return {
+      url: '',
+      title: 'TikTok Video',
+      caption: '',
+      embedType: 'tiktok',
+      mediaType: 'tiktok',
+      thumbnail: null,
+      customThumbnail: null,
+      layout: 'classic',
+      displayMode: 'classic',
+    }
+    case 'vimeo': return {
+      url: '',
+      title: 'Vimeo Video',
+      caption: '',
+      embedType: 'vimeo',
+      mediaType: 'vimeo',
+      thumbnail: null,
+      customThumbnail: null,
+      layout: 'classic',
+      displayMode: 'classic',
+    }
     case 'video': return {
       url: '',
       title: 'Featured Video',
       caption: '',
       embedType: 'generic',
+      mediaType: 'video',
       embedUrl: null,
       thumbnail: null,
+      customThumbnail: null,
       layout: 'classic',
       displayMode: 'classic',
     }
@@ -776,7 +808,9 @@ function StoreContentCard({
     if (s.type === 'text' || s.type === 'text_block' || s.type === 'paragraph_text') return { bg: 'bg-[#F8FAFC]', text: 'text-[#475569]', border: 'border-[#E2E8F0]', icon: AlignLeft, label: 'Text block' }
     if (s.type === 'pdf') return { bg: 'bg-[#FFF7ED]', text: 'text-[#EA580C]', border: 'border-[#FFEDD5]', icon: FileText, label: 'PDF' }
     if (s.type === 'youtube' || s.props?.mediaType === 'youtube' || s.props?.embedType === 'youtube') return { bg: 'bg-[#FEF2F2]', text: 'text-[#DC2626]', border: 'border-[#FEE2E2]', icon: Youtube, label: 'YouTube' }
-    if (s.type === 'video') return { bg: 'bg-[#FEF2F2]', text: 'text-[#DC2626]', border: 'border-[#FEE2E2]', icon: Video, label: 'Video' }
+    if (s.type === 'tiktok' || s.props?.mediaType === 'tiktok' || s.props?.embedType === 'tiktok') return { bg: 'bg-[#F4F4F5]', text: 'text-[#18181B]', border: 'border-[#E4E4E7]', icon: Music2, label: 'TikTok' }
+    if (s.type === 'vimeo' || s.props?.mediaType === 'vimeo' || s.props?.embedType === 'vimeo') return { bg: 'bg-[#ECFEFF]', text: 'text-[#0891B2]', border: 'border-[#CFFAFE]', icon: PlayCircle, label: 'Vimeo' }
+    if (s.type === 'video' || s.props?.mediaType === 'video' || s.props?.embedType === 'video') return { bg: 'bg-[#F7FEE7]', text: 'text-[#65A30D]', border: 'border-[#ECFCCB]', icon: Video, label: 'Video' }
     if (s.type === 'gallery') return { bg: 'bg-[#FAF5FF]', text: 'text-[#9333EA]', border: 'border-[#F3E8FF]', icon: Images, label: 'Gallery' }
     if (s.type === 'audio') return { bg: 'bg-[#ECFEFF]', text: 'text-[#0891B2]', border: 'border-[#CFFAFE]', icon: Headphones, label: 'Audio' }
     if (s.type === 'form') return { bg: 'bg-[#F0FDFA]', text: 'text-[#0D9488]', border: 'border-[#CCFBF1]', icon: ClipboardList, label: 'Form' }
@@ -813,7 +847,7 @@ function StoreContentCard({
       setSelectedId(s.id)
       setEditingProductId?.(null)
       setEditingSectionId?.(s.id)
-    } else if (['video', 'youtube', 'audio', 'pdf'].includes(s.type)) {
+    } else if (['video', 'youtube', 'tiktok', 'vimeo', 'audio', 'pdf'].includes(s.type)) {
       setSelectedId(s.id)
       setEditingProductId?.(null)
       setEditingSectionId?.(s.id)
@@ -3090,7 +3124,27 @@ export default function StoreBuilderPage() {
                     onDuplicate={() => duplicate(editingSection.id)}
                     onOpenMobilePreview={() => setShareOpen?.(true)}
                   />
-                ) : ['video', 'audio', 'pdf', 'media'].includes(editingSection.type) ? (
+                ) : ['tiktok', 'vimeo', 'video'].includes(editingSection.type) ||
+                    ['tiktok', 'vimeo', 'video'].includes(editingSection.props?.mediaType) ||
+                    ['tiktok', 'vimeo'].includes(editingSection.props?.embedType) ? (
+                  <MediaContentEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : ['audio', 'pdf', 'media'].includes(editingSection.type) ? (
                   <MediaEditor
                     section={editingSection}
                     onBack={() => {
@@ -3867,14 +3921,14 @@ export default function StoreBuilderPage() {
         className={
           addModalType === 'coaching' || addModalType === 'course'
             ? 'sm:max-w-4xl max-w-4xl w-[95vw] sm:w-full max-h-[90vh] p-0 gap-0 overflow-hidden'
-            : addModalType === 'menu' || addModalType === 'add_youtube'
+            : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video'].includes(addModalType)
             ? 'sm:max-w-[780px] w-[95vw] sm:w-full h-[88vh] sm:h-[640px] max-h-[92vh] p-4 sm:p-7 rounded-[28px] bg-white border border-[#E5E5E3] shadow-[0_24px_70px_rgba(0,0,0,0.15)] gap-0 overflow-hidden flex flex-col'
             : 'sm:max-w-[700px]'
         }
         bodyClassName={
           addModalType === 'coaching' || addModalType === 'course'
             ? 'p-0 min-h-[500px] flex flex-col flex-1'
-            : addModalType === 'menu' || addModalType === 'add_youtube'
+            : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video'].includes(addModalType)
             ? 'p-0 flex flex-col flex-1 min-h-0 overflow-hidden'
             : 'pt-5'
         }
@@ -3890,6 +3944,12 @@ export default function StoreBuilderPage() {
             )
             : addModalType === 'add_youtube'
               ? 'Add YouTube'
+            : addModalType === 'add_tiktok'
+              ? 'Add TikTok Video'
+            : addModalType === 'add_vimeo'
+              ? 'Add Vimeo'
+            : addModalType === 'add_video'
+              ? 'Add Video'
             : addModalType === 'digital_product'
               ? 'Create digital product'
               : addModalType === 'edit_product'
@@ -3934,7 +3994,7 @@ export default function StoreBuilderPage() {
                   setAddModalType('menu')
                   setWizardStep(1)
                 }
-              } else if (addModalType === 'add_youtube') {
+              } else if (['add_youtube', 'add_tiktok', 'add_vimeo', 'add_video'].includes(addModalType)) {
                 setAddModalType('menu')
               } else if (addModalType === 'form_config') {
                 if (editingFormSection) {
@@ -4061,8 +4121,25 @@ export default function StoreBuilderPage() {
               ) {
                 setAddModalType('add_youtube')
               } else if (
-                opt.type === 'media' ||
+                opt.type === 'tiktok' ||
+                opt.mediaType === 'tiktok' ||
+                opt.id === 'tiktok_media'
+              ) {
+                setAddModalType('add_tiktok')
+              } else if (
+                opt.type === 'vimeo' ||
+                opt.mediaType === 'vimeo' ||
+                opt.id === 'vimeo_media'
+              ) {
+                setAddModalType('add_vimeo')
+              } else if (
                 opt.type === 'video' ||
+                opt.mediaType === 'video' ||
+                opt.id === 'video_media'
+              ) {
+                setAddModalType('add_video')
+              } else if (
+                opt.type === 'media' ||
                 opt.type === 'audio' ||
                 opt.type === 'pdf'
               ) {
@@ -4369,13 +4446,49 @@ export default function StoreBuilderPage() {
                 const newSec = await addSectionWithProps('youtube', {
                   title: videoData.title || 'YouTube Video',
                   url: videoData.canonicalUrl || videoData.url,
-                  videoId: videoData.videoId,
-                  thumbnail: videoData.thumbnailUrl,
+                  videoId: videoData.videoId || null,
+                  thumbnail: videoData.thumbnailUrl || null,
                   customThumbnail: null,
                   layout: 'classic',
                   displayMode: 'classic',
                   mediaType: 'youtube',
                   embedType: 'youtube',
+                })
+                if (newSec?.id) {
+                  setEditingProductId(null)
+                  setEditingSectionId(newSec.id)
+                  setSelectedId(newSec.id)
+                }
+              }}
+              onCancel={() => setAddModalType('menu')}
+            />
+          )}
+          {['add_tiktok', 'add_vimeo', 'add_video'].includes(addModalType) && (
+            <AddMediaModalView
+              mediaType={
+                addModalType === 'add_tiktok'
+                  ? 'tiktok'
+                  : addModalType === 'add_vimeo'
+                    ? 'vimeo'
+                    : 'video'
+              }
+              onSelectVideo={async (videoData) => {
+                setAddModalOpen(false)
+                setAddModalType('menu')
+                const blockType = videoData.mediaType || (addModalType === 'add_tiktok' ? 'tiktok' : addModalType === 'add_vimeo' ? 'vimeo' : 'video')
+                const newSec = await addSectionWithProps(blockType, {
+                  title: videoData.title || `${blockType.toUpperCase()} Video`,
+                  url: videoData.canonicalUrl || videoData.url,
+                  videoId: videoData.videoId || null,
+                  thumbnail: videoData.thumbnailUrl || null,
+                  customThumbnail: null,
+                  layout: 'classic',
+                  displayMode: 'classic',
+                  mediaType: blockType,
+                  embedType: blockType,
+                  isUpload: Boolean(videoData.isUpload),
+                  fileName: videoData.fileName || null,
+                  fileSize: videoData.fileSize || null,
                 })
                 if (newSec?.id) {
                   setEditingProductId(null)
