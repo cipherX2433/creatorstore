@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import {
   Play, Video, Images, Headphones, FileText, Download,
   ExternalLink, Eye, ChevronLeft, ChevronRight, Music,
-  X, Camera, MoreVertical
+  X, Camera, MoreVertical, Youtube
 } from 'lucide-react'
 import { getContrastColor, getResourceButtonStyles } from '@/lib/colorContrast'
 import { extractVideoEmbed, extractAudioEmbed } from '@/components/dashboard/AddMediaConfig'
@@ -44,9 +44,150 @@ export default function StorefrontMediaCard({
   const cardRadius = cards.radius ? `${cards.radius}px` : '18px'
 
   /* ========================================================================= */
-  /* VIDEO & YOUTUBE RENDERER                                                  */
+  /* YOUTUBE MEDIA RENDERER (Classic & Image layouts)                          */
   /* ========================================================================= */
-  if (sectionType === 'video' || sectionType === 'youtube') {
+  if (sectionType === 'youtube' || props.mediaType === 'youtube' || props.embedType === 'youtube') {
+    const isImage = props.layout === 'image' || props.layout === 'featured' || props.displayMode === 'image' || props.displayMode === 'featured'
+    const ytId = props.videoId || extractVideoEmbed(url)?.videoId || (url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/) || [])[1]
+    const defaultYtThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null
+    const activeThumbnail = props.customThumbnail || props.thumbnail || defaultYtThumb
+    const safeUrl = url || (ytId ? `https://www.youtube.com/watch?v=${ytId}` : '#')
+
+    if (isImage) {
+      // IMAGE LAYOUT (Phase 4.B & Phase 6)
+      const card = (
+        <div
+          className="w-full max-w-md mx-auto overflow-hidden transition-all duration-200 group shadow-sm hover:shadow-md"
+          style={{
+            borderRadius: cardRadius,
+            backgroundColor: surfaceTheme.cardBg,
+            border: `1px solid ${surfaceTheme.cardBorder}`,
+          }}
+        >
+          <div className="relative w-full aspect-video bg-[#0A0A0A] overflow-hidden flex items-center justify-center">
+            {activeThumbnail ? (
+              <img
+                src={activeThumbnail}
+                alt={title || 'YouTube Video'}
+                onError={(e) => {
+                  if (defaultYtThumb && e.currentTarget.src !== defaultYtThumb) {
+                    e.currentTarget.src = defaultYtThumb
+                  }
+                }}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center p-6 text-center gap-2">
+                <Youtube className="h-10 w-10 text-red-500" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/20 transition-colors">
+              <div className="h-12 w-12 rounded-full bg-red-600 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                <Play className="h-6 w-6 text-white fill-current ml-0.5" />
+              </div>
+            </div>
+          </div>
+          <div className="p-4 flex items-center justify-between gap-3 text-left">
+            <div className="min-w-0 flex-1">
+              <h4
+                className="text-sm font-bold tracking-tight line-clamp-2 leading-snug"
+                style={{ color: surfaceTheme.heading || surfaceTheme.text }}
+              >
+                {title || 'YouTube Video'}
+              </h4>
+              <p className="text-[11px] font-semibold text-red-500 mt-1 flex items-center gap-1.5">
+                <Youtube className="h-3.5 w-3.5" />
+                <span>YouTube</span>
+              </p>
+            </div>
+            <div className="h-8 w-8 rounded-full border border-black/10 dark:border-white/10 flex items-center justify-center text-[#6F6F6B] group-hover:text-[#1F1F1F] dark:group-hover:text-white transition-colors shrink-0">
+              <ExternalLink className="h-4 w-4" />
+            </div>
+          </div>
+        </div>
+      )
+
+      return (
+        <div className="w-full max-w-md mx-auto">
+          {editor || !safeUrl || safeUrl === '#' ? (
+            card
+          ) : (
+            <a href={safeUrl} target="_blank" rel="noopener noreferrer" className="block w-full">
+              {card}
+            </a>
+          )}
+        </div>
+      )
+    }
+
+    // CLASSIC LAYOUT (Phase 4.A & Phase 6)
+    const classicCard = (
+      <div
+        className="w-full inline-flex items-center gap-3.5 px-3.5 py-3 min-h-[54px] transition-all hover:scale-[1.01] hover:opacity-95 shadow-sm group"
+        style={{
+          borderRadius: cardRadius,
+          backgroundColor: surfaceTheme.cardBg,
+          border: `1px solid ${surfaceTheme.cardBorder}`,
+        }}
+      >
+        <div className="relative h-10 w-10 shrink-0 rounded-[10px] overflow-hidden bg-black/10 flex items-center justify-center">
+          {activeThumbnail ? (
+            <img
+              src={activeThumbnail}
+              alt=""
+              onError={(e) => {
+                if (defaultYtThumb && e.currentTarget.src !== defaultYtThumb) {
+                  e.currentTarget.src = defaultYtThumb
+                }
+              }}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-full w-full bg-red-600 flex items-center justify-center">
+              <Youtube className="h-5 w-5 text-white" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+            <div className="h-4 w-4 rounded-full bg-red-600/90 flex items-center justify-center">
+              <Play className="h-2 w-2 text-white fill-current ml-0.5" />
+            </div>
+          </div>
+        </div>
+        <div className="min-w-0 flex-1 text-left">
+          <div
+            className="text-sm font-bold truncate leading-tight"
+            style={{ color: surfaceTheme.heading || surfaceTheme.text }}
+          >
+            {title || 'YouTube Video'}
+          </div>
+          <div className="text-[11px] font-semibold text-red-500 mt-0.5 flex items-center gap-1">
+            <Youtube className="h-3 w-3" />
+            <span>YouTube</span>
+          </div>
+        </div>
+        <div className="text-[#999995] group-hover:text-[#1F1F1F] dark:group-hover:text-white transition-colors shrink-0 pr-1">
+          <ExternalLink className="h-4 w-4" />
+        </div>
+      </div>
+    )
+
+    return (
+      <div className="w-full max-w-md mx-auto">
+        {editor || !safeUrl || safeUrl === '#' ? (
+          classicCard
+        ) : (
+          <a href={safeUrl} target="_blank" rel="noopener noreferrer" className="block w-full">
+            {classicCard}
+          </a>
+        )}
+      </div>
+    )
+  }
+
+  /* ========================================================================= */
+  /* GENERAL VIDEO RENDERER                                                    */
+  /* ========================================================================= */
+  if (sectionType === 'video') {
     const embedInfo = extractVideoEmbed(url)
 
     return (

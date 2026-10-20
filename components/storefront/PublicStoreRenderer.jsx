@@ -1024,24 +1024,42 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       return <ProfileHeader profile={profile} tokens={tokens} editor={editor} username={username} store={store} />
 
     case 'heading':
+    case 'heading_text': {
+      const headingText = section.props?.text ?? section.props?.title ?? 'Welcome to my store'
+      const subtitleText = section.props?.subtitle
       return (
-        <h2
-          className={`flex flex-col ${alignClass} text-2xl sm:text-3xl md:text-4xl ${typography.titleWeight}`}
-          style={{ fontFamily: typography.headingFont, color: colors.title || colors.text }}
-        >
-          {section.props?.text || 'Welcome to my store'}
-        </h2>
+        <div className={`flex flex-col ${alignClass} w-full`}>
+          <h2
+            className={`text-2xl sm:text-3xl md:text-4xl ${typography.titleWeight} w-full leading-tight`}
+            style={{ fontFamily: typography.headingFont, color: colors.title || colors.text }}
+          >
+            {headingText}
+          </h2>
+          {subtitleText ? (
+            <p
+              className="text-sm sm:text-base opacity-75 mt-1.5 w-full leading-relaxed"
+              style={{ color: colors.text }}
+            >
+              {subtitleText}
+            </p>
+          ) : null}
+        </div>
       )
+    }
 
     case 'text':
+    case 'text_block':
+    case 'paragraph_text': {
+      const textContent = section.props?.text ?? section.props?.content ?? 'Explore my exclusive digital products and courses.'
       return (
-        <p
-          className={`flex flex-col ${alignClass} text-sm sm:text-base md:text-lg leading-relaxed opacity-80 max-w-3xl mx-auto`}
+        <div
+          className={`w-full ${alignClass} text-sm sm:text-base md:text-lg leading-relaxed opacity-85 max-w-3xl mx-auto whitespace-pre-wrap break-words`}
           style={{ color: colors.text }}
         >
-          {section.props?.text || 'Explore my exclusive digital products and courses.'}
-        </p>
+          {textContent}
+        </div>
       )
+    }
 
     case 'button': {
       const label = section.props?.label || 'Click Here'

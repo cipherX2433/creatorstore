@@ -2415,6 +2415,85 @@ async function processRoute(request, context = {}) {
       const body = await request.json().catch(() => ({}))
       return json(await storeSectionsService.createSection(creatorId, body), 201)
     }
+
+    // YouTube Video Metadata Fetching (oEmbed)
+    if (route === '/media/youtube/metadata' && (method === 'GET' || method === 'POST')) {
+      let rawUrl = ''
+      if (method === 'GET') {
+        rawUrl = url.searchParams.get('url') || ''
+      } else {
+        const body = await request.json().catch(() => ({}))
+        rawUrl = body.url || ''
+      }
+      if (!rawUrl || typeof rawUrl !== 'string') {
+        throw httpError(400, 'YouTube URL is required')
+      }
+      const trimmed = rawUrl.trim()
+      try {
+        const parsed = new URL(trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`)
+        const validHosts = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'music.youtube.com']
+        if (!validHosts.includes(parsed.hostname.toLowerCase())) {
+          throw httpError(400, 'Invalid YouTube host. Only youtube.com and youtu.be URLs are supported.')
+        }
+      } catch (e) {
+        if (e.status) throw e
+        throw httpError(400, 'Invalid URL format.')
+      }
+
+      const match = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/)
+      if (!match || !match[1]) {
+        throw httpError(400, 'Invalid YouTube video URL. Please provide a valid watch, shorts, or youtu.be URL.')
+      }
+      const videoId = match[1]
+      const canonicalUrl = `https://www.youtube.com/watch?v=${videoId}`
+      const defaultThumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+
+      try {
+        const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(canonicalUrl)}&format=json`
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 6000)
+        const oembedRes = await fetch(oembedUrl, {
+          signal: controller.signal,
+          headers: { 'User-Agent': 'CreatorStore-MediaService/1.0' },
+          cache: 'no-store',
+        })
+        clearTimeout(timeoutId)
+
+        if (oembedRes.ok) {
+          const data = await oembedRes.json()
+          return json({
+            success: true,
+            videoId,
+            canonicalUrl,
+            title: data.title || 'YouTube Video',
+            thumbnailUrl: data.thumbnail_url || defaultThumbnail,
+            authorName: data.author_name || 'YouTube',
+          })
+        } else {
+          return json({
+            success: true,
+            videoId,
+            canonicalUrl,
+            title: 'YouTube Video',
+            thumbnailUrl: defaultThumbnail,
+            authorName: 'YouTube',
+            fallback: true,
+            warning: 'Could not fetch title automatically. You can customize the title below.',
+          })
+        }
+      } catch (err) {
+        return json({
+          success: true,
+          videoId,
+          canonicalUrl,
+          title: 'YouTube Video',
+          thumbnailUrl: defaultThumbnail,
+          authorName: 'YouTube',
+          fallback: true,
+          warning: 'Could not reach YouTube. You can customize the title below.',
+        })
+      }
+    }
     if (route === '/storefront/status' && method === 'GET') {
       const store = await storeService.getOrCreate(creatorId)
       const sub = await creatorSubscriptionService.get(creatorId).catch(() => null)

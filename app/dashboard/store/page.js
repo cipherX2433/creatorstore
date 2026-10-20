@@ -64,6 +64,10 @@ import LinkEditor from '@/components/dashboard/editors/LinkEditor'
 import CollectionEditor from '@/components/dashboard/editors/CollectionEditor'
 import MediaEditor from '@/components/dashboard/editors/MediaEditor'
 import BookingEditor from '@/components/dashboard/editors/BookingEditor'
+import HeadingEditor from '@/components/dashboard/editors/HeadingEditor'
+import TextBlockEditor from '@/components/dashboard/editors/TextBlockEditor'
+import YouTubeEditor from '@/components/dashboard/editors/YouTubeEditor'
+import AddYouTubeModalView from '@/components/dashboard/AddYouTubeModalView'
 import { isBookingItem, resolveSectionProduct } from '@/lib/bookingItemUtils'
 export { isBookingItem, resolveSectionProduct }
 import { IconBadge, ICON_BADGE_COLORS } from '@/components/ui/icon-badge'
@@ -132,6 +136,9 @@ const COMPONENTS = [
 const ICONS = {
   ...Object.fromEntries(COMPONENTS.map((c) => [c.type, c.icon])),
   profile: User,
+  heading_text: Type,
+  text_block: AlignLeft,
+  paragraph_text: AlignLeft,
   product_collection: Layers,
   booking: Calendar,
   bookings: Calendar,
@@ -139,23 +146,32 @@ const ICONS = {
   session: Calendar,
   sessions: Calendar,
   calendar: Calendar,
+  youtube: Youtube,
 }
 const LABELS = {
   ...Object.fromEntries(COMPONENTS.map((c) => [c.type, c.label])),
   profile: 'Profile',
+  heading_text: 'Heading',
+  text: 'Text block',
+  text_block: 'Text block',
+  paragraph_text: 'Text block',
   product_collection: 'Collection',
   booking: 'Bookings',
   bookings: 'Bookings',
   coaching: 'Bookings',
   session: 'Bookings',
   sessions: 'Bookings',
+  youtube: 'YouTube',
 }
 
 function defaultProps(type, products = []) {
   switch (type) {
     case 'profile': return {}
-    case 'heading': return { text: 'Welcome to my store', align: 'center' }
-    case 'text': return { text: 'Explore my exclusive digital products and courses.', align: 'center' }
+    case 'heading':
+    case 'heading_text': return { text: 'Welcome to my store', align: 'center' }
+    case 'text':
+    case 'text_block':
+    case 'paragraph_text': return { text: 'Explore my exclusive digital products and courses.', content: 'Explore my exclusive digital products and courses.', align: 'left' }
     case 'button': return { label: 'Follow me', url: '', layout: 'classic' }
     case 'image': return { url: '', alt: '' }
     case 'product': return { productId: products[0]?.id, layout: 'classic' }
@@ -181,14 +197,26 @@ function defaultProps(type, products = []) {
       notificationEmail: '',
       successMessage: 'Thank you! Your message has been sent successfully.',
     }
-    case 'video':
     case 'youtube': return {
       url: '',
-      title: type === 'youtube' ? 'YouTube Video' : 'Featured Video',
+      title: 'YouTube Video',
+      caption: '',
+      embedType: 'youtube',
+      mediaType: 'youtube',
+      thumbnail: null,
+      customThumbnail: null,
+      layout: 'classic',
+      displayMode: 'classic',
+    }
+    case 'video': return {
+      url: '',
+      title: 'Featured Video',
       caption: '',
       embedType: 'generic',
       embedUrl: null,
       thumbnail: null,
+      layout: 'classic',
+      displayMode: 'classic',
     }
     case 'gallery': return {
       title: 'Image Gallery',
@@ -737,15 +765,18 @@ function StoreContentCard({
       p.courseId === s.props?.courseId
     ) || (s.type === 'product' && !s.props?.productId && products.length > 0 ? products[0] : null))
     : null)
-  const title = prod ? prod.title : (s.props?.label || s.props?.text || s.props?.title || LABELS[s.type] || (isBooking ? 'Book a session' : 'Untitled'))
+  const title = prod ? prod.title : (s.props?.label || s.props?.text || s.props?.title || s.props?.content || LABELS[s.type] || (isBooking ? 'Book a session' : 'Untitled'))
   const price = prod ? (Number(prod.price) === 0 ? 'Free' : formatMoney(prod.price, prod.currency)) : null
   const origPrice = prod?.originalPrice ? formatMoney(prod.originalPrice, prod.currency) : null
   const isDraftItem = Boolean(prod && prod.status === 'DRAFT')
 
   // Get specific icon and theme colors matching the reference
   const getBadgeStyle = () => {
+    if (s.type === 'heading' || s.type === 'heading_text') return { bg: 'bg-[#F3F4F6]', text: 'text-[#1F1F1F]', border: 'border-[#E5E7EB]', icon: Type, label: 'Heading' }
+    if (s.type === 'text' || s.type === 'text_block' || s.type === 'paragraph_text') return { bg: 'bg-[#F8FAFC]', text: 'text-[#475569]', border: 'border-[#E2E8F0]', icon: AlignLeft, label: 'Text block' }
     if (s.type === 'pdf') return { bg: 'bg-[#FFF7ED]', text: 'text-[#EA580C]', border: 'border-[#FFEDD5]', icon: FileText, label: 'PDF' }
-    if (s.type === 'video' || s.type === 'youtube') return { bg: 'bg-[#FEF2F2]', text: 'text-[#DC2626]', border: 'border-[#FEE2E2]', icon: Video, label: 'Video' }
+    if (s.type === 'youtube' || s.props?.mediaType === 'youtube' || s.props?.embedType === 'youtube') return { bg: 'bg-[#FEF2F2]', text: 'text-[#DC2626]', border: 'border-[#FEE2E2]', icon: Youtube, label: 'YouTube' }
+    if (s.type === 'video') return { bg: 'bg-[#FEF2F2]', text: 'text-[#DC2626]', border: 'border-[#FEE2E2]', icon: Video, label: 'Video' }
     if (s.type === 'gallery') return { bg: 'bg-[#FAF5FF]', text: 'text-[#9333EA]', border: 'border-[#F3E8FF]', icon: Images, label: 'Gallery' }
     if (s.type === 'audio') return { bg: 'bg-[#ECFEFF]', text: 'text-[#0891B2]', border: 'border-[#CFFAFE]', icon: Headphones, label: 'Audio' }
     if (s.type === 'form') return { bg: 'bg-[#F0FDFA]', text: 'text-[#0D9488]', border: 'border-[#CCFBF1]', icon: ClipboardList, label: 'Form' }
@@ -757,7 +788,7 @@ function StoreContentCard({
 
   const badge = getBadgeStyle()
   const BadgeIcon = badge.icon
-  const thumbnailImg = prod?.thumbnail || s.props?.thumbnail || (s.type === 'gallery' && s.props?.images?.[0]?.url ? s.props.images[0].url : null)
+  const thumbnailImg = prod?.thumbnail || s.props?.customThumbnail || s.props?.thumbnail || (s.type === 'gallery' && s.props?.images?.[0]?.url ? s.props.images[0].url : null)
 
   const handleEdit = () => {
     if (s.type === 'collection' || s.type === 'product_collection') {
@@ -783,6 +814,10 @@ function StoreContentCard({
       setEditingProductId?.(null)
       setEditingSectionId?.(s.id)
     } else if (['video', 'youtube', 'audio', 'pdf'].includes(s.type)) {
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
+    } else if (['heading', 'heading_text', 'text', 'text_block', 'paragraph_text'].includes(s.type)) {
       setSelectedId(s.id)
       setEditingProductId?.(null)
       setEditingSectionId?.(s.id)
@@ -2596,6 +2631,53 @@ export default function StoreBuilderPage() {
   function updateSectionProps(id, patch) {
     updateStore((s) => { const sec = s.sections.find((x) => x.id === id); if (sec) sec.props = { ...sec.props, ...patch }; return s })
   }
+  const saveSectionProps = useCallback(async (id, patch) => {
+    let nextSections = []
+    let updatedSection = null
+    const current = storeRef.current || store || { sections: [], theme: {} }
+    const base = structuredClone(current)
+    if (!Array.isArray(base.sections)) base.sections = []
+
+    base.sections = base.sections.map((s) => {
+      if (s.id === id) {
+        updatedSection = { ...s, props: { ...s.props, ...patch } }
+        return updatedSection
+      }
+      return s
+    })
+    nextSections = base.sections
+    base.sections = nextSections
+
+    storeRef.current = base
+    setStore(base)
+    setSaveState('saving')
+
+    try {
+      const res = await api.patch('/store', {
+        theme: base.theme,
+        sections: base.sections,
+        avatarUrl: base.avatarUrl,
+        bio: base.bio,
+      })
+      if (res?.store) {
+        const canonicalSections = Array.isArray(res.store.sections) ? res.store.sections : nextSections
+        const merged = {
+          ...res.store,
+          sections: canonicalSections,
+        }
+        setStore((prev) => ({ ...(prev || {}), ...merged }))
+        storeRef.current = { ...(storeRef.current || {}), ...merged }
+      }
+      setSaveState('saved')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('creatorstore:setup-updated'))
+      }
+      return { success: true, section: updatedSection }
+    } catch (err) {
+      setSaveState('dirty')
+      throw err
+    }
+  }, [store])
   function toggleHidden(id) { updateStore((s) => { const sec = s.sections.find((x) => x.id === id); if (sec) sec.hidden = !sec.hidden; return s }) }
   function duplicate(id) {
     updateStore((s) => { const i = s.sections.findIndex((x) => x.id === id); if (i >= 0) s.sections.splice(i + 1, 0, { ...structuredClone(s.sections[i]), id: uuidv4() }); return s })
@@ -2990,7 +3072,25 @@ export default function StoreBuilderPage() {
                     onDuplicate={() => duplicate(editingSection.id)}
                     onOpenMobilePreview={() => setShareOpen?.(true)}
                   />
-                ) : ['video', 'youtube', 'audio', 'pdf', 'media'].includes(editingSection.type) ? (
+                ) : editingSection.type === 'youtube' || editingSection.props?.mediaType === 'youtube' || editingSection.props?.embedType === 'youtube' ? (
+                  <YouTubeEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : ['video', 'audio', 'pdf', 'media'].includes(editingSection.type) ? (
                   <MediaEditor
                     section={editingSection}
                     onBack={() => {
@@ -3033,6 +3133,42 @@ export default function StoreBuilderPage() {
                         })
                       }
                     }}
+                  />
+                ) : ['heading', 'heading_text'].includes(editingSection.type) ? (
+                  <HeadingEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : ['text', 'text_block', 'paragraph_text'].includes(editingSection.type) ? (
+                  <TextBlockEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
                   />
                 ) : (
                   /* Safe fallback for any unknown section type — NEVER MediaEditor */
@@ -3731,14 +3867,14 @@ export default function StoreBuilderPage() {
         className={
           addModalType === 'coaching' || addModalType === 'course'
             ? 'sm:max-w-4xl max-w-4xl w-[95vw] sm:w-full max-h-[90vh] p-0 gap-0 overflow-hidden'
-            : addModalType === 'menu'
+            : addModalType === 'menu' || addModalType === 'add_youtube'
             ? 'sm:max-w-[780px] w-[95vw] sm:w-full h-[88vh] sm:h-[640px] max-h-[92vh] p-4 sm:p-7 rounded-[28px] bg-white border border-[#E5E5E3] shadow-[0_24px_70px_rgba(0,0,0,0.15)] gap-0 overflow-hidden flex flex-col'
             : 'sm:max-w-[700px]'
         }
         bodyClassName={
           addModalType === 'coaching' || addModalType === 'course'
             ? 'p-0 min-h-[500px] flex flex-col flex-1'
-            : addModalType === 'menu'
+            : addModalType === 'menu' || addModalType === 'add_youtube'
             ? 'p-0 flex flex-col flex-1 min-h-0 overflow-hidden'
             : 'pt-5'
         }
@@ -3752,6 +3888,8 @@ export default function StoreBuilderPage() {
                 <span className="sr-only">Add to your store</span>
               </div>
             )
+            : addModalType === 'add_youtube'
+              ? 'Add YouTube'
             : addModalType === 'digital_product'
               ? 'Create digital product'
               : addModalType === 'edit_product'
@@ -3796,6 +3934,8 @@ export default function StoreBuilderPage() {
                   setAddModalType('menu')
                   setWizardStep(1)
                 }
+              } else if (addModalType === 'add_youtube') {
+                setAddModalType('menu')
               } else if (addModalType === 'form_config') {
                 if (editingFormSection) {
                   setAddModalOpen(false)
@@ -3914,8 +4054,14 @@ export default function StoreBuilderPage() {
                   }
                 })
               } else if (
-                opt.type === 'media' ||
                 opt.type === 'youtube' ||
+                opt.mediaType === 'youtube' ||
+                opt.id === 'youtube_media' ||
+                opt.id === 'youtube_suggested'
+              ) {
+                setAddModalType('add_youtube')
+              } else if (
+                opt.type === 'media' ||
                 opt.type === 'video' ||
                 opt.type === 'audio' ||
                 opt.type === 'pdf'
@@ -4214,6 +4360,31 @@ export default function StoreBuilderPage() {
                 }}
               />
             </div>
+          )}
+          {addModalType === 'add_youtube' && (
+            <AddYouTubeModalView
+              onSelectVideo={async (videoData) => {
+                setAddModalOpen(false)
+                setAddModalType('menu')
+                const newSec = await addSectionWithProps('youtube', {
+                  title: videoData.title || 'YouTube Video',
+                  url: videoData.canonicalUrl || videoData.url,
+                  videoId: videoData.videoId,
+                  thumbnail: videoData.thumbnailUrl,
+                  customThumbnail: null,
+                  layout: 'classic',
+                  displayMode: 'classic',
+                  mediaType: 'youtube',
+                  embedType: 'youtube',
+                })
+                if (newSec?.id) {
+                  setEditingProductId(null)
+                  setEditingSectionId(newSec.id)
+                  setSelectedId(newSec.id)
+                }
+              }}
+              onCancel={() => setAddModalType('menu')}
+            />
           )}
           </div>
         )}
