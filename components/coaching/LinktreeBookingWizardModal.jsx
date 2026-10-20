@@ -576,19 +576,23 @@ export default function LinktreeBookingWizardModal({
       toast.error('Duration must be greater than 0 minutes')
       return
     }
-    const price = typeForm.isFree ? 0 : parseFloat(typeForm.price || 0)
-    if (!typeForm.isFree && (isNaN(price) || price < 0)) {
-      toast.error('Price cannot be negative')
-      return
+    const isFree = Boolean(typeForm.isFree)
+    const price = isFree ? 0 : parseFloat(typeForm.price || 0)
+    if (!isFree) {
+      if (isNaN(price) || price <= 0) {
+        toast.error('Session price must be greater than 0 for paid sessions')
+        return
+      }
     }
 
+    const curr = (typeForm.currency || 'INR').toUpperCase()
     const item = {
       id: editingTypeIndex !== null ? formState.bookingTypes[editingTypeIndex].id : `bt_${Date.now()}`,
       name: typeForm.name.trim(),
       durationMinutes: duration,
       price: price,
-      currency: typeForm.currency || 'inr',
-      isFree: typeForm.isFree || price === 0,
+      currency: curr.toLowerCase(),
+      isFree: isFree,
     }
 
     let nextTypes = [...formState.bookingTypes]
@@ -1536,47 +1540,74 @@ export default function LinktreeBookingWizardModal({
                 </select>
               </div>
 
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-xs font-bold text-[#1F1F1F]">Free booking</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={typeForm.isFree}
-                    onChange={(e) => setTypeForm({ ...typeForm, isFree: e.target.checked })}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1F1F1F]"></div>
-                </label>
-              </div>
-
-              {!typeForm.isFree && (
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div>
-                    <label className="text-xs font-bold text-[#1F1F1F]">Price *</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={typeForm.price}
-                      onChange={(e) => setTypeForm({ ...typeForm, price: e.target.value })}
-                      placeholder="1000"
-                      className="w-full h-10 px-3 rounded-[10px] border border-[#D9D9D9] mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-[#1F1F1F]">Currency</label>
-                    <select
-                      value={typeForm.currency}
-                      onChange={(e) => setTypeForm({ ...typeForm, currency: e.target.value })}
-                      className="w-full h-10 px-3 rounded-[10px] border border-[#D9D9D9] mt-1 bg-white uppercase"
+              <div className="space-y-3 pt-2">
+                <div>
+                  <label className="text-xs font-bold text-[#1F1F1F] block mb-1.5">Price type</label>
+                  <div className="grid grid-cols-2 gap-2 p-1 bg-[#F5F5F3] rounded-[12px]">
+                    <button
+                      type="button"
+                      onClick={() => setTypeForm({ ...typeForm, isFree: true, price: 0 })}
+                      className={`h-9 rounded-[9px] text-xs font-bold transition-all ${
+                        typeForm.isFree
+                          ? 'bg-white text-[#1F1F1F] shadow-sm'
+                          : 'text-[#6F6F6B] hover:text-[#1F1F1F]'
+                      }`}
                     >
-                      <option value="inr">INR (₹)</option>
-                      <option value="usd">USD ($)</option>
-                      <option value="eur">EUR (€)</option>
-                      <option value="gbp">GBP (£)</option>
-                    </select>
+                      Free
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTypeForm({ ...typeForm, isFree: false, price: typeForm.price > 0 ? typeForm.price : 1000 })}
+                      className={`h-9 rounded-[9px] text-xs font-bold transition-all ${
+                        !typeForm.isFree
+                          ? 'bg-white text-[#1F1F1F] shadow-sm'
+                          : 'text-[#6F6F6B] hover:text-[#1F1F1F]'
+                      }`}
+                    >
+                      Paid
+                    </button>
                   </div>
                 </div>
-              )}
+
+                {typeForm.isFree ? (
+                  <div className="rounded-[10px] bg-[#F9F9F8] border border-[#E5E5E3] px-3.5 py-2.5 text-xs text-[#6F6F6B]">
+                    Free sessions can be booked directly without attendee payment.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="text-xs font-bold text-[#1F1F1F]">Session price *</label>
+                      <input
+                        type="number"
+                        min={1}
+                        step="any"
+                        value={typeForm.price}
+                        onChange={(e) => setTypeForm({ ...typeForm, price: e.target.value })}
+                        placeholder="1000"
+                        className="w-full h-10 px-3 rounded-[10px] border border-[#D9D9D9] mt-1 text-sm font-medium focus:outline-none focus:border-[#1F1F1F]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-[#1F1F1F]">Currency</label>
+                      <select
+                        value={(typeForm.currency || 'inr').toLowerCase()}
+                        onChange={(e) => setTypeForm({ ...typeForm, currency: e.target.value })}
+                        className="w-full h-10 px-3 rounded-[10px] border border-[#D9D9D9] mt-1 bg-white uppercase text-sm font-medium focus:outline-none focus:border-[#1F1F1F]"
+                      >
+                        <option value="inr">INR (₹)</option>
+                        <option value="usd">USD ($)</option>
+                        <option value="eur">EUR (€)</option>
+                        <option value="gbp">GBP (£)</option>
+                        <option value="cad">CAD (CA$)</option>
+                        <option value="aud">AUD (A$)</option>
+                        <option value="aed">AED (AED)</option>
+                        <option value="sgd">SGD (S$)</option>
+                        <option value="jpy">JPY (¥)</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E5E5E3]">

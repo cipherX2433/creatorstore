@@ -2555,7 +2555,7 @@ async function processRoute(request, context = {}) {
     if (path[0] === 'coaching' && path[1] === 'config' && path[2] && method === 'GET') {
       return json({ config: await coachingService.getConfig(creatorId, path[2]) })
     }
-    if (path[0] === 'coaching' && path[1] === 'config' && path[2] && method === 'POST') {
+    if (path[0] === 'coaching' && path[1] === 'config' && path[2] && (method === 'POST' || method === 'PUT')) {
       const body = await request.json()
       return json({ config: await coachingService.saveConfig(creatorId, path[2], body) })
     }

@@ -2838,6 +2838,13 @@ export default function StoreBuilderPage() {
                       if (patch.title) {
                         setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, title: patch.title } : p)))
                       }
+                      if (patch.price !== undefined || patch.currency !== undefined) {
+                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? {
+                          ...p,
+                          ...(patch.price !== undefined ? { price: patch.price } : {}),
+                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                        } : p)))
+                      }
                       if (patch.layout || patch.displayMode) {
                         const mode = patch.layout || patch.displayMode
                         setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, displayMode: mode } : p)))
@@ -2905,8 +2912,13 @@ export default function StoreBuilderPage() {
                     onUpdateProps={(patch) => {
                       updateSectionProps(editingSection.id, patch)
                       const targetPid = editingSection.props?.productId || resolveSectionProduct(editingSection, products)?.id
-                      if (patch.title && targetPid) {
-                        setProducts((prev) => prev.map((p) => (p.id === targetPid ? { ...p, title: patch.title } : p)))
+                      if (targetPid) {
+                        setProducts((prev) => prev.map((p) => (p.id === targetPid ? {
+                          ...p,
+                          ...(patch.title ? { title: patch.title } : {}),
+                          ...(patch.price !== undefined ? { price: patch.price } : {}),
+                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                        } : p)))
                       }
                     }}
                     onDelete={() => {

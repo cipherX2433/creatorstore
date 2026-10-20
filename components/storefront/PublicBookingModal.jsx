@@ -24,6 +24,7 @@ import {
   Mail,
   Send,
   HelpCircle,
+  Tag,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatMoney } from '@/lib/clientApi'
@@ -1148,6 +1149,10 @@ export default function PublicBookingModal({
                   <Globe className="w-4 h-4 text-gray-500 shrink-0" />
                   <span>{currentTimezoneInfo}</span>
                 </div>
+                <div className="flex items-center gap-2.5">
+                  <Tag className="w-4 h-4 text-gray-500 shrink-0" />
+                  <span className="font-semibold text-gray-900">{sessionPriceDisplay}</span>
+                </div>
               </div>
             </div>
 
@@ -1248,7 +1253,7 @@ export default function PublicBookingModal({
               </div>
 
               {/* PAYMENT ROUTING STEP FOR PAID BOOKINGS */}
-              {/* Critical Requirement: Exactly TWO customer-facing country options: India vs Other Country */}
+              {/* Critical Requirement: Exactly TWO customer-facing country options: India vs Outside India */}
               {!isFreeSession && (
                 <div className="pt-2 border-t border-gray-100 space-y-2">
                   <div className="flex items-center justify-between">
@@ -1261,7 +1266,7 @@ export default function PublicBookingModal({
                   </div>
 
                   <div className="grid grid-cols-2 gap-2.5">
-                    {/* Option 1: India (Razorpay) */}
+                    {/* Option 1: India */}
                     <div
                       onClick={() => setCountryRoute('IN')}
                       className={`border rounded-2xl p-3.5 flex items-center justify-between cursor-pointer transition-all ${
@@ -1272,7 +1277,7 @@ export default function PublicBookingModal({
                     >
                       <div className="space-y-0.5">
                         <span className="text-xs font-bold text-gray-900 block">India</span>
-                        <span className="text-[10px] text-gray-500 font-medium">UPI / Cards / NetBanking</span>
+                        <span className="text-[10px] text-gray-500 font-medium">Domestic payment</span>
                       </div>
                       <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
                         countryRoute === 'IN' ? 'border-black bg-black' : 'border-gray-300'
@@ -1281,7 +1286,7 @@ export default function PublicBookingModal({
                       </div>
                     </div>
 
-                    {/* Option 2: Other Country (Dodo Payments) */}
+                    {/* Option 2: Outside India */}
                     <div
                       onClick={() => setCountryRoute('OTHER')}
                       className={`border rounded-2xl p-3.5 flex items-center justify-between cursor-pointer transition-all ${
@@ -1291,8 +1296,8 @@ export default function PublicBookingModal({
                       }`}
                     >
                       <div className="space-y-0.5">
-                        <span className="text-xs font-bold text-gray-900 block">Other Country</span>
-                        <span className="text-[10px] text-gray-500 font-medium">International Cards</span>
+                        <span className="text-xs font-bold text-gray-900 block">Outside India</span>
+                        <span className="text-[10px] text-gray-500 font-medium">International payment</span>
                       </div>
                       <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
                         countryRoute === 'OTHER' ? 'border-black bg-black' : 'border-gray-300'
