@@ -15,7 +15,7 @@ import {
   razorpayAccountService, payoutService, earningsService, courseService, publicCourseService, learningService, certificateService, coachingService, communityService, webinarService, membershipService, customService, externalLink, customerAccountService, creatorSubscriptionService, accountUpgradeService, checkoutFieldsService,
   leadService, couponService, marketingService, emailMarketingService, onboardingService, successCenterService,
   instagramService, automationService, instagramMessagingService, httpError,
-  emailService, businessCardService, supportService,
+  emailService, businessCardService, supportService, bundlesService,
 } from '@/lib/services'
 import { purchaseOtpService, PURCHASE_SESSION_COOKIE } from '@/lib/purchaseOtpService'
 import { getAppUrl } from '@/config/site'
@@ -427,6 +427,9 @@ async function processRoute(request, context = {}) {
         await analyticsService.track({ creatorId: body.creatorId, productId: body.productId || null, type: body.type, sessionId: body.sessionId || null })
       }
       return json({ ok: true })
+    }
+    if (path[0] === 'bundles' && path[1] && path[2] === 'public' && method === 'GET') {
+      return json(await bundlesService.getPublic(path[1]))
     }
     // ===== Coaching Public & Student Routes =====
     if (path[0] === 'coaching' && path[1] === 'public' && path[2] && method === 'GET') {
@@ -2907,6 +2910,25 @@ async function processRoute(request, context = {}) {
         fileId, fileName: file.name || 'upload', fileSize: buffer.length, fileMime: file.type || 'application/octet-stream',
       })
       return json({ product })
+    }
+
+    // ===== Bundles (Creator) =====
+    if (route === '/bundles' && method === 'POST') {
+      const body = await request.json()
+      const bundle = await bundlesService.create(creatorId, body)
+      return json({ bundle }, 201)
+    }
+    if (path[0] === 'bundles' && path[1] && !path[2] && method === 'GET') {
+      const bundle = await bundlesService.get(creatorId, path[1])
+      return json({ bundle })
+    }
+    if (path[0] === 'bundles' && path[1] && !path[2] && (method === 'PATCH' || method === 'PUT')) {
+      const body = await request.json()
+      const bundle = await bundlesService.update(creatorId, path[1], body)
+      return json({ bundle })
+    }
+    if (path[0] === 'bundles' && path[1] && !path[2] && method === 'DELETE') {
+      return json(await bundlesService.remove(creatorId, path[1]))
     }
 
     // Custom Checkout Fields (Creator)

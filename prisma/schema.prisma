@@ -239,10 +239,28 @@ model Product {
   automations      Automation[]
   automationEvents AutomationEvent[]
   coupons          Coupon[]
+  bundleItems      BundleItem[]      @relation("BundleToItems")
+  inBundles        BundleItem[]      @relation("ProductInBundles")
 
   @@unique([creatorId, slug])
   @@index([creatorId, slug], map: "idx_products_creator_slug")
   @@map("products")
+}
+
+model BundleItem {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bundleId  String    @map("bundle_id") @db.Uuid
+  productId String    @map("product_id") @db.Uuid
+  position  Int       @default(0)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  bundle  Product @relation("BundleToItems", fields: [bundleId], references: [id], onDelete: Cascade)
+  product Product @relation("ProductInBundles", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, productId], map: "idx_bundle_items_bundle_product_unique")
+  @@index([bundleId, position], map: "idx_bundle_items_bundle_position")
+  @@map("bundle_items")
 }
 
 model Coupon {

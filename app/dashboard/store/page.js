@@ -74,8 +74,10 @@ import AddMediaModalView from '@/components/dashboard/AddMediaModalView'
 import SocialDisplaySelectModalView from '@/components/dashboard/SocialDisplaySelectModalView'
 import SocialItemEditor from '@/components/dashboard/editors/SocialItemEditor'
 import { getSocialPlatform, resolveSocialStyle } from '@/lib/socialPlatforms'
-import { isBookingItem, resolveSectionProduct } from '@/lib/bookingItemUtils'
-export { isBookingItem, resolveSectionProduct }
+import { isBookingItem, isBundleItem, resolveSectionProduct } from '@/lib/bookingItemUtils'
+export { isBookingItem, isBundleItem, resolveSectionProduct }
+import BundleEditor from '@/components/dashboard/editors/BundleEditor'
+import ProductBundleModal from '@/components/dashboard/ProductBundleModal'
 import { IconBadge, ICON_BADGE_COLORS } from '@/components/ui/icon-badge'
 import { AddOptionRow, SettingsRow, SettingsValuePill } from '@/components/ui/settings-row'
 import CoachingBookingWizardModal, { CoachingBookingWizardContent } from '@/components/coaching/CoachingBookingWizardModal'
@@ -93,6 +95,8 @@ let consumedAddIntent = null
 
 
 function toPreviewProduct(p) {
+  const bundleProductIds = p.bundleProductIds || p.bundleItems?.map((bi) => bi.productId) || p.productIds || []
+  const bundleProducts = p.bundleProducts || p.bundleItems?.map((bi) => bi.product).filter(Boolean) || []
   return {
     id: p.id,
     courseId: p.courseId || (p.type === 'COURSE' || String(p.type).toLowerCase() === 'course' ? (p.courseId || p.id) : null),
@@ -107,6 +111,11 @@ function toPreviewProduct(p) {
     shortDescription: p.shortDescription || p.description || '',
     description: p.description || '',
     thumbnail: p.thumbnail || p.coverImage || null,
+    bundleItems: p.bundleItems || [],
+    bundleProducts,
+    bundleProductIds,
+    productIds: bundleProductIds,
+    productCount: bundleProducts.length || p.productCount || bundleProductIds.length || 0,
     fileId: p.fileId || p.files?.[0]?.id || null,
     fileName: p.fileName || p.files?.[0]?.name || null,
     fileSize: p.fileSize || p.files?.[0]?.size || null,
@@ -1209,6 +1218,8 @@ export default function StoreBuilderPage() {
   const [wizardStep, setWizardStep] = useState(1)
   const [editingProductId, setEditingProductId] = useState(null)
   const [editingSectionId, setEditingSectionId] = useState(null)
+  const [bundleModalOpen, setBundleModalOpen] = useState(false)
+  const [editingBundle, setEditingBundle] = useState(null)
 
   const editingSection = useMemo(() => {
     if (!editingSectionId) return null
@@ -1594,6 +1605,17 @@ export default function StoreBuilderPage() {
     setModalOrigin('menu')
     setAddModalType('course')
     setAddModalOpen(true)
+  }, [canCreate, setPricingModalOpen])
+
+  const openBundleCreationFlow = useCallback(() => {
+    if (!canCreate) {
+      toast.error('Your Pro trial has ended. Upgrade your plan to create products and continue selling.')
+      setPricingModalOpen(true)
+      return
+    }
+    setAddModalOpen(false)
+    setEditingBundle(null)
+    setBundleModalOpen(true)
   }, [canCreate, setPricingModalOpen])
 
   const handleTabChange = useCallback((newTab) => {
@@ -3013,6 +3035,53 @@ export default function StoreBuilderPage() {
                     }}
                     onOpenMobilePreview={() => setShareOpen?.(true)}
                   />
+                ) : products.find((p) => p.id === editingProductId)?.type === 'BUNDLE' ? (
+                  <BundleEditor
+                    product={products.find((p) => p.id === editingProductId)}
+                    creatorProfile={profile}
+                    onBack={() => {
+                      setEditingProductId(null)
+                      if (typeof window !== 'undefined') {
+                        const url = new URL(window.location.href)
+                        url.searchParams.delete('intent')
+                        url.searchParams.delete('productId')
+                        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
+                      }
+                    }}
+                    onUpdateProps={(patch) => {
+                      if (patch.title) {
+                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, title: patch.title } : p)))
+                      }
+                      if (patch.thumbnail !== undefined) {
+                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, thumbnail: patch.thumbnail } : p)))
+                      }
+                      if (patch.price !== undefined || patch.currency !== undefined) {
+                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? {
+                          ...p,
+                          ...(patch.price !== undefined ? { price: patch.price } : {}),
+                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                        } : p)))
+                      }
+                      if (patch.layout || patch.displayMode) {
+                        const mode = patch.layout || patch.displayMode
+                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, displayMode: mode } : p)))
+                        setStore((prev) => {
+                          if (!prev || !Array.isArray(prev.sections)) return prev
+                          const nextSecs = prev.sections.map((sec) =>
+                            sec.props?.productId === editingProductId
+                              ? { ...sec, props: { ...sec.props, layout: mode, displayMode: mode } }
+                              : sec
+                          )
+                          return { ...prev, sections: nextSecs }
+                        })
+                      }
+                    }}
+                    onDelete={() => {
+                      setEditingProductId(null)
+                      refreshStoreData()
+                    }}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
                 ) : (
                 <ProductEditor
                   productId={editingProductId}
@@ -3066,6 +3135,39 @@ export default function StoreBuilderPage() {
                           ...(patch.title ? { title: patch.title } : {}),
                           ...(patch.price !== undefined ? { price: patch.price } : {}),
                           ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                        } : p)))
+                      }
+                    }}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : isBundleItem(editingSection, products) ? (
+                  <BundleEditor
+                    section={editingSection}
+                    product={resolveSectionProduct(editingSection, products)}
+                    creatorProfile={profile}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => {
+                      updateSectionProps(editingSection.id, patch)
+                      const targetPid = editingSection.props?.productId || resolveSectionProduct(editingSection, products)?.id
+                      if (targetPid) {
+                        const mode = patch.layout || patch.displayMode
+                        setProducts((prev) => prev.map((p) => (p.id === targetPid ? {
+                          ...p,
+                          ...(patch.title ? { title: patch.title } : {}),
+                          ...(patch.thumbnail !== undefined ? { thumbnail: patch.thumbnail } : {}),
+                          ...(patch.price !== undefined ? { price: patch.price } : {}),
+                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                          ...(mode ? { displayMode: mode } : {}),
                         } : p)))
                       }
                     }}
@@ -4094,7 +4196,9 @@ export default function StoreBuilderPage() {
             category={addModalCategory}
             onCategoryChange={setAddModalCategory}
             onSelectOption={(opt) => {
-              if (opt.type === 'digital_product') {
+              if (opt.type === 'bundle' || opt.id === 'bundles_commerce') {
+                openBundleCreationFlow()
+              } else if (opt.type === 'digital_product') {
                 openDigitalProductWizard()
               } else if (opt.type === 'coaching') {
                 openCoachingCreationFlow()
@@ -4797,6 +4901,20 @@ export default function StoreBuilderPage() {
           }
         }}
         editCourseId={courseWizardId}
+      />
+
+      <ProductBundleModal
+        isOpen={bundleModalOpen}
+        existingBundle={editingBundle}
+        onClose={() => {
+          setBundleModalOpen(false)
+          setEditingBundle(null)
+        }}
+        onSuccess={async (createdBundle) => {
+          await refreshStoreData()
+          setBundleModalOpen(false)
+          setEditingBundle(null)
+        }}
       />
 
       {/* UNSAVED THEME CHANGES NAVIGATION MODAL */}

@@ -20,6 +20,7 @@ import SocialDisplaySelectModalView from '@/components/dashboard/SocialDisplaySe
 import { getSocialPlatform, resolveSocialStyle } from '@/lib/socialPlatforms'
 import { CoachingBookingWizardContent } from '@/components/coaching/CoachingBookingWizardModal'
 import { CourseWizardContent } from '@/components/course/CourseWizardModal'
+import ProductBundleModal from '@/components/dashboard/ProductBundleModal'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
 import { useDashboardHeader } from '@/components/dashboard/HeaderContext'
 import {
@@ -936,6 +937,8 @@ export default function AddToStoreModal({
   const [editingProductId, setEditingProductId] = useState(null)
   const [coachingWizardProductId, setCoachingWizardProductId] = useState(null)
   const [courseWizardId, setCourseWizardId] = useState(null)
+  const [bundleModalOpen, setBundleModalOpen] = useState(false)
+  const [editingBundle, setEditingBundle] = useState(null)
 
   const [draftProductId, setDraftProductId] = useState(null)
   const [draftSectionId, setDraftSectionId] = useState(null)
@@ -1049,6 +1052,17 @@ export default function AddToStoreModal({
     setCourseWizardId(null)
     setModalOrigin('menu')
     setAddModalType('course')
+  }, [canCreate, setPricingModalOpen, onClose])
+
+  const openBundleCreationFlow = useCallback(() => {
+    if (!canCreate) {
+      toast.error('Your Pro trial has ended. Upgrade your plan to create products and continue selling.')
+      setPricingModalOpen?.(true)
+      onClose?.()
+      return
+    }
+    setEditingBundle(null)
+    setBundleModalOpen(true)
   }, [canCreate, setPricingModalOpen, onClose])
 
   // Handler for finishing Digital Product
@@ -1244,7 +1258,8 @@ export default function AddToStoreModal({
   )
 
   return (
-    <BaseModal
+    <>
+      <BaseModal
       open={isModalOpen}
       onOpenChange={(op) => {
         if (!op) requestCloseModal()
@@ -1393,7 +1408,9 @@ export default function AddToStoreModal({
           category={addModalCategory}
           onCategoryChange={setAddModalCategory}
           onSelectOption={(opt) => {
-            if (opt.type === 'digital_product') {
+            if (opt.type === 'bundle' || opt.id === 'bundles_commerce') {
+              openBundleCreationFlow()
+            } else if (opt.type === 'digital_product') {
               openDigitalProductWizard()
             } else if (opt.type === 'coaching') {
               openCoachingCreationFlow()
@@ -1797,6 +1814,18 @@ export default function AddToStoreModal({
       </div>
     )}
   </BaseModal>
+  <ProductBundleModal
+    isOpen={bundleModalOpen}
+    existingBundle={editingBundle}
+    onClose={() => setBundleModalOpen(false)}
+    onSuccess={(created) => {
+      setBundleModalOpen(false)
+      onClose?.()
+      onSuccess?.(created)
+      onStoreUpdated?.()
+    }}
+  />
+</>
 )
 }
 

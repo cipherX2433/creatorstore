@@ -47,9 +47,15 @@ export default function StoreItemEditorShell({
             </button>
           )}
           <div className="min-w-0">
-            <p className="text-[13px] sm:text-sm font-medium text-[#6F6F6B] truncate leading-none mb-1">
-              {itemTypeLabel}
-            </p>
+            {typeof itemTypeLabel === 'string' ? (
+              <p className="text-[13px] sm:text-sm font-medium text-[#6F6F6B] truncate leading-none mb-1">
+                {itemTypeLabel}
+              </p>
+            ) : (
+              <div className="text-[13px] sm:text-sm font-medium text-[#6F6F6B] truncate leading-none mb-1">
+                {itemTypeLabel}
+              </div>
+            )}
             <h1 className="text-xl sm:text-[24px] font-bold text-[#1F1F1F] truncate leading-tight tracking-tight">
               {title || 'Untitled'}
             </h1>

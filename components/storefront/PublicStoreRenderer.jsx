@@ -139,7 +139,12 @@ function ProductThumbnail({ thumbnail, title, type = 'DIGITAL', aspect = 'aspect
                 : 'bg-slate-100 border border-slate-200 text-slate-500'
           } ${className}`}
       >
-        {isCoaching ? (
+        {type === 'BUNDLE' ? (
+          <>
+            <Layers className="h-6 w-6 opacity-70 mb-0.5" />
+            <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-60">Product Bundle</span>
+          </>
+        ) : isCoaching ? (
           <>
             <Video className="h-6 w-6 opacity-70 mb-0.5" />
             <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-60">1:1 Session</span>
@@ -753,6 +758,7 @@ export default function PublicStoreRenderer({
           isOpen={Boolean(modalProduct)}
           onClose={() => setModalProduct(null)}
           initialStep={modalStep}
+          tokens={tokens}
         />
       ) : null}
 
@@ -1506,12 +1512,15 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       const href = username ? `/${username}/${p.slug}` : `/checkout/${p.id}`
 
       if (isClassic) {
+        const isBundle = p.type === 'BUNDLE'
+        const count = p.productCount || p.bundleProducts?.length || p.bundleItems?.length || 0
         const priceLabel = Number(p.price) === 0 ? 'FREE' : formatMoney(p.price, p.currency)
+        const meta = isBundle && count > 0 ? `${count} ${count === 1 ? 'item' : 'items'} · ${priceLabel}` : priceLabel
         const media = leadingMedia({ thumbnail: p.thumbnail, title: p.title })
         const pill = (
           <ClassicLinkPill
             label={p.title}
-            meta={priceLabel}
+            meta={meta}
             media={media}
             tokens={tokens}
           />
@@ -1990,7 +1999,11 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
 
   const hasDiscount = product.originalPrice && Number(product.originalPrice) > Number(product.price)
   const isCoaching = product.type === 'COACHING'
-  const defaultCta = isCoaching
+  const isBundle = product.type === 'BUNDLE'
+  const bundleCount = product.productCount || product.bundleProducts?.length || product.bundleItems?.length || 0
+  const defaultCta = isBundle
+    ? (Number(product.price) === 0 ? 'Get Bundle Free' : (ctaOverride || 'Get Bundle'))
+    : isCoaching
     ? (Number(product.price) === 0 ? 'Book Free' : (ctaOverride || 'Book Session'))
     : (Number(product.price) === 0 ? 'Get it Free' : (ctaOverride || 'Get it'))
 
