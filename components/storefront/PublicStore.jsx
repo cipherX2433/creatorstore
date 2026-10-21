@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
-import { Share2, Sparkles } from 'lucide-react'
+import { Share2, Sparkles, Mail } from 'lucide-react'
 import PublicStoreRenderer, { WallpaperBackdrop } from '@/components/storefront/PublicStoreRenderer'
+import PublicContactModal from '@/components/storefront/PublicContactModal'
 import StoreTracker from '@/components/storefront/StoreTracker'
 import { getThemeTokens } from '@/lib/themePresets'
 import { useImageContrastTheme } from '@/lib/imageContrast'
@@ -17,6 +18,16 @@ export default function PublicStore({ data, currentPageSlug: initialPageSlug }) 
   const slug = data?.username || ''
   const [shareUrl, setShareUrl] = useState('')
   const [activePageSlug, setActivePageSlug] = useState(initialPageSlug || 'home')
+  const [contactModalOpen, setContactModalOpen] = useState(false)
+
+  const card = data?.theme?.businessCard || data?.store?.theme?.businessCard || {}
+  const hasContactDetails = Boolean(
+    card.contactDetails?.fullName ||
+    card.contactDetails?.email ||
+    card.contactDetails?.phone ||
+    card.contactDetails?.website
+  )
+  const allowContactShare = Boolean(card.allowContactShare)
 
   const isImmersive = (data?.theme?.headerLayout || data?.store?.theme?.headerLayout) === 'immersive'
   const avatarUrl = data?.theme?.avatarUrl || data?.store?.theme?.avatarUrl || data?.profile?.avatarUrl || ''
@@ -129,24 +140,47 @@ export default function PublicStore({ data, currentPageSlug: initialPageSlug }) 
             >
               <Sparkles className="h-4 w-4" />
             </Link>
-            <button
-              type="button"
-              onClick={handleShare}
-              aria-label="Share store"
-              className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-[#1A1A1A] text-[#D4D4D8] hover:bg-[#242424] transition-colors cursor-pointer"
-              style={
-                isImmersive
-                  ? {
-                      backgroundColor: contrastTheme.controlBg,
-                      color: contrastTheme.controlFg,
-                      border: `1px solid ${contrastTheme.controlBorder}`,
-                      backdropFilter: 'blur(8px)',
-                    }
-                  : undefined
-              }
-            >
-              <Share2 className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-2 pointer-events-auto">
+              {(hasContactDetails || allowContactShare) && (
+                <button
+                  type="button"
+                  onClick={() => setContactModalOpen(true)}
+                  aria-label="Contact creator"
+                  className="flex items-center gap-1.5 px-3 h-9 rounded-full bg-[#1A1A1A] text-[#D4D4D8] hover:bg-[#242424] text-xs font-semibold transition-colors cursor-pointer"
+                  style={
+                    isImmersive
+                      ? {
+                          backgroundColor: contrastTheme.controlBg,
+                          color: contrastTheme.controlFg,
+                          border: `1px solid ${contrastTheme.controlBorder}`,
+                          backdropFilter: 'blur(8px)',
+                        }
+                      : undefined
+                  }
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  <span>Contact</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleShare}
+                aria-label="Share store"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1A1A1A] text-[#D4D4D8] hover:bg-[#242424] transition-colors cursor-pointer"
+                style={
+                  isImmersive
+                    ? {
+                        backgroundColor: contrastTheme.controlBg,
+                        color: contrastTheme.controlFg,
+                        border: `1px solid ${contrastTheme.controlBorder}`,
+                        backdropFilter: 'blur(8px)',
+                      }
+                    : undefined
+                }
+              >
+                <Share2 className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           <PublicStoreRenderer
@@ -179,6 +213,14 @@ export default function PublicStore({ data, currentPageSlug: initialPageSlug }) 
           <p className="text-micro text-content-muted text-center">Scan to open on phone</p>
         </aside>
       ) : null}
+
+      <PublicContactModal
+        isOpen={contactModalOpen}
+        onClose={() => setContactModalOpen(false)}
+        store={data?.store}
+        profile={data?.profile}
+        username={slug}
+      />
     </div>
   )
 }

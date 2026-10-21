@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Loader2, ArrowRight, Eye, EyeOff, User, Lock, AlertCircle } from 'lucide-react'
@@ -11,9 +11,12 @@ import { startGoogleOAuth } from '@/lib/googleAuthClient'
 import { trackLogin } from '@/lib/analytics'
 import CreatorStoreBrand from '@/components/brand/CreatorStoreBrand'
 import GoogleMark from '@/components/auth/GoogleMark'
+import { getRequestedReturnUrl, getPostAuthDestination } from '@/lib/redirectUtils'
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const requestedDestination = getRequestedReturnUrl(searchParams)
   const { user, profile, isAuthenticated, loading: authLoading, refresh } = useAuth()
   
   const [form, setForm] = useState({ email: '', password: '' })
@@ -32,14 +35,10 @@ export default function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated && user) {
-      if (user.role === 'CUSTOMER') {
-        router.replace('/account')
-      } else {
-        const isComplete = profile?.onboardingComplete || profile?.onboardingStatus === 'COMPLETED'
-        router.replace(isComplete ? '/dashboard' : '/onboarding')
-      }
+      const target = getPostAuthDestination({ user, profile, requestedDestination })
+      router.replace(target)
     }
-  }, [authLoading, isAuthenticated, user, profile, router])
+  }, [authLoading, isAuthenticated, user, profile, requestedDestination, router])
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -58,17 +57,12 @@ export default function LoginPage() {
       const me = await refresh()
       toast.success('Welcome back!')
 
-      if (me?.user?.role === 'CUSTOMER' || user?.role === 'CUSTOMER') {
-        router.push('/account')
-      } else {
-        const status = me?.profile?.onboardingStatus
-        const isComplete = me?.profile?.onboardingComplete || status === 'COMPLETED'
-        if (isComplete) {
-          router.push('/dashboard')
-        } else {
-          router.push('/onboarding')
-        }
-      }
+      const target = getPostAuthDestination({
+        user: me?.user || user,
+        profile: me?.profile || profile,
+        requestedDestination,
+      })
+      router.push(target)
     } catch (err) {
       const msg = err.message || 'Invalid email or password'
       if (msg.toLowerCase().includes('verify your email') || err.code === 'EMAIL_NOT_VERIFIED') {
@@ -97,16 +91,19 @@ export default function LoginPage() {
   async function handleSendOtp() {
     if (!unverifiedEmail) return
     setSendingOtp(true)
+    const otpUrl = requestedDestination
+      ? `/verify-email?email=${encodeURIComponent(unverifiedEmail)}&returnTo=${encodeURIComponent(requestedDestination)}`
+      : `/verify-email?email=${encodeURIComponent(unverifiedEmail)}`
     try {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('creatorstore_pending_email', unverifiedEmail)
       }
       await api.post('/auth/resend-verification', { email: unverifiedEmail })
       toast.success('6-digit verification code sent to your email.')
-      router.push(`/verify-email?email=${encodeURIComponent(unverifiedEmail)}`)
+      router.push(otpUrl)
     } catch (err) {
       toast.error(err.message || 'Failed to send OTP')
-      router.push(`/verify-email?email=${encodeURIComponent(unverifiedEmail)}`)
+      router.push(otpUrl)
     } finally {
       setSendingOtp(false)
     }
@@ -309,12 +306,29 @@ export default function LoginPage() {
         {/* 8. Signup Redirect */}
         <div className="mt-6 text-center text-xs sm:text-sm font-medium text-[#3A4060]">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-[#194DF5] hover:underline font-bold">
+          <Link
+            href={requestedDestination ? `/signup?returnTo=${encodeURIComponent(requestedDestination)}` : '/signup'}
+            className="text-[#194DF5] hover:underline font-bold"
+          >
             Sign up
           </Link>
         </div>
 
       </div>
     </main>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#F2F5FE] flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#194DF5]" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   )
 }

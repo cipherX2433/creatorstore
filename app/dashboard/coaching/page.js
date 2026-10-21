@@ -244,10 +244,11 @@ function CoachingDashboardContent() {
         ) : (
           <div className="grid gap-3.5">
             {filteredBookings.map((b) => {
+              const bTz = b.timezone || 'Asia/Kolkata'
               const startDate = new Date(b.startTime)
               const endDate = new Date(b.endTime)
-              const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
-              const timeStr = `${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+              const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: bTz })
+              const timeStr = `${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: bTz })} – ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: bTz })}`
 
               const isConfirmed = b.status === 'CONFIRMED'
               const isCancelled = b.status === 'CANCELLED'
@@ -376,7 +377,13 @@ function CoachingDashboardContent() {
             <div className="bg-[#FBFBFB] p-4 rounded-xl border border-[#E5E5E3] space-y-2.5 text-xs">
               <div className="flex justify-between">
                 <span className="text-[#6F6F6B]">Date & Time:</span>
-                <span className="font-semibold text-[#1F1F1F]">{new Date(selectedBooking.startTime).toLocaleString()}</span>
+                <span className="font-semibold text-[#1F1F1F]">
+                  {`${new Date(selectedBooking.startTime).toLocaleString('en-US', {
+                    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+                    hour: 'numeric', minute: '2-digit', hour12: true,
+                    timeZone: selectedBooking.timezone || 'Asia/Kolkata'
+                  })} (${selectedBooking.timezone || 'Asia/Kolkata'})`}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#6F6F6B]">Customer Email:</span>

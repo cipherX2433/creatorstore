@@ -14,6 +14,10 @@ import { ICON_BADGE_COLORS } from '@/components/ui/icon-badge'
 import AddFormConfig, { FORM_TYPES } from '@/components/dashboard/AddFormConfig'
 import AddMediaConfig from '@/components/dashboard/AddMediaConfig'
 import AddToStoreMenuView from '@/components/dashboard/AddToStoreMenuView'
+import AddYouTubeModalView from '@/components/dashboard/AddYouTubeModalView'
+import AddMediaModalView from '@/components/dashboard/AddMediaModalView'
+import SocialDisplaySelectModalView from '@/components/dashboard/SocialDisplaySelectModalView'
+import { getSocialPlatform } from '@/lib/socialPlatforms'
 import { CoachingBookingWizardContent } from '@/components/coaching/CoachingBookingWizardModal'
 import { CourseWizardContent } from '@/components/course/CourseWizardModal'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
@@ -927,6 +931,7 @@ export default function AddToStoreModal({
   const [editingFormSection, setEditingFormSection] = useState(null)
   const [selectedMediaType, setSelectedMediaType] = useState('video')
   const [editingMediaSection, setEditingMediaSection] = useState(null)
+  const [selectedSocialPlatform, setSelectedSocialPlatform] = useState('instagram')
   const [wizardStep, setWizardStep] = useState(1)
   const [editingProductId, setEditingProductId] = useState(null)
   const [coachingWizardProductId, setCoachingWizardProductId] = useState(null)
@@ -1249,14 +1254,14 @@ export default function AddToStoreModal({
       className={
         addModalType === 'coaching' || addModalType === 'course'
           ? 'sm:max-w-4xl max-w-4xl w-[95vw] sm:w-full max-h-[90vh] p-0 gap-0 overflow-hidden'
-          : addModalType === 'menu'
+          : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)
           ? 'sm:max-w-[780px] w-[95vw] sm:w-full h-[88vh] sm:h-[640px] max-h-[92vh] p-4 sm:p-7 rounded-[28px] bg-white border border-[#E5E5E3] shadow-[0_24px_70px_rgba(0,0,0,0.15)] gap-0 overflow-hidden flex flex-col'
           : 'sm:max-w-[700px]'
       }
       bodyClassName={
         addModalType === 'coaching' || addModalType === 'course'
           ? 'p-0 min-h-[500px] flex flex-col flex-1'
-          : addModalType === 'menu'
+          : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)
           ? 'p-0 flex flex-col flex-1 min-h-0 overflow-hidden'
           : 'pt-5'
       }
@@ -1269,6 +1274,16 @@ export default function AddToStoreModal({
               Add
             </div>
           )
+          : addModalType === 'social_display_select'
+          ? `Add ${getSocialPlatform(selectedSocialPlatform)?.name || 'Social'}`
+          : addModalType === 'add_youtube'
+          ? 'Add YouTube'
+          : addModalType === 'add_tiktok'
+          ? 'Add TikTok Video'
+          : addModalType === 'add_vimeo'
+          ? 'Add Vimeo'
+          : addModalType === 'add_video'
+          ? 'Add Video'
           : addModalType === 'digital_product'
           ? 'Create digital product'
           : addModalType === 'edit_product'
@@ -1337,6 +1352,8 @@ export default function AddToStoreModal({
                   setAddModalType('menu')
                   setWizardStep(1)
                 }
+              } else if (['add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)) {
+                setAddModalType('menu')
               } else if (addModalType === 'form_config') {
                 if (editingFormSection) {
                   closeWizard()
@@ -1400,12 +1417,11 @@ export default function AddToStoreModal({
               }
               closeWizard()
             } else if (opt.type === 'instagram') {
-              if (igAccount?.connected) {
-                if (onDisconnectInstagram) onDisconnectInstagram()
-              } else {
-                if (onConnectInstagram) onConnectInstagram()
-                else toast.info('Instagram integration')
-              }
+              setSelectedSocialPlatform('instagram')
+              setAddModalType('social_display_select')
+            } else if (opt.type === 'social') {
+              setSelectedSocialPlatform(opt.platform || 'generic')
+              setAddModalType('social_display_select')
             } else if (opt.type === 'forms_menu') {
               setAddModalType('forms_menu')
             } else if (
@@ -1428,9 +1444,32 @@ export default function AddToStoreModal({
               setEditingFormSection(null)
               setAddModalType('form_config')
             } else if (
-              opt.type === 'media' ||
               opt.type === 'youtube' ||
+              opt.mediaType === 'youtube' ||
+              opt.id === 'youtube_media' ||
+              opt.id === 'youtube_suggested'
+            ) {
+              setAddModalType('add_youtube')
+            } else if (
+              opt.type === 'tiktok' ||
+              opt.mediaType === 'tiktok' ||
+              opt.id === 'tiktok_media'
+            ) {
+              setAddModalType('add_tiktok')
+            } else if (
+              opt.type === 'vimeo' ||
+              opt.mediaType === 'vimeo' ||
+              opt.id === 'vimeo_media'
+            ) {
+              setAddModalType('add_vimeo')
+            } else if (
               opt.type === 'video' ||
+              opt.mediaType === 'video' ||
+              opt.id === 'video_media'
+            ) {
+              setAddModalType('add_video')
+            } else if (
+              opt.type === 'media' ||
               opt.type === 'gallery' ||
               opt.type === 'audio' ||
               opt.type === 'pdf'
@@ -1455,7 +1494,7 @@ export default function AddToStoreModal({
               closeWizard()
             } else if (opt.type === 'text_block' || opt.type === 'text') {
               if (onAddSection) {
-                onAddSection('text', { content: 'Add your text here...' })
+                onAddSection('text', { text: 'Add your text here...', content: 'Add your text here...' })
               }
               closeWizard()
             } else if (opt.type === 'existing_product') {
@@ -1510,6 +1549,7 @@ export default function AddToStoreModal({
           <CoachingBookingWizardContent
             key={coachingWizardProductId || 'new-coaching'}
             editProductId={coachingWizardProductId}
+            creatorProfile={{ email: creatorEmail }}
             onClose={closeWizard}
             onSuccess={async (createdProd) => {
               if (context === 'store' && createdProd?.id && !coachingWizardProductId) {
@@ -1664,6 +1704,93 @@ export default function AddToStoreModal({
               }}
             />
           </div>
+        )}
+
+        {/* YOUTUBE MEDIA VIEW */}
+        {addModalType === 'add_youtube' && (
+          <AddYouTubeModalView
+            onSelectVideo={(videoData) => {
+              if (onAddSection) {
+                onAddSection('youtube', {
+                  title: videoData.title || 'YouTube Video',
+                  url: videoData.canonicalUrl || videoData.url,
+                  videoId: videoData.videoId || null,
+                  thumbnail: videoData.thumbnailUrl || null,
+                  customThumbnail: null,
+                  layout: 'classic',
+                  displayMode: 'classic',
+                  mediaType: 'youtube',
+                  embedType: 'youtube',
+                })
+              }
+              closeWizard()
+            }}
+            onCancel={() => setAddModalType('menu')}
+          />
+        )}
+
+        {/* TIKTOK, VIMEO & VIDEO VIEW */}
+        {['add_tiktok', 'add_vimeo', 'add_video'].includes(addModalType) && (
+          <AddMediaModalView
+            mediaType={
+              addModalType === 'add_tiktok'
+                ? 'tiktok'
+                : addModalType === 'add_vimeo'
+                  ? 'vimeo'
+                  : 'video'
+            }
+            onSelectVideo={(videoData) => {
+              if (onAddSection) {
+                const blockType = videoData.mediaType || (addModalType === 'add_tiktok' ? 'tiktok' : addModalType === 'add_vimeo' ? 'vimeo' : 'video')
+                onAddSection(blockType, {
+                  title: videoData.title || `${blockType.toUpperCase()} Video`,
+                  url: videoData.canonicalUrl || videoData.url,
+                  videoId: videoData.videoId || null,
+                  thumbnail: videoData.thumbnailUrl || null,
+                  customThumbnail: null,
+                  layout: 'classic',
+                  displayMode: 'classic',
+                  mediaType: blockType,
+                  embedType: blockType,
+                  isUpload: Boolean(videoData.isUpload),
+                  fileName: videoData.fileName || null,
+                  fileSize: videoData.fileSize || null,
+                })
+              }
+              closeWizard()
+            }}
+            onCancel={() => setAddModalType('menu')}
+          />
+        )}
+
+        {/* SOCIAL DISPLAY SELECT VIEW */}
+        {addModalType === 'social_display_select' && (
+          <SocialDisplaySelectModalView
+            platform={selectedSocialPlatform}
+            isPro={canCreate}
+            onOpenPricing={() => {
+              setPricingModalOpen?.(true)
+              closeWizard()
+            }}
+            onSelectStyle={async (styleKey) => {
+              closeWizard()
+              const platformInfo = getSocialPlatform(selectedSocialPlatform)
+              const defaultTitle = platformInfo?.name || 'Social'
+              if (onAddSection) {
+                onAddSection('social', {
+                  platform: selectedSocialPlatform,
+                  title: defaultTitle,
+                  label: defaultTitle,
+                  url: '',
+                  layout: styleKey === 'cards' ? 'image' : styleKey,
+                  displayMode: styleKey === 'cards' ? 'featured' : styleKey,
+                  thumbnail: null,
+                  customThumbnail: null,
+                })
+              }
+            }}
+            onCancel={() => setAddModalType('menu')}
+          />
         )}
       </div>
     )}

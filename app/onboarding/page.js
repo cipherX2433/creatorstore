@@ -146,7 +146,7 @@ export default function OnboardingWizardPage() {
       return
     }
     if (profile?.onboardingComplete || profile?.onboardingStatus === 'COMPLETED') {
-      router.replace('/dashboard')
+      router.replace('/dashboard/store')
       return
     }
 

@@ -20,6 +20,7 @@ import { validatePassword } from '@/lib/auth'
 import { normalizeSlug, isReservedSlug } from '@/lib/slug'
 import { useAuth } from '@/components/auth/AuthContext'
 import { startGoogleOAuth } from '@/lib/googleAuthClient'
+import { getRequestedReturnUrl, getPostAuthDestination } from '@/lib/redirectUtils'
 import {
   trackSignupStarted,
   trackUsernameChecked,
@@ -41,6 +42,7 @@ const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 function SignupContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const requestedDestination = getRequestedReturnUrl(searchParams)
   const { user, isAuthenticated, loading: authLoading, profile } = useAuth()
 
   // Steps: 1 = Claim username, 2 = Account creation
@@ -115,15 +117,9 @@ function SignupContent() {
   // Redirect if already authenticated
   useEffect(() => {
     if (authLoading || !isAuthenticated || !user) return
-    if (user.role === 'CUSTOMER') {
-      router.replace('/account')
-      return
-    }
-    const status = profile?.onboardingStatus
-    const done = profile?.onboardingComplete || status === 'COMPLETED'
-    if (done) router.replace('/dashboard')
-    else router.replace('/onboarding')
-  }, [authLoading, isAuthenticated, user, profile, router])
+    const target = getPostAuthDestination({ user, profile, requestedDestination })
+    router.replace(target)
+  }, [authLoading, isAuthenticated, user, profile, requestedDestination, router])
 
   // Debounced username availability checker
   const checkAvailability = useCallback((slug) => {
@@ -286,7 +282,10 @@ function SignupContent() {
       }
 
       toast.success('Account created! Please check your email to verify your account.')
-      router.push(`/verify-email?email=${encodeURIComponent(cleanEmail)}`)
+      const verifyUrl = requestedDestination
+        ? `/verify-email?email=${encodeURIComponent(cleanEmail)}&returnTo=${encodeURIComponent(requestedDestination)}`
+        : `/verify-email?email=${encodeURIComponent(cleanEmail)}`
+      router.push(verifyUrl)
     } catch (err) {
       const msg = err.message || 'Signup failed. Please try again.'
       setSubmitError(msg)
@@ -388,7 +387,7 @@ function SignupContent() {
         <div className="text-xs sm:text-sm text-[#A1A1AA]">
           Already have an account?{' '}
           <Link
-            href="/login"
+            href={requestedDestination ? `/login?returnTo=${encodeURIComponent(requestedDestination)}` : '/login'}
             className="text-white hover:text-[#FF4B1F] underline underline-offset-4 font-semibold transition-colors"
           >
             Log in
@@ -488,7 +487,10 @@ function SignupContent() {
                 <div className="pt-1 flex items-center justify-between text-xs font-medium">
                   <span className="text-[#71717A]">
                     Already have an account?{' '}
-                    <Link href="/login" className="text-white underline underline-offset-4 hover:text-[#FF4B1F] transition-colors">
+                    <Link
+                      href={requestedDestination ? `/login?returnTo=${encodeURIComponent(requestedDestination)}` : '/login'}
+                      className="text-white underline underline-offset-4 hover:text-[#FF4B1F] transition-colors"
+                    >
                       Login
                     </Link>
                   </span>
@@ -764,7 +766,10 @@ function SignupContent() {
                 {/* Login link */}
                 <div className="text-center text-xs text-[#71717A]">
                   Already have an account?{' '}
-                  <Link href="/login" className="text-white hover:underline font-medium">
+                  <Link
+                    href={requestedDestination ? `/login?returnTo=${encodeURIComponent(requestedDestination)}` : '/login'}
+                    className="text-white hover:underline font-medium"
+                  >
                     Log in
                   </Link>
                 </div>

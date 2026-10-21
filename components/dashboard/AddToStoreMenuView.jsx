@@ -38,6 +38,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AddOptionRow } from '@/components/ui/settings-row'
+import { getSocialPlatform } from '@/lib/socialPlatforms'
 
 export const WIZARD_CATEGORIES = [
   { id: 'suggested', label: 'Suggested', icon: Sparkles },
@@ -185,32 +186,133 @@ export const WIZARD_OPTIONS = [
     id: 'instagram_social',
     category: 'social',
     title: 'Instagram',
-    description: 'Display your posts and reels',
+    description: 'Display your posts, reels, and profile',
     icon: Instagram,
     color: '#E1306C',
     type: 'instagram',
-    keywords: 'instagram social reels posts ig',
+    platform: 'instagram',
+    keywords: 'instagram social reels posts ig feed',
   },
   {
     id: 'tiktok_social',
     category: 'social',
     title: 'TikTok',
-    description: 'Share your TikToks on your store',
+    description: 'Share your TikTok profile and videos',
     icon: Music2,
     color: '#000000',
-    type: 'link_preset',
-    presetUrl: 'https://tiktok.com',
+    type: 'social',
+    platform: 'tiktok',
     keywords: 'tiktok social video reels short',
   },
   {
     id: 'youtube_social',
     category: 'social',
-    title: 'YouTube Channel',
+    title: 'YouTube',
     description: 'Share your YouTube videos or channel',
     icon: Youtube,
     color: '#EF4444',
-    type: 'youtube',
+    type: 'social',
+    platform: 'youtube',
     keywords: 'youtube video channel stream yt',
+  },
+  {
+    id: 'facebook_social',
+    category: 'social',
+    title: 'Facebook',
+    description: 'Connect with your audience on Facebook',
+    icon: Link2,
+    color: '#1877F2',
+    type: 'social',
+    platform: 'facebook',
+    keywords: 'facebook fb page community meta',
+  },
+  {
+    id: 'x_social',
+    category: 'social',
+    title: 'X',
+    description: 'Share your X (Twitter) profile and thoughts',
+    icon: Send,
+    color: '#000000',
+    type: 'social',
+    platform: 'x',
+    keywords: 'x twitter tweets microblog social',
+  },
+  {
+    id: 'linkedin_social',
+    category: 'social',
+    title: 'LinkedIn',
+    description: 'Showcase your professional network and career',
+    icon: Link2,
+    color: '#0A66C2',
+    type: 'social',
+    platform: 'linkedin',
+    keywords: 'linkedin professional resume network business',
+  },
+  {
+    id: 'pinterest_social',
+    category: 'social',
+    title: 'Pinterest',
+    description: 'Share your boards, pins, and creative ideas',
+    icon: Tag,
+    color: '#BD081C',
+    type: 'social',
+    platform: 'pinterest',
+    keywords: 'pinterest boards pins inspiration ideas',
+  },
+  {
+    id: 'snapchat_social',
+    category: 'social',
+    title: 'Snapchat',
+    description: 'Connect with friends and share your snaps',
+    icon: Sparkles,
+    color: '#EAB308',
+    type: 'social',
+    platform: 'snapchat',
+    keywords: 'snapchat snap stories friends camera',
+  },
+  {
+    id: 'twitch_social',
+    category: 'social',
+    title: 'Twitch',
+    description: 'Stream live to your community on Twitch',
+    icon: Radio,
+    color: '#9146FF',
+    type: 'social',
+    platform: 'twitch',
+    keywords: 'twitch gaming stream live broadcasting',
+  },
+  {
+    id: 'discord_social',
+    category: 'social',
+    title: 'Discord',
+    description: 'Invite creators and fans to your Discord community',
+    icon: MessageSquare,
+    color: '#5865F2',
+    type: 'social',
+    platform: 'discord',
+    keywords: 'discord server community chat voice gaming',
+  },
+  {
+    id: 'whatsapp_social',
+    category: 'social',
+    title: 'WhatsApp',
+    description: 'Chat directly with your audience on WhatsApp',
+    icon: MessageSquare,
+    color: '#25D366',
+    type: 'social',
+    platform: 'whatsapp',
+    keywords: 'whatsapp chat messaging direct contact phone',
+  },
+  {
+    id: 'telegram_social',
+    category: 'social',
+    title: 'Telegram',
+    description: 'Broadcast updates and chat on Telegram',
+    icon: Send,
+    color: '#229ED9',
+    type: 'social',
+    platform: 'telegram',
+    keywords: 'telegram channel group broadcast chat bot',
   },
   {
     id: 'social_link',
@@ -219,7 +321,8 @@ export const WIZARD_OPTIONS = [
     description: 'Link to any social profile or community',
     icon: Link2,
     color: '#3B82F6',
-    type: 'link',
+    type: 'social',
+    platform: 'generic',
     keywords: 'social link discord twitter x linkedin telegram',
   },
 
@@ -254,8 +357,7 @@ export const WIZARD_OPTIONS = [
     description: 'Share a TikTok video on your store',
     icon: Music2,
     color: '#000000',
-    type: 'link_preset',
-    presetUrl: 'https://tiktok.com',
+    type: 'tiktok',
     keywords: 'tiktok video reel short',
   },
   {
@@ -266,7 +368,7 @@ export const WIZARD_OPTIONS = [
     description: 'Add Vimeo videos to your store',
     icon: PlayCircle,
     color: '#06B6D4',
-    type: 'video',
+    type: 'vimeo',
     keywords: 'vimeo video stream player',
   },
   {
@@ -721,13 +823,14 @@ export default function AddToStoreMenuView({
                     if (opt.type === 'instagram') {
                       desc = igAccount?.connected
                         ? `Connected as @${igAccount.username} — click to disconnect`
-                        : 'Display your posts and reels'
+                        : 'Display your posts, reels, and profile'
                     }
+                    const RowIcon = opt.platform ? (getSocialPlatform(opt.platform)?.icon || opt.icon) : opt.icon
 
                     return (
                       <AddOptionRow
                         key={opt.id}
-                        icon={opt.icon}
+                        icon={RowIcon}
                         iconColor={opt.color}
                         title={opt.title}
                         description={desc}

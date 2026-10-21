@@ -15,7 +15,7 @@ import {
   razorpayAccountService, payoutService, earningsService, courseService, publicCourseService, learningService, certificateService, coachingService, communityService, webinarService, membershipService, customService, externalLink, customerAccountService, creatorSubscriptionService, accountUpgradeService, checkoutFieldsService,
   leadService, couponService, marketingService, emailMarketingService, onboardingService, successCenterService,
   instagramService, automationService, instagramMessagingService, httpError,
-  emailService,
+  emailService, businessCardService,
 } from '@/lib/services'
 import { purchaseOtpService, PURCHASE_SESSION_COOKIE } from '@/lib/purchaseOtpService'
 import { getAppUrl } from '@/config/site'
@@ -246,20 +246,23 @@ async function processRoute(request, context = {}) {
       if (!file || typeof file === 'string') return json({ error: 'No file provided' }, 400)
 
       const mime = file.type || 'image/jpeg'
-      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
-      if (!validTypes.includes(mime)) {
-        return json({ error: 'Please upload a JPG, PNG, or WebP image.' }, 400)
+      const isVideo = mime.startsWith('video/')
+      const validImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
+      const validVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/ogg']
+      if (!validImageTypes.includes(mime) && !validVideoTypes.includes(mime) && mime !== 'application/pdf') {
+        return json({ error: 'Please upload a supported image (JPG, PNG, WebP) or video (MP4, WebM).' }, 400)
       }
 
       const arrayBuffer = await file.arrayBuffer()
-      if (arrayBuffer.byteLength > 10 * 1024 * 1024) {
-        return json({ error: 'Image size must be less than 10MB.' }, 400)
+      const maxBytes = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024
+      if (arrayBuffer.byteLength > maxBytes) {
+        return json({ error: `File size must be less than ${isVideo ? '50MB' : '10MB'}.` }, 400)
       }
 
       const buffer = Buffer.from(arrayBuffer)
       const sanitizedName = (file.name || 'avatar').replace(/[^a-zA-Z0-9._-]/g, '')
       const userId = user ? user.id : 'pub'
-      const fileKey = `${userId}/profile/avatar_${Date.now()}_${sanitizedName}`
+      const fileKey = `${userId}/media/${Date.now()}_${sanitizedName}`
 
       let bucketName = 'creator-assets'
       let uploadRes = await supabaseAdmin.storage.from(bucketName).upload(fileKey, buffer, { contentType: mime, upsert: true })
@@ -275,7 +278,7 @@ async function processRoute(request, context = {}) {
       const { data: pubUrlData } = supabaseAdmin.storage.from(bucketName).getPublicUrl(fileKey)
       const publicUrl = pubUrlData?.publicUrl || `/api/files/${encodeURIComponent(fileKey)}`
 
-      return json({ success: true, url: publicUrl, fileId: fileKey, path: fileKey, bucket: bucketName })
+      return json({ success: true, url: publicUrl, fileId: fileKey, path: fileKey, bucket: bucketName, fileName: file.name, fileSize: arrayBuffer.byteLength, mimeType: mime })
     }
 
     if (path[0] === 'files' && method === 'GET') {
@@ -294,7 +297,7 @@ async function processRoute(request, context = {}) {
         if (error || !fileBuffer) return json({ error: 'File not found' }, 404)
 
         const ext = key.split('.').pop()?.toLowerCase()
-        const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : ext === 'gif' ? 'image/gif' : ext === 'avif' ? 'image/avif' : 'image/jpeg'
+        const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : ext === 'gif' ? 'image/gif' : ext === 'avif' ? 'image/avif' : ext === 'mp4' ? 'video/mp4' : ext === 'webm' ? 'video/webm' : ext === 'mov' ? 'video/quicktime' : ext === 'pdf' ? 'application/pdf' : 'image/jpeg'
         const headers = {
           'Content-Type': mime,
           'Cache-Control': 'public, max-age=31536000, immutable',
@@ -433,7 +436,32 @@ async function processRoute(request, context = {}) {
     if (path[0] === 'coaching' && path[1] === 'slots' && method === 'GET') {
       const productId = url.searchParams.get('productId')
       const date = url.searchParams.get('date')
-      return json(await coachingService.getAvailableSlots({ productId, date }))
+      const duration = url.searchParams.get('duration') || url.searchParams.get('durationMinutes')
+      const bookingTypeId = url.searchParams.get('bookingTypeId')
+      const timezone = url.searchParams.get('timezone')
+      return json(await coachingService.getAvailableSlots({
+        productId,
+        date,
+        timezone,
+        durationMinutes: duration ? parseInt(duration, 10) : undefined,
+        bookingTypeId,
+      }))
+    }
+    if (path[0] === 'coaching' && path[1] === 'month-availability' && method === 'GET') {
+      const productId = url.searchParams.get('productId')
+      const year = url.searchParams.get('year')
+      const month = url.searchParams.get('month')
+      const duration = url.searchParams.get('duration') || url.searchParams.get('durationMinutes')
+      const bookingTypeId = url.searchParams.get('bookingTypeId')
+      const timezone = url.searchParams.get('timezone')
+      return json(await coachingService.getAvailableMonthDates({
+        productId,
+        year,
+        month,
+        durationMinutes: duration ? parseInt(duration, 10) : undefined,
+        bookingTypeId,
+        timezone,
+      }))
     }
     if (path[0] === 'coaching' && path[1] === 'book' && method === 'POST') {
       const body = await request.json()
@@ -2034,6 +2062,36 @@ async function processRoute(request, context = {}) {
       return json(await successCenterService.getResources())
     }
 
+    if (path[0] === 'business-card') {
+      if (!path[1] && method === 'GET') {
+        const user = await requireCreatorUser(request)
+        return json(await businessCardService.get(user.id))
+      }
+      if (!path[1] && (method === 'PUT' || method === 'POST' || method === 'PATCH')) {
+        const user = await requireCreatorUser(request)
+        const body = await request.json()
+        return json(await businessCardService.save(user.id, body))
+      }
+      if (path[1] === 'contact' && method === 'POST') {
+        const body = await request.json()
+        const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+        return json(await businessCardService.submitVisitorContact(body, clientIp))
+      }
+      if (path[1] === 'vcard' && method === 'GET') {
+        const username = url.searchParams.get('username')
+        const creatorId = url.searchParams.get('creatorId')
+        const vcard = await businessCardService.getVCard({ username, creatorId })
+        return new Response(vcard.content, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/vcard; charset=utf-8',
+            'Content-Disposition': `attachment; filename="${vcard.filename}"`,
+            'Cache-Control': 'no-store, max-age=0'
+          }
+        })
+      }
+    }
+
     if (path[0] === 'leads' && !path[1] && method === 'GET') {
 
 
@@ -2390,6 +2448,294 @@ async function processRoute(request, context = {}) {
       const body = await request.json().catch(() => ({}))
       return json(await storeSectionsService.createSection(creatorId, body), 201)
     }
+
+    // YouTube Video Metadata Fetching (oEmbed)
+    if (route === '/media/youtube/metadata' && (method === 'GET' || method === 'POST')) {
+      let rawUrl = ''
+      if (method === 'GET') {
+        rawUrl = url.searchParams.get('url') || ''
+      } else {
+        const body = await request.json().catch(() => ({}))
+        rawUrl = body.url || ''
+      }
+      if (!rawUrl || typeof rawUrl !== 'string') {
+        throw httpError(400, 'YouTube URL is required')
+      }
+      const trimmed = rawUrl.trim()
+      try {
+        const parsed = new URL(trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`)
+        const validHosts = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'music.youtube.com']
+        if (!validHosts.includes(parsed.hostname.toLowerCase())) {
+          throw httpError(400, 'Invalid YouTube host. Only youtube.com and youtu.be URLs are supported.')
+        }
+      } catch (e) {
+        if (e.status) throw e
+        throw httpError(400, 'Invalid URL format.')
+      }
+
+      const match = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/)
+      if (!match || !match[1]) {
+        throw httpError(400, 'Invalid YouTube video URL. Please provide a valid watch, shorts, or youtu.be URL.')
+      }
+      const videoId = match[1]
+      const canonicalUrl = `https://www.youtube.com/watch?v=${videoId}`
+      const defaultThumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+
+      try {
+        const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(canonicalUrl)}&format=json`
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 6000)
+        const oembedRes = await fetch(oembedUrl, {
+          signal: controller.signal,
+          headers: { 'User-Agent': 'CreatorStore-MediaService/1.0' },
+          cache: 'no-store',
+        })
+        clearTimeout(timeoutId)
+
+        if (oembedRes.ok) {
+          const data = await oembedRes.json()
+          return json({
+            success: true,
+            videoId,
+            canonicalUrl,
+            title: data.title || 'YouTube Video',
+            thumbnailUrl: data.thumbnail_url || defaultThumbnail,
+            authorName: data.author_name || 'YouTube',
+          })
+        } else {
+          return json({
+            success: true,
+            videoId,
+            canonicalUrl,
+            title: 'YouTube Video',
+            thumbnailUrl: defaultThumbnail,
+            authorName: 'YouTube',
+            fallback: true,
+            warning: 'Could not fetch title automatically. You can customize the title below.',
+          })
+        }
+      } catch (err) {
+        return json({
+          success: true,
+          videoId,
+          canonicalUrl,
+          title: 'YouTube Video',
+          thumbnailUrl: defaultThumbnail,
+          authorName: 'YouTube',
+          fallback: true,
+          warning: 'Could not reach YouTube. You can customize the title below.',
+        })
+      }
+    }
+
+    // TikTok Video Metadata Fetching (oEmbed)
+    if (route === '/media/tiktok/metadata' && (method === 'GET' || method === 'POST')) {
+      let rawUrl = ''
+      if (method === 'GET') {
+        rawUrl = url.searchParams.get('url') || ''
+      } else {
+        const body = await request.json().catch(() => ({}))
+        rawUrl = body.url || ''
+      }
+      if (!rawUrl || typeof rawUrl !== 'string') {
+        throw httpError(400, 'TikTok video URL is required')
+      }
+      const trimmed = rawUrl.trim()
+      try {
+        const parsed = new URL(trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`)
+        const ALLOWED_TIKTOK_HOSTS = ['tiktok.com', 'www.tiktok.com', 'vm.tiktok.com', 'm.tiktok.com', 'vt.tiktok.com']
+        if (!ALLOWED_TIKTOK_HOSTS.includes(parsed.hostname.toLowerCase())) {
+          throw httpError(400, 'Invalid TikTok host. Only tiktok.com URLs are supported.')
+        }
+      } catch (e) {
+        if (e.status) throw e
+        throw httpError(400, 'Invalid URL format.')
+      }
+
+      // Extract ID or fallback to cleaned URL
+      const idMatch = trimmed.match(/(?:\/video\/|\/v\/)(\d+)/) || trimmed.match(/(?:vm\.tiktok\.com|tiktok\.com\/t)\/([A-Za-z0-9_-]+)/)
+      const videoId = idMatch ? idMatch[1] : 'tiktok_video'
+      const canonicalUrl = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`
+
+      try {
+        const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(canonicalUrl)}`
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 6000)
+        const oembedRes = await fetch(oembedUrl, {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          },
+          cache: 'no-store',
+        })
+        clearTimeout(timeoutId)
+
+        if (oembedRes.ok) {
+          const data = await oembedRes.json()
+          return json({
+            success: true,
+            videoId,
+            canonicalUrl,
+            title: data.title || 'TikTok Video',
+            thumbnailUrl: data.thumbnail_url || null,
+            authorName: data.author_name || 'TikTok',
+          })
+        } else {
+          return json({
+            success: true,
+            videoId,
+            canonicalUrl,
+            title: 'TikTok Video',
+            thumbnailUrl: null,
+            authorName: 'TikTok',
+            fallback: true,
+            warning: 'Could not fetch TikTok metadata automatically. You can customize the title and thumbnail below.',
+          })
+        }
+      } catch (err) {
+        return json({
+          success: true,
+          videoId,
+          canonicalUrl,
+          title: 'TikTok Video',
+          thumbnailUrl: null,
+          authorName: 'TikTok',
+          fallback: true,
+          warning: 'Could not reach TikTok oEmbed. You can customize the title and thumbnail below.',
+        })
+      }
+    }
+
+    // Vimeo Video Metadata Fetching (oEmbed)
+    if (route === '/media/vimeo/metadata' && (method === 'GET' || method === 'POST')) {
+      let rawUrl = ''
+      if (method === 'GET') {
+        rawUrl = url.searchParams.get('url') || ''
+      } else {
+        const body = await request.json().catch(() => ({}))
+        rawUrl = body.url || ''
+      }
+      if (!rawUrl || typeof rawUrl !== 'string') {
+        throw httpError(400, 'Vimeo video URL is required')
+      }
+      const trimmed = rawUrl.trim()
+      try {
+        const parsed = new URL(trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`)
+        const ALLOWED_VIMEO_HOSTS = ['vimeo.com', 'www.vimeo.com', 'player.vimeo.com']
+        if (!ALLOWED_VIMEO_HOSTS.includes(parsed.hostname.toLowerCase())) {
+          throw httpError(400, 'Invalid Vimeo host. Only vimeo.com URLs are supported.')
+        }
+      } catch (e) {
+        if (e.status) throw e
+        throw httpError(400, 'Invalid URL format.')
+      }
+
+      const match = trimmed.match(/(?:vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|video\/|))(\d+)/)
+      if (!match || !match[1]) {
+        throw httpError(400, 'Invalid Vimeo video URL. Please provide a valid Vimeo video link.')
+      }
+      const videoId = match[1]
+      const canonicalUrl = `https://vimeo.com/${videoId}`
+
+      try {
+        const oembedUrl = `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(canonicalUrl)}`
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 6000)
+        const oembedRes = await fetch(oembedUrl, {
+          signal: controller.signal,
+          headers: { 'User-Agent': 'CreatorStore-MediaService/1.0' },
+          cache: 'no-store',
+        })
+        clearTimeout(timeoutId)
+
+        if (oembedRes.ok) {
+          const data = await oembedRes.json()
+          return json({
+            success: true,
+            videoId,
+            canonicalUrl,
+            title: data.title || 'Vimeo Video',
+            thumbnailUrl: data.thumbnail_url || null,
+            authorName: data.author_name || 'Vimeo',
+          })
+        } else {
+          return json({
+            success: true,
+            videoId,
+            canonicalUrl,
+            title: 'Vimeo Video',
+            thumbnailUrl: null,
+            authorName: 'Vimeo',
+            fallback: true,
+            warning: 'Could not fetch Vimeo metadata automatically. You can customize the title and thumbnail below.',
+          })
+        }
+      } catch (err) {
+        return json({
+          success: true,
+          videoId,
+          canonicalUrl,
+          title: 'Vimeo Video',
+          thumbnailUrl: null,
+          authorName: 'Vimeo',
+          fallback: true,
+          warning: 'Could not reach Vimeo. You can customize the title and thumbnail below.',
+        })
+      }
+    }
+
+    // Direct / Hosted Video Metadata (Loom / Direct files)
+    if (route === '/media/video/metadata' && (method === 'GET' || method === 'POST')) {
+      let rawUrl = ''
+      if (method === 'GET') {
+        rawUrl = url.searchParams.get('url') || ''
+      } else {
+        const body = await request.json().catch(() => ({}))
+        rawUrl = body.url || ''
+      }
+      if (!rawUrl || typeof rawUrl !== 'string') {
+        throw httpError(400, 'Video URL is required')
+      }
+      const trimmed = rawUrl.trim()
+      const canonicalUrl = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`
+
+      // Check Loom
+      if (canonicalUrl.includes('loom.com/share') || canonicalUrl.includes('loom.com/embed')) {
+        try {
+          const oembedUrl = `https://www.loom.com/v1/oembed?url=${encodeURIComponent(canonicalUrl)}`
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 6000)
+          const oembedRes = await fetch(oembedUrl, { signal: controller.signal, cache: 'no-store' })
+          clearTimeout(timeoutId)
+          if (oembedRes.ok) {
+            const data = await oembedRes.json()
+            return json({
+              success: true,
+              canonicalUrl,
+              title: data.title || 'Loom Video',
+              thumbnailUrl: data.thumbnail_url || null,
+              authorName: data.author_name || 'Loom',
+            })
+          }
+        } catch {}
+      }
+
+      // Check direct file (.mp4, .webm, .mov)
+      const pathname = new URL(canonicalUrl).pathname
+      const filename = pathname.split('/').pop() || 'video'
+      const cleanTitle = decodeURIComponent(filename)
+        .replace(/\.[a-zA-Z0-9]+$/, '')
+        .replace(/[-_]/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+
+      return json({
+        success: true,
+        canonicalUrl,
+        title: cleanTitle || 'Video',
+        thumbnailUrl: null,
+        isDirect: true,
+      })
+    }
     if (route === '/storefront/status' && method === 'GET') {
       const store = await storeService.getOrCreate(creatorId)
       const sub = await creatorSubscriptionService.get(creatorId).catch(() => null)
@@ -2467,7 +2813,7 @@ async function processRoute(request, context = {}) {
     if (path[0] === 'products' && path[1] && !path[2] && method === 'GET') {
       return json({ product: await productService.get(creatorId, path[1]) })
     }
-    if (path[0] === 'products' && path[1] && !path[2] && method === 'PATCH') {
+    if (path[0] === 'products' && path[1] && !path[2] && (method === 'PATCH' || method === 'PUT')) {
       const body = await request.json()
       return json({ product: await productService.update(creatorId, path[1], body) })
     }
@@ -2530,7 +2876,7 @@ async function processRoute(request, context = {}) {
     if (path[0] === 'coaching' && path[1] === 'config' && path[2] && method === 'GET') {
       return json({ config: await coachingService.getConfig(creatorId, path[2]) })
     }
-    if (path[0] === 'coaching' && path[1] === 'config' && path[2] && method === 'POST') {
+    if (path[0] === 'coaching' && path[1] === 'config' && path[2] && (method === 'POST' || method === 'PUT')) {
       const body = await request.json()
       return json({ config: await coachingService.saveConfig(creatorId, path[2], body) })
     }

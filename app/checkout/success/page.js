@@ -5,8 +5,9 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { formatMoney } from '@/lib/clientApi'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, Download, Loader2, Mail, ArrowRight, ShieldCheck, Package } from 'lucide-react'
+import { CheckCircle2, Download, Loader2, Mail, ArrowRight, ShieldCheck, Package, Calendar, Clock, Video } from 'lucide-react'
 import CreatorStoreBrand from '@/components/brand/CreatorStoreBrand'
+import { createGoogleCalendarUrl, downloadIcsFile } from '@/lib/calendarUtils'
 import {
   trackPurchase,
   trackPaymentCompleted,
@@ -114,14 +115,22 @@ function SuccessInner() {
               {/* Title & Subtext */}
               <div className="space-y-2">
                 <h1 className="text-2xl sm:text-3xl font-black text-[#F4F2EC] tracking-tight">
-                  {isFreeProduct ? 'Your download is ready! 🎉' : 'Order Confirmed! 🎉'}
+                  {status?.booking || status?.product?.type === 'COACHING'
+                    ? 'Booking Confirmed! 🎉'
+                    : isFreeProduct
+                    ? 'Your download is ready! 🎉'
+                    : 'Order Confirmed! 🎉'}
                 </h1>
                 <p className="text-xs sm:text-sm text-[rgba(244,242,236,0.68)] font-medium leading-relaxed max-w-md mx-auto">
-                  {isFreeProduct ? 'Your free digital product is ready below.' : 'Thank you for your purchase. Your digital product is ready below.'}
+                  {status?.booking || status?.product?.type === 'COACHING'
+                    ? 'Your 1:1 coaching session has been reserved and added to the calendar.'
+                    : isFreeProduct
+                    ? 'Your free digital product is ready below.'
+                    : 'Thank you for your purchase. Your digital product is ready below.'}
                 </p>
               </div>
 
-              {/* Product Summary Box */}
+              {/* Product / Booking Summary Box */}
               {status?.product && (
                 <div className="bg-[#1e222d] p-4 sm:p-5 rounded-2xl border border-white/10 text-left space-y-3 shadow-inner">
                   <div className="flex items-center gap-3.5">
@@ -129,18 +138,52 @@ function SuccessInner() {
                       <img src={status.product.thumbnail} alt="" className="h-12 w-12 rounded-xl object-cover shrink-0 border border-white/10" />
                     ) : (
                       <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold shrink-0">
-                        <Package className="h-6 w-6" />
+                        {status.product.type === 'COACHING' ? <Video className="h-6 w-6" /> : <Package className="h-6 w-6" />}
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
                       <span className="text-[10px] font-extrabold uppercase tracking-widest text-primary block">
-                        {status.product.type ? status.product.type.replace('_', ' ') : 'DIGITAL DOWNLOAD'}
+                        {status.product.type ? status.product.type.replace('_', ' ') : 'COACHING SESSION'}
                       </span>
                       <h3 className="font-black text-sm sm:text-base text-[#F4F2EC] truncate">
-                        {status.product.title}
+                        {status.booking?.bookingTypeName || status.product.title}
                       </h3>
                     </div>
                   </div>
+
+                  {status.booking && (
+                    <div className="bg-[#12141c] p-3 rounded-xl border border-white/5 space-y-1.5 text-xs text-[#F4F2EC]">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span>
+                          {new Date(status.booking.startTime).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                            timeZone: status.booking.timezone || 'UTC',
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span>
+                          {new Date(status.booking.startTime).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            timeZone: status.booking.timezone || 'UTC',
+                          })}{' '}
+                          –{' '}
+                          {new Date(status.booking.endTime).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            timeZone: status.booking.timezone || 'UTC',
+                          })}{' '}
+                          ({status.booking.timezone})
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="border-t border-white/10 pt-3 flex items-center justify-between text-xs font-bold">
                     <span className="text-[rgba(244,242,236,0.68)] font-medium">Total Paid</span>
@@ -151,7 +194,18 @@ function SuccessInner() {
 
               {/* Actions */}
               <div className="space-y-3 pt-1">
-                {status?.downloadUrl ? (
+                {status?.booking?.meetingUrl ? (
+                  <a
+                    href={status.booking.meetingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full"
+                  >
+                    <Button className="w-full h-14 font-black text-base bg-primary hover:bg-primary-hover text-[#000000] rounded-2xl shadow-lg shadow-primary/20 active:scale-[0.99] transition-all gap-2 border-0">
+                      <Video className="h-5 w-5 stroke-[2.5]" /> Join Google Meet
+                    </Button>
+                  </a>
+                ) : status?.downloadUrl ? (
                   <a
                     href={status.downloadUrl}
                     target="_blank"
@@ -166,14 +220,49 @@ function SuccessInner() {
                 ) : (
                   <Link href="/">
                     <Button className="w-full h-14 font-black text-base bg-primary hover:bg-primary-hover text-[#000000] rounded-2xl shadow-lg shadow-primary/20 active:scale-[0.99] transition-all gap-2 border-0">
-                      Access Product <ArrowRight className="h-5 w-5 stroke-[2.5]" />
+                      Return to Store <ArrowRight className="h-5 w-5 stroke-[2.5]" />
                     </Button>
                   </Link>
                 )}
 
+                {status?.booking && (
+                  <div className="flex gap-2">
+                    <a
+                      href={createGoogleCalendarUrl({
+                        title: status.booking.bookingTypeName || status.product?.title || '1:1 Coaching',
+                        description: `Coaching session with creator. Meeting URL: ${status.booking.meetingUrl || ''}`,
+                        location: status.booking.meetingUrl || status.booking.locationText || 'Google Meet',
+                        startTime: status.booking.startTime,
+                        endTime: status.booking.endTime,
+                      })}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1"
+                    >
+                      <Button variant="outline" className="w-full bg-[#12141c] hover:bg-[#1e222d] text-[#F4F2EC] border-white/10 rounded-xl text-xs font-bold gap-1.5 h-11">
+                        <Calendar className="h-3.5 w-3.5 text-primary" /> Google Calendar
+                      </Button>
+                    </a>
+                    <Button
+                      variant="outline"
+                      onClick={() => downloadIcsFile({
+                        title: status.booking.bookingTypeName || status.product?.title || '1:1 Coaching',
+                        description: `Coaching session with creator. Meeting URL: ${status.booking.meetingUrl || ''}`,
+                        location: status.booking.meetingUrl || status.booking.locationText || 'Google Meet',
+                        startTime: status.booking.startTime,
+                        endTime: status.booking.endTime,
+                        filename: 'coaching-session.ics',
+                      })}
+                      className="flex-1 bg-[#12141c] hover:bg-[#1e222d] text-[#F4F2EC] border-white/10 rounded-xl text-xs font-bold gap-1.5 h-11"
+                    >
+                      <Download className="h-3.5 w-3.5 text-primary" /> Download .ics
+                    </Button>
+                  </div>
+                )}
+
                 <div className="bg-[#0D261A]/80 border border-emerald-800/60 text-emerald-400 text-xs font-semibold px-4 py-3 rounded-xl flex items-center justify-center gap-2 shadow-xs">
                   <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>Order details & access sent to your email</span>
+                  <span>Order details & confirmation sent to your email</span>
                 </div>
 
                 <div className="pt-1">
