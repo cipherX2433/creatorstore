@@ -23,8 +23,8 @@ import {
 } from '@/lib/navigationConfig'
 import {
   LayoutDashboard, Store, Package, CreditCard, Compass, Bot,
-  Users, Link2, Palette, ChevronRight,
-  Loader2, ExternalLink, Menu, X,
+  Users, Link2, Palette, ChevronRight, ChevronDown,
+  Loader2, ExternalLink, Menu, X, HelpCircle, Megaphone,
   Wallet, Clock, Calendar, Zap, ShoppingBag
 } from 'lucide-react'
 
@@ -45,8 +45,8 @@ function DashboardContent({ children }) {
   const { pricingModalOpen, setPricingModalOpen } = useDashboardHeader()
 
   const [isHovered, setIsHovered] = useState(false)
-  const [myStoreOpen, setMyStoreOpen] = useState(true)
-  const [earnOpen, setEarnOpen] = useState(true)
+  const [myStoreOpen, setMyStoreOpen] = useState(() => pathname.startsWith('/dashboard/store') || pathname.startsWith('/dashboard/products'))
+  const [earnOpen, setEarnOpen] = useState(() => pathname === '/dashboard' || pathname.startsWith('/dashboard/earn') || pathname.startsWith('/dashboard/orders'))
   const [availableEarnings, setAvailableEarnings] = useState(null)
   const [unreadFormsCount, setUnreadFormsCount] = useState(0)
   const [moreDrawerOpen, setMoreDrawerOpen] = useState(false)
@@ -110,11 +110,12 @@ function DashboardContent({ children }) {
         <aside
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
-          className={`hidden md:flex absolute top-0 bottom-0 left-0 z-40 bg-[#F2F1EF] border-r border-[#E5E5E3] flex-col transition-all duration-200 ease-out shadow-[4px_0_24px_rgba(0,0,0,0.02)] rounded-tl-[20px] md:rounded-tl-[24px] overflow-hidden ${isHovered ? 'w-[248px]' : 'w-[72px]'
-            }`}
+          className={`hidden md:flex absolute top-0 bottom-0 left-0 z-40 bg-[#F2F1EF] border-r border-[#E5E5E3] flex-col transition-all duration-200 ease-out shadow-[4px_0_24px_rgba(0,0,0,0.02)] rounded-tl-[20px] md:rounded-tl-[24px] overflow-hidden ${
+            isHovered ? 'w-[248px]' : 'w-[72px]'
+          }`}
         >
           {/* Profile / Account Row */}
-          <div className="pt-2 px-3 pb-1 shrink-0 bg-[#F2F1EF]">
+          <div className="pt-2.5 px-2.5 pb-1 shrink-0 bg-[#F2F1EF]">
             <SidebarProfileRow
               me={me}
               onLogout={logout}
@@ -124,7 +125,7 @@ function DashboardContent({ children }) {
           </div>
 
           {/* Sidebar Navigation */}
-          <nav className="flex-1 overflow-y-auto no-scrollbar py-1 px-3 space-y-1.5">
+          <nav className="flex-1 min-h-0 overflow-y-auto no-scrollbar py-1 px-2.5 space-y-[2px]">
 
             {/* MY STORE COLLAPSIBLE SECTION */}
             <div>
@@ -132,34 +133,42 @@ function DashboardContent({ children }) {
                 <Link
                   href="/dashboard/store"
                   onClick={handleNavClick}
-                  className={`group relative flex items-center h-[48px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
-                    isHovered ? 'px-3 rounded-[12px]' : 'justify-center mx-0.5 rounded-[12px]'
+                  className={`group relative flex items-center h-[44px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
+                    isHovered ? 'px-2.5 rounded-[10px]' : 'justify-center mx-0.5 rounded-[10px]'
                   } ${
                     isStoreActive && (!myStoreOpen || !isHovered)
-                      ? 'bg-[#E5E4E1] text-[#1F1F1F] font-medium'
+                      ? 'bg-[#E5E4E1] text-[#1F1F1F] font-semibold'
+                      : isHovered && myStoreOpen
+                      ? 'bg-[#EAE9E6] text-[#1F1F1F] font-medium'
                       : 'text-[#5F5F5F] hover:bg-[#EAE9E6] hover:text-[#1F1F1F]'
                   }`}
                 >
-                  <div className="w-6 min-w-[24px] max-w-[24px] h-6 flex items-center justify-center shrink-0">
-                    <Store className={`h-[21px] w-[21px] stroke-[1.8] shrink-0 ${
-                      isStoreActive && (!myStoreOpen || !isHovered) ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'
+                  <div className="w-5.5 min-w-[22px] max-w-[22px] h-5.5 flex items-center justify-center shrink-0">
+                    <Store className={`h-5 w-5 stroke-[1.8] shrink-0 ${
+                      (isStoreActive && (!myStoreOpen || !isHovered)) || (isHovered && myStoreOpen)
+                        ? 'text-[#1F1F1F]'
+                        : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'
                     }`} />
                   </div>
 
                   {isHovered ? (
                     <>
-                      <span className={`ml-3.5 text-[16px] leading-none whitespace-nowrap tracking-[-0.01em] ${
-                        isStoreActive && (!myStoreOpen || !isHovered) ? 'font-medium text-[#1F1F1F]' : 'font-[450] text-[#5F5F5F] group-hover:text-[#1F1F1F]'
+                      <span className={`ml-2.5 text-[15px] leading-none whitespace-nowrap tracking-[-0.01em] ${
+                        isStoreActive && (!myStoreOpen || !isHovered)
+                          ? 'font-semibold text-[#1F1F1F]'
+                          : isHovered && myStoreOpen
+                          ? 'font-medium text-[#1F1F1F]'
+                          : 'font-medium text-[#5F5F5F] group-hover:text-[#1F1F1F]'
                       }`}>
                         My Store
                       </span>
                       <button
                         type="button"
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMyStoreOpen(!myStoreOpen) }}
-                        className="ml-auto p-1 text-[#999995] hover:text-[#1F1F1F] cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 rounded-md"
+                        className="ml-auto p-1 text-[#8C8C88] hover:text-[#1F1F1F] cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 rounded-md"
                         aria-label="Toggle My Store submenu"
                       >
-                        <ChevronRight className={`h-4.5 w-4.5 transition-transform duration-200 ${myStoreOpen ? 'rotate-90 text-[#1F1F1F]' : ''}`} />
+                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${myStoreOpen ? 'rotate-180 text-[#1F1F1F]' : 'text-[#8C8C88]'}`} />
                       </button>
                     </>
                   ) : (
@@ -170,7 +179,7 @@ function DashboardContent({ children }) {
 
               {/* MY STORE Child Items */}
               {isHovered && myStoreOpen && (
-                <div className="ml-[23px] pl-3 border-l border-[#E5E5E3] space-y-1 my-1">
+                <div className="ml-[20px] pl-2.5 border-l border-[#DCDAD6] space-y-[2px] my-1">
                   {MY_STORE_CHILDREN.map((child) => {
                     let active = false
                     if (child.label === 'Store') active = pathname === '/dashboard/store' && currentTab !== 'design'
@@ -183,13 +192,13 @@ function DashboardContent({ children }) {
                         key={child.label}
                         href={child.href}
                         onClick={handleNavClick}
-                        className={`group flex items-center gap-2.5 px-3 h-[40px] rounded-[10px] text-[14.5px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
+                        className={`group flex items-center gap-2.5 px-2.5 h-[36px] rounded-[8px] text-[14px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
                           active
-                            ? 'bg-[#E5E4E1] text-[#1F1F1F] font-medium'
-                            : 'text-[#5F5F5F] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] font-[420]'
+                            ? 'bg-[#E5E4E1] text-[#1F1F1F] font-semibold'
+                            : 'text-[#5F5F5F] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] font-medium'
                         }`}
                       >
-                        <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`} />
+                        <Icon className={`h-[17.5px] w-[17.5px] stroke-[1.8] shrink-0 ${active ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`} />
                         <span className="whitespace-nowrap">{child.label}</span>
                       </Link>
                     )
@@ -204,34 +213,42 @@ function DashboardContent({ children }) {
                 <Link
                   href="/dashboard"
                   onClick={handleNavClick}
-                  className={`group relative flex items-center h-[48px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
-                    isHovered ? 'px-3 rounded-[12px]' : 'justify-center mx-0.5 rounded-[12px]'
+                  className={`group relative flex items-center h-[44px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
+                    isHovered ? 'px-2.5 rounded-[10px]' : 'justify-center mx-0.5 rounded-[10px]'
                   } ${
                     isEarnActive && (!earnOpen || !isHovered)
-                      ? 'bg-[#E5E4E1] text-[#1F1F1F] font-medium'
+                      ? 'bg-[#E5E4E1] text-[#1F1F1F] font-semibold'
+                      : isHovered && earnOpen
+                      ? 'bg-[#EAE9E6] text-[#1F1F1F] font-medium'
                       : 'text-[#5F5F5F] hover:bg-[#EAE9E6] hover:text-[#1F1F1F]'
                   }`}
                 >
-                  <div className="w-6 min-w-[24px] max-w-[24px] h-6 flex items-center justify-center shrink-0">
-                    <Wallet className={`h-[21px] w-[21px] stroke-[1.8] shrink-0 ${
-                      isEarnActive && (!earnOpen || !isHovered) ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'
+                  <div className="w-5.5 min-w-[22px] max-w-[22px] h-5.5 flex items-center justify-center shrink-0">
+                    <Wallet className={`h-5 w-5 stroke-[1.8] shrink-0 ${
+                      (isEarnActive && (!earnOpen || !isHovered)) || (isHovered && earnOpen)
+                        ? 'text-[#1F1F1F]'
+                        : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'
                     }`} />
                   </div>
 
                   {isHovered ? (
                     <>
-                      <span className={`ml-3.5 text-[16px] leading-none whitespace-nowrap tracking-[-0.01em] ${
-                        isEarnActive && (!earnOpen || !isHovered) ? 'font-medium text-[#1F1F1F]' : 'font-[450] text-[#5F5F5F] group-hover:text-[#1F1F1F]'
+                      <span className={`ml-2.5 text-[15px] leading-none whitespace-nowrap tracking-[-0.01em] ${
+                        isEarnActive && (!earnOpen || !isHovered)
+                          ? 'font-semibold text-[#1F1F1F]'
+                          : isHovered && earnOpen
+                          ? 'font-medium text-[#1F1F1F]'
+                          : 'font-medium text-[#5F5F5F] group-hover:text-[#1F1F1F]'
                       }`}>
                         Earn
                       </span>
                       <button
                         type="button"
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEarnOpen(!earnOpen) }}
-                        className="ml-auto p-1 text-[#999995] hover:text-[#1F1F1F] cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 rounded-md"
+                        className="ml-auto p-1 text-[#8C8C88] hover:text-[#1F1F1F] cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 rounded-md"
                         aria-label="Toggle Earn submenu"
                       >
-                        <ChevronRight className={`h-4.5 w-4.5 transition-transform duration-200 ${earnOpen ? 'rotate-90 text-[#1F1F1F]' : ''}`} />
+                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${earnOpen ? 'rotate-180 text-[#1F1F1F]' : 'text-[#8C8C88]'}`} />
                       </button>
                     </>
                   ) : (
@@ -242,7 +259,7 @@ function DashboardContent({ children }) {
 
               {/* EARN Child Items */}
               {isHovered && earnOpen && (
-                <div className="ml-[23px] pl-3 border-l border-[#E5E5E3] space-y-1 my-1">
+                <div className="ml-[20px] pl-2.5 border-l border-[#DCDAD6] space-y-[2px] my-1">
                   {EARN_CHILDREN.map((child) => {
                     let active = false
                     if (child.label === 'Insights') active = pathname === '/dashboard'
@@ -255,20 +272,20 @@ function DashboardContent({ children }) {
                         key={child.href}
                         href={child.href}
                         onClick={handleNavClick}
-                        className={`group flex items-center justify-between px-3 h-[40px] rounded-[10px] text-[14.5px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
+                        className={`group flex items-center justify-between px-2.5 h-[36px] rounded-[8px] text-[14px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
                           active
-                            ? 'bg-[#E5E4E1] text-[#1F1F1F] font-medium'
-                            : 'text-[#5F5F5F] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] font-[420]'
+                            ? 'bg-[#E5E4E1] text-[#1F1F1F] font-semibold'
+                            : 'text-[#5F5F5F] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] font-medium'
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           {Icon && (
-                            <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`} />
+                            <Icon className={`h-[17.5px] w-[17.5px] stroke-[1.8] shrink-0 ${active ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`} />
                           )}
                           <span className="whitespace-nowrap truncate">{child.label}</span>
                         </div>
                         {child.label === 'Earnings' && (
-                          <span className="ml-auto text-[12px] font-medium text-[#4A4A48] bg-[#E0DFDC] px-2.5 py-0.5 rounded-full shrink-0">
+                          <span className="ml-auto text-[11.5px] font-medium text-[#4A4A48] bg-[#E0DFDC] px-2 py-0.5 rounded-full shrink-0">
                             {formatMoney(availableEarnings ?? 0)}
                           </span>
                         )}
@@ -281,15 +298,15 @@ function DashboardContent({ children }) {
 
             {/* SECTION LABEL: TOOLS */}
             {isHovered ? (
-              <div className="pt-[18px] pb-1 px-3 text-[13px] font-medium text-[#7A7A75] select-none tracking-normal">
+              <div className="pt-3 pb-1 px-2.5 text-[12px] font-semibold text-[#8C8C88] select-none tracking-normal uppercase">
                 Tools
               </div>
             ) : (
-              <div className="h-3" />
+              <div className="h-[1px] bg-[#E5E5E3] mx-2.5 my-2" />
             )}
 
             {/* OTHER PRIMARY NAVIGATION ITEMS */}
-            <div className="space-y-1.5">
+            <div className="space-y-[2px]">
               {OTHER_PRIMARY_NAV.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(item.href)
                 const Icon = item.icon
@@ -300,21 +317,21 @@ function DashboardContent({ children }) {
                     <Link
                       href={item.href}
                       onClick={handleNavClick}
-                      className={`group relative flex items-center h-[48px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
-                        isHovered ? 'px-3 rounded-[12px]' : 'justify-center mx-0.5 rounded-[12px]'
+                      className={`group relative flex items-center h-[44px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
+                        isHovered ? 'px-2.5 rounded-[10px]' : 'justify-center mx-0.5 rounded-[10px]'
                       } ${
                         active
-                          ? 'bg-[#E5E4E1] text-[#1F1F1F] font-medium'
+                          ? 'bg-[#E5E4E1] text-[#1F1F1F] font-semibold'
                           : 'text-[#5F5F5F] hover:bg-[#EAE9E6] hover:text-[#1F1F1F]'
                       }`}
                     >
-                      <div className="w-6 min-w-[24px] max-w-[24px] h-6 flex items-center justify-center shrink-0">
-                        <Icon className={`h-[21px] w-[21px] stroke-[1.8] shrink-0 ${active ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`} />
+                      <div className="w-5.5 min-w-[22px] max-w-[22px] h-5.5 flex items-center justify-center shrink-0">
+                        <Icon className={`h-5 w-5 stroke-[1.8] shrink-0 ${active ? 'text-[#1F1F1F]' : 'text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`} />
                       </div>
 
                       {isHovered && (
                         <>
-                          <span className={`ml-3.5 text-[16px] leading-none whitespace-nowrap tracking-[-0.01em] truncate min-w-0 pr-2 ${active ? 'font-medium text-[#1F1F1F]' : 'font-[450] text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`}>
+                          <span className={`ml-2.5 text-[15px] leading-none whitespace-nowrap tracking-[-0.01em] truncate min-w-0 pr-2 ${active ? 'font-semibold text-[#1F1F1F]' : 'font-medium text-[#5F5F5F] group-hover:text-[#1F1F1F]'}`}>
                             {item.label}
                           </span>
                           {isAutomations && (
@@ -341,8 +358,50 @@ function DashboardContent({ children }) {
 
           </nav>
 
-          {/* BOTTOM SETUP AREA */}
+          {/* BOTTOM SETUP AREA (SETUP CHECKLIST CARD) */}
           <SidebarTaskProgress collapsed={!isHovered} onNavClick={handleNavClick} />
+
+          {/* BOTTOM UTILITY ACTIONS */}
+          <div className={`mt-auto shrink-0 border-t border-[#E5E5E3]/80 flex items-center bg-[#F2F1EF] transition-all ${
+            isHovered ? 'h-[42px] px-3 justify-between' : 'h-[42px] justify-center'
+          }`}>
+            {isHovered ? (
+              <>
+                <Link
+                  href="/dashboard/help"
+                  onClick={handleNavClick}
+                  className="p-1.5 rounded-[8px] text-[#71717A] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] transition-colors outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20"
+                  title="Help & Support"
+                  aria-label="Help & Support"
+                >
+                  <HelpCircle className="h-5 w-5 stroke-[1.8]" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const email = 'support@creatorstore.app'
+                    const subject = encodeURIComponent('CreatorStore Feedback')
+                    window.open(`mailto:${email}?subject=${subject}`, '_blank')
+                  }}
+                  className="p-1.5 rounded-[8px] text-[#71717A] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] transition-colors cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20"
+                  title="Feedback"
+                  aria-label="Feedback"
+                >
+                  <Megaphone className="h-5 w-5 stroke-[1.8]" />
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/dashboard/help"
+                onClick={handleNavClick}
+                className="p-1.5 rounded-[8px] text-[#71717A] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] transition-colors outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20"
+                title="Help & Support"
+                aria-label="Help & Support"
+              >
+                <HelpCircle className="h-5 w-5 stroke-[1.8]" />
+              </Link>
+            )}
+          </div>
         </aside>
 
         {/* MAIN CONTENT CANVAS */}
