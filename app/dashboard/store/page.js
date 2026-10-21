@@ -5711,14 +5711,15 @@ function DesignStudioPage({
 
   const previewStore = useMemo(() => {
     if (!store) return {}
+    const activeTheme = store.theme || {}
     return {
       ...store,
       theme: {
-        ...(savedTheme || store.theme || {}),
-        showFooterBranding: canRemoveFooterBranding ? ((savedTheme || store.theme)?.showFooterBranding ?? true) : true,
+        ...activeTheme,
+        showFooterBranding: canRemoveFooterBranding ? (activeTheme.showFooterBranding ?? true) : true,
       },
     }
-  }, [store, savedTheme, canRemoveFooterBranding])
+  }, [store, canRemoveFooterBranding])
 
   const handleSuggestThemeMatch = async (imgUrl) => {
     if (!imgUrl) return
