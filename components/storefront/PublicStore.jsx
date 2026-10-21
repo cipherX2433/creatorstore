@@ -122,66 +122,57 @@ export default function PublicStore({ data, currentPageSlug: initialPageSlug }) 
           className="relative w-full max-w-[510px] rounded-[32px] overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.45)] ring-1 ring-black/20 shrink-0"
           style={{ backgroundColor: isImmersive ? (contrastTheme?.bg || '#1E2532') : undefined }}
         >
-          <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between p-card pointer-events-none">
-            <Link
-              href="/"
-              aria-label="CreatorStore"
-              className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-[#1A1A1A] text-[#D4D4D8] hover:bg-[#242424] transition-colors"
-              style={
-                isImmersive
-                  ? {
-                      backgroundColor: contrastTheme.controlBg,
-                      color: contrastTheme.controlFg,
-                      border: `1px solid ${contrastTheme.controlBorder}`,
-                      backdropFilter: 'blur(8px)',
-                    }
-                  : undefined
-              }
-            >
-              <Sparkles className="h-4 w-4" />
-            </Link>
-            <div className="flex items-center gap-2 pointer-events-auto">
-              {(hasContactDetails || allowContactShare) && (
-                <button
-                  type="button"
-                  onClick={() => setContactModalOpen(true)}
-                  aria-label="Contact creator"
-                  className="flex items-center gap-1.5 px-3 h-9 rounded-full bg-[#1A1A1A] text-[#D4D4D8] hover:bg-[#242424] text-xs font-semibold transition-colors cursor-pointer"
-                  style={
-                    isImmersive
-                      ? {
-                          backgroundColor: contrastTheme.controlBg,
-                          color: contrastTheme.controlFg,
-                          border: `1px solid ${contrastTheme.controlBorder}`,
-                          backdropFilter: 'blur(8px)',
-                        }
-                      : undefined
-                  }
-                >
-                  <Mail className="h-3.5 w-3.5" />
-                  <span>Contact</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={handleShare}
-                aria-label="Share store"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1A1A1A] text-[#D4D4D8] hover:bg-[#242424] transition-colors cursor-pointer"
-                style={
-                  isImmersive
-                    ? {
-                        backgroundColor: contrastTheme.controlBg,
-                        color: contrastTheme.controlFg,
-                        border: `1px solid ${contrastTheme.controlBorder}`,
-                        backdropFilter: 'blur(8px)',
-                      }
-                    : undefined
+          {(() => {
+            const semantic = tokens?.semantic || {}
+            const controlStyle = isImmersive
+              ? {
+                  backgroundColor: contrastTheme.controlBg,
+                  color: contrastTheme.controlFg,
+                  border: `1px solid ${contrastTheme.controlBorder}`,
+                  backdropFilter: 'blur(8px)',
                 }
-              >
-                <Share2 className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+              : {
+                  backgroundColor: semantic.surfaceElevated || semantic.surfaceBackground || '#1A1A1A',
+                  color: semantic.primaryText || '#D4D4D8',
+                  border: `1px solid ${semantic.borderColor || 'rgba(255,255,255,0.1)'}`,
+                  boxShadow: semantic.cardShadow,
+                }
+            return (
+              <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between p-card pointer-events-none">
+                <Link
+                  href="/"
+                  aria-label="CreatorStore"
+                  className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 hover:scale-105"
+                  style={controlStyle}
+                >
+                  <Sparkles className="h-4 w-4" />
+                </Link>
+                <div className="flex items-center gap-2 pointer-events-auto">
+                  {(hasContactDetails || allowContactShare) && (
+                    <button
+                      type="button"
+                      onClick={() => setContactModalOpen(true)}
+                      aria-label="Contact creator"
+                      className="flex items-center gap-1.5 px-3 h-9 rounded-full text-xs font-semibold transition-all duration-200 hover:scale-105 cursor-pointer"
+                      style={controlStyle}
+                    >
+                      <Mail className="h-3.5 w-3.5" />
+                      <span>Contact</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    aria-label="Share store"
+                    className="flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 hover:scale-105 cursor-pointer"
+                    style={controlStyle}
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )
+          })()}
 
           <PublicStoreRenderer
             store={{

@@ -28,7 +28,7 @@ export default function StorefrontMediaCard({
 
   const { colors = {}, buttons = {}, cards = {} } = tokens
   const bgHex = colors.background || colors.bg || '#0A0A0A'
-  const surfaceTheme = useMemo(() => getContrastColor(bgHex), [bgHex])
+  const surfaceTheme = useMemo(() => getContrastColor(bgHex, tokens), [bgHex, tokens])
   const isLight = surfaceTheme.isLight ?? false
 
   // Resource CTA Button dynamic contrast calculation

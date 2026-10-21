@@ -19,7 +19,7 @@ export default function StorefrontFormCard({ section, tokens = {}, editor = fals
   const { colors = {}, buttons = {} } = tokens
   const bgHex = colors.background || colors.bg || '#0A0A0A'
   
-  const surfaceTheme = useMemo(() => getContrastColor(bgHex), [bgHex])
+  const surfaceTheme = useMemo(() => getContrastColor(bgHex, tokens), [bgHex, tokens])
 
   // Form state
   const [name, setName] = useState('')

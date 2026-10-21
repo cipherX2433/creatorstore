@@ -136,7 +136,7 @@ function ProductThumbnail({ thumbnail, title, type = 'DIGITAL', aspect = 'aspect
               ? 'bg-stone-200 text-stone-500'
               : theme === 'creator'
                 ? 'bg-slate-900 border border-slate-800 text-[rgba(244,242,236,0.5)]'
-                : 'bg-slate-100 border border-white/10 text-[rgba(244,242,236,0.5)]'
+                : 'bg-slate-100 border border-slate-200 text-slate-500'
           } ${className}`}
       >
         {isCoaching ? (
@@ -185,9 +185,10 @@ export function StorefrontFooter({ editor = false, showBranding = true, tokens }
   if (showBranding === false) return null
 
   const isLight = tokens?.contrast?.isLight ?? false
-  const textColor = tokens?.colors?.text || (isLight ? '#0F172A' : '#FFFFFF')
-  const btnBg = isLight ? '#F4F4F4' : '#1A1A1A'
-  const btnBorder = isLight ? '#E5E5E5' : '#2E2E2E'
+  const semantic = tokens?.semantic || {}
+  const textColor = semantic.primaryText || tokens?.colors?.text || (isLight ? '#0F172A' : '#FFFFFF')
+  const btnBg = semantic.surfaceElevated || semantic.surfaceBackground || (isLight ? '#F4F4F4' : '#1A1A1A')
+  const btnBorder = semantic.borderColor || (isLight ? '#E5E5E5' : '#2E2E2E')
 
   return (
     <footer className="pt-8 pb-6 flex flex-col items-center justify-center gap-2 text-center shrink-0 w-full">
@@ -1016,9 +1017,17 @@ function SectionsStack({ sections, tokens, profile, products, username, editor, 
 }
 
 function SectionRenderer({ section, tokens, profile, products, username, editor, device, store, collectionProductIds, onProductClick, onGalleryClick }) {
-  const { colors, typography, layout, cards, buttons, profile: profileTokens, social } = tokens
+  const { colors, typography, layout, cards, buttons, profile: profileTokens, social, semantic = {} } = tokens
   const align = section.props?.align || 'center'
   const alignClass = align === 'left' ? 'text-left items-start' : align === 'right' ? 'text-right items-end' : 'text-center items-center'
+
+  const cardBg = semantic.surfaceBackground || cards.bg || '#12141C'
+  const cardBorder = semantic.borderColor ? `1px solid ${semantic.borderColor}` : (cards.border || '1px solid rgba(255,255,255,0.1)')
+  const cardShadow = semantic.cardShadow || cards.shadow || '0 8px 24px 0 rgba(0, 0, 0, 0.25)'
+  const cardRadius = `${cards.radius || 16}px`
+  const primaryText = semantic.primaryText || colors.text || '#FFFFFF'
+  const secondaryText = semantic.secondaryText || colors.mutedText || 'rgba(255,255,255,0.68)'
+  const mutedText = semantic.mutedText || colors.mutedText || 'rgba(255,255,255,0.5)'
 
   switch (section.type) {
     case 'profile':
@@ -1072,8 +1081,8 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       if (isFeatured) {
         const card = (
           <div
-            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card space-y-2.5"
-            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+            className="overflow-hidden space-y-2.5 transition-all duration-200"
+            style={{ borderRadius: cardRadius, border: cardBorder, backgroundColor: cardBg, boxShadow: cardShadow }}
           >
             <div className="aspect-[2.1/1] w-full overflow-hidden bg-slate-900">
               {media.type === 'image' ? (
@@ -1086,8 +1095,8 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
             </div>
             <div className="px-4 pb-4 space-y-2.5">
               <div className="space-y-0.5">
-                <h3 className="text-sm sm:text-base font-bold text-white">{label}</h3>
-                {url && url !== '#' && <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">{url}</p>}
+                <h3 className="text-sm sm:text-base font-bold" style={{ color: primaryText }}>{label}</h3>
+                {url && url !== '#' && <p className="text-xs truncate" style={{ color: mutedText }}>{url}</p>}
               </div>
               <StyledButton label="OPEN →" tokens={tokens} fullWidth />
             </div>
@@ -1138,8 +1147,8 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
 
         const card = (
           <div
-            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card space-y-2.5"
-            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+            className="overflow-hidden space-y-2.5 transition-all duration-200"
+            style={{ borderRadius: cardRadius, border: cardBorder, backgroundColor: cardBg, boxShadow: cardShadow }}
           >
             <div className="aspect-[2.1/1] w-full overflow-hidden bg-slate-900 relative flex items-center justify-center">
               {postImg ? (
@@ -1158,11 +1167,11 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
             </div>
             <div className="px-4 pb-4 space-y-2.5">
               <div className="space-y-0.5">
-                <h3 className="text-sm sm:text-base font-bold text-white">{label}</h3>
+                <h3 className="text-sm sm:text-base font-bold" style={{ color: primaryText }}>{label}</h3>
                 {post?.caption ? (
-                  <p className="text-xs text-[rgba(244,242,236,0.6)] line-clamp-2">{post.caption}</p>
+                  <p className="text-xs line-clamp-2" style={{ color: secondaryText }}>{post.caption}</p>
                 ) : url && url !== '#' ? (
-                  <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">{url.replace(/^https?:\/\//, '')}</p>
+                  <p className="text-xs truncate" style={{ color: mutedText }}>{url.replace(/^https?:\/\//, '')}</p>
                 ) : null}
               </div>
               <StyledButton label={hasRealPost ? 'View on Instagram' : `Follow on ${platform.name}`} tokens={tokens} fullWidth />
@@ -1181,8 +1190,8 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       if (style === 'grid') {
         const gridCard = (
           <div
-            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card p-3.5 space-y-3"
-            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+            className="overflow-hidden p-3.5 space-y-3 transition-all duration-200"
+            style={{ borderRadius: cardRadius, border: cardBorder, backgroundColor: cardBg, boxShadow: cardShadow }}
           >
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -1193,14 +1202,14 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
                   <PlatformIcon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-white truncate">{label}</h3>
-                  <p className="text-[11px] text-[rgba(244,242,236,0.5)] truncate">
+                  <h3 className="text-sm font-bold truncate" style={{ color: primaryText }}>{label}</h3>
+                  <p className="text-[11px] truncate" style={{ color: mutedText }}>
                     {isInstagram && isIgConnected ? `@${igUsername}` : (url && url !== '#' ? url.replace(/^https?:\/\//, '') : platform.name)}
                   </p>
                 </div>
               </div>
               {isInstagram && isIgConnected && (
-                <span className="text-[11px] text-[rgba(244,242,236,0.4)]">
+                <span className="text-[11px]" style={{ color: mutedText }}>
                   {igMedia.length} posts
                 </span>
               )}
@@ -1215,29 +1224,30 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
                       href={item.permalink || targetUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="aspect-square rounded-lg overflow-hidden bg-slate-900 border border-white/10 relative flex items-center justify-center group/item block"
+                      className="aspect-square rounded-lg overflow-hidden relative flex items-center justify-center group/item block transition-transform duration-200"
+                      style={{ backgroundColor: semantic.surfaceElevated || '#1E293B', border: cardBorder }}
                     >
                       <img src={item.thumbnailUrl || item.mediaUrl} alt={item.caption || 'Instagram Post'} className="w-full h-full object-cover group-hover/item:scale-105 transition-transform duration-200" />
                     </a>
                   ))}
                 </div>
               ) : (
-                <div className="aspect-[2/1] rounded-lg border border-dashed border-white/15 flex flex-col items-center justify-center p-3 text-center bg-white/5">
-                  <PlatformIcon className="h-6 w-6 text-white/40 mb-1" />
-                  <p className="text-xs text-[rgba(244,242,236,0.6)]">No Instagram posts found</p>
+                <div className="aspect-[2/1] rounded-lg border border-dashed flex flex-col items-center justify-center p-3 text-center" style={{ borderColor: semantic.borderColor || 'rgba(255,255,255,0.15)', backgroundColor: semantic.surfaceElevated || 'rgba(255,255,255,0.05)' }}>
+                  <PlatformIcon className="h-6 w-6 mb-1" style={{ color: mutedText }} />
+                  <p className="text-xs" style={{ color: secondaryText }}>No Instagram posts found</p>
                 </div>
               )
             ) : (
               <div className="grid grid-cols-2 gap-2">
-                <div className="aspect-square rounded-lg overflow-hidden bg-slate-900 border border-white/10 relative flex items-center justify-center">
+                <div className="aspect-square rounded-lg overflow-hidden relative flex items-center justify-center" style={{ backgroundColor: semantic.surfaceElevated || '#1E293B', border: cardBorder }}>
                   {thumbnail ? (
                     <img src={thumbnail} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <PlatformIcon className="h-8 w-8" style={{ color: platform.color }} />
                   )}
                 </div>
-                <div className="aspect-square rounded-lg overflow-hidden bg-slate-900/60 border border-white/10 flex flex-col items-center justify-center p-2 text-center">
-                  <p className="text-[11px] text-white/50">{platform.name} Feed</p>
+                <div className="aspect-square rounded-lg overflow-hidden flex flex-col items-center justify-center p-2 text-center" style={{ backgroundColor: semantic.surfaceElevated || '#1E293B', border: cardBorder }}>
+                  <p className="text-[11px]" style={{ color: mutedText }}>{platform.name} Feed</p>
                 </div>
               </div>
             )}
@@ -1257,8 +1267,8 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       if (style === 'carousel') {
         const carouselCard = (
           <div
-            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card p-3.5 space-y-3"
-            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+            className="overflow-hidden p-3.5 space-y-3 transition-all duration-200"
+            style={{ borderRadius: cardRadius, border: cardBorder, backgroundColor: cardBg, boxShadow: cardShadow }}
           >
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -1269,8 +1279,8 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
                   <PlatformIcon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-white truncate">{label}</h3>
-                  <p className="text-[11px] text-[rgba(244,242,236,0.5)] truncate">
+                  <h3 className="text-sm font-bold truncate" style={{ color: primaryText }}>{label}</h3>
+                  <p className="text-[11px] truncate" style={{ color: mutedText }}>
                     {isInstagram && isIgConnected ? `@${igUsername}` : (url && url !== '#' ? url.replace(/^https?:\/\//, '') : platform.name)}
                   </p>
                 </div>
@@ -1286,21 +1296,22 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
                       href={slide.permalink || targetUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-32 h-44 shrink-0 rounded-xl overflow-hidden bg-slate-900 border border-white/10 relative flex items-center justify-center group/slide block"
+                      className="w-32 h-44 shrink-0 rounded-xl overflow-hidden relative flex items-center justify-center group/slide block"
+                      style={{ backgroundColor: semantic.surfaceElevated || '#1E293B', border: cardBorder }}
                     >
                       <img src={slide.thumbnailUrl || slide.mediaUrl} alt={slide.caption || 'Instagram Post'} className="w-full h-full object-cover group-hover/slide:scale-105 transition-transform duration-200" />
                     </a>
                   ))}
                 </div>
               ) : (
-                <div className="h-32 w-full rounded-xl border border-dashed border-white/15 flex flex-col items-center justify-center p-3 text-center bg-white/5">
-                  <PlatformIcon className="h-6 w-6 text-white/40 mb-1" />
-                  <p className="text-xs text-[rgba(244,242,236,0.6)]">No Instagram posts found</p>
+                <div className="h-32 w-full rounded-xl border border-dashed flex flex-col items-center justify-center p-3 text-center" style={{ borderColor: semantic.borderColor || 'rgba(255,255,255,0.15)', backgroundColor: semantic.surfaceElevated || 'rgba(255,255,255,0.05)' }}>
+                  <PlatformIcon className="h-6 w-6 mb-1" style={{ color: mutedText }} />
+                  <p className="text-xs" style={{ color: secondaryText }}>No Instagram posts found</p>
                 </div>
               )
             ) : (
               <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
-                <div className="w-32 h-44 shrink-0 rounded-xl overflow-hidden bg-slate-900 border border-white/10 relative flex items-center justify-center">
+                <div className="w-32 h-44 shrink-0 rounded-xl overflow-hidden relative flex items-center justify-center" style={{ backgroundColor: semantic.surfaceElevated || '#1E293B', border: cardBorder }}>
                   {thumbnail ? (
                     <img src={thumbnail} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -1328,11 +1339,11 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
 
         const profileCard = (
           <div
-            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card p-4 space-y-3.5 text-center"
-            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+            className="overflow-hidden p-4 space-y-3.5 text-center transition-all duration-200"
+            style={{ borderRadius: cardRadius, border: cardBorder, backgroundColor: cardBg, boxShadow: cardShadow }}
           >
             <div className="relative inline-block mx-auto">
-              <div className="h-16 w-16 rounded-full overflow-hidden bg-slate-900 border-2 border-white/20 mx-auto flex items-center justify-center">
+              <div className="h-16 w-16 rounded-full overflow-hidden mx-auto flex items-center justify-center shadow-inner" style={{ backgroundColor: semantic.surfaceElevated || '#1E293B', border: cardBorder }}>
                 {profileImg ? (
                   <img src={profileImg} alt={profileName} className="w-full h-full object-cover" />
                 ) : (
@@ -1349,22 +1360,22 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
               </div>
             </div>
             <div className="space-y-0.5">
-              <h3 className="text-base font-bold text-white truncate">{profileName}</h3>
-              <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">
+              <h3 className="text-base font-bold truncate" style={{ color: primaryText }}>{profileName}</h3>
+              <p className="text-xs truncate" style={{ color: mutedText }}>
                 {isInstagram && isIgConnected ? `@${igUsername}` : (url && url !== '#' ? url.replace(/^https?:\/\//, '') : platform.name)}
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-2 py-2 border-y border-white/10">
+            <div className="grid grid-cols-3 gap-2 py-2" style={{ borderTop: cardBorder, borderBottom: cardBorder }}>
               <div className="text-center">
-                <div className="text-xs font-bold text-white">
+                <div className="text-xs font-bold" style={{ color: primaryText }}>
                   {isInstagram && isIgConnected
                     ? (typeof igProfile?.mediaCount === 'number' ? igProfile.mediaCount : (igMedia.length || 0))
                     : 'Feed'}
                 </div>
-                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">Posts</div>
+                <div className="text-[11px]" style={{ color: mutedText }}>Posts</div>
               </div>
               <div className="text-center">
-                <div className="text-xs font-bold text-white">
+                <div className="text-xs font-bold" style={{ color: primaryText }}>
                   {isInstagram && isIgConnected
                     ? (igProfile?.followersCount != null
                         ? Number(igProfile.followersCount).toLocaleString()
@@ -1373,10 +1384,10 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
                             : 'Unavailable'))
                     : platform.name}
                 </div>
-                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">Followers</div>
+                <div className="text-[11px]" style={{ color: mutedText }}>Followers</div>
               </div>
               <div className="text-center">
-                <div className="text-xs font-bold text-white">
+                <div className="text-xs font-bold" style={{ color: primaryText }}>
                   {isInstagram && isIgConnected
                     ? (igProfile?.followingCount != null
                         ? Number(igProfile.followingCount).toLocaleString()
@@ -1385,7 +1396,7 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
                             : 'Unavailable'))
                     : 'Profile'}
                 </div>
-                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">Following</div>
+                <div className="text-[11px]" style={{ color: mutedText }}>Following</div>
               </div>
             </div>
             <StyledButton label={`Follow on ${platform.name}`} tokens={tokens} fullWidth />
@@ -1408,10 +1419,10 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
 
         const singleCard = (
           <div
-            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card space-y-2.5"
-            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+            className="overflow-hidden space-y-2.5 transition-all duration-200"
+            style={{ borderRadius: cardRadius, border: cardBorder, backgroundColor: cardBg, boxShadow: cardShadow }}
           >
-            <div className="aspect-square w-full overflow-hidden bg-slate-900 relative flex items-center justify-center">
+            <div className="aspect-square w-full overflow-hidden relative flex items-center justify-center" style={{ backgroundColor: semantic.surfaceElevated || '#0F172A' }}>
               {postImg ? (
                 <img src={postImg} alt={label} className="w-full h-full object-cover" />
               ) : (
@@ -1428,11 +1439,11 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
             </div>
             <div className="px-4 pb-4 space-y-2.5">
               <div className="space-y-0.5">
-                <h3 className="text-sm sm:text-base font-bold text-white">{label}</h3>
+                <h3 className="text-sm sm:text-base font-bold" style={{ color: primaryText }}>{label}</h3>
                 {post?.caption ? (
-                  <p className="text-xs text-[rgba(244,242,236,0.6)] line-clamp-2">{post.caption}</p>
+                  <p className="text-xs line-clamp-2" style={{ color: secondaryText }}>{post.caption}</p>
                 ) : url && url !== '#' ? (
-                  <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">{url.replace(/^https?:\/\//, '')}</p>
+                  <p className="text-xs truncate" style={{ color: mutedText }}>{url.replace(/^https?:\/\//, '')}</p>
                 ) : null}
               </div>
               <StyledButton label={hasRealPost ? 'View on Instagram' : `View on ${platform.name}`} tokens={tokens} fullWidth />
@@ -1473,8 +1484,8 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
         />
       ) : (
         <div
-          className="flex aspect-video w-full items-center justify-center rounded-2xl border border-dashed border-white/10 text-sm font-medium text-[rgba(244,242,236,0.5)]"
-          style={{ borderRadius: `${cards.radius}px` }}
+          className="flex aspect-video w-full items-center justify-center rounded-2xl border border-dashed text-sm font-medium"
+          style={{ borderRadius: `${cards.radius}px`, border: cardBorder, backgroundColor: cardBg, color: mutedText }}
         >
           Add image URL
         </div>
@@ -1488,7 +1499,7 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
 
     case 'product': {
       const p = products.find((x) => x.id === section.props?.productId) || (section.props?.productId ? null : products[0])
-      if (!p) return <div className="rounded-2xl border border-dashed border-white/15 bg-surface-raised/30 p-6 text-center text-xs opacity-70">No products added yet.</div>
+      if (!p) return <div className="rounded-2xl border border-dashed p-6 text-center text-xs" style={{ border: cardBorder, backgroundColor: cardBg, color: secondaryText }}>No products added yet.</div>
 
       const productLayout = section.props?.layout || p.displayMode || 'classic'
       const isClassic = normalizeSectionLayout('product', productLayout) === 'classic'
@@ -1543,7 +1554,7 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
 
       if (!list.length) {
         return (
-          <div className="rounded-2xl border border-dashed border-white/15 bg-surface-raised/30 p-6 text-center text-xs opacity-70">
+          <div className="rounded-2xl border border-dashed p-6 text-center text-xs" style={{ border: cardBorder, backgroundColor: cardBg, color: secondaryText }}>
             No products added yet.
           </div>
         )
@@ -1575,10 +1586,11 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       const layout = (rawLayout === 'stack' || !rawLayout) ? 'list' : rawLayout
       const items = Array.isArray(section.props?.items) ? section.props.items : []
       const isLight = tokens?.contrast?.isLight ?? false
-      const cardBg = cards.bg || (isLight ? '#FFFFFF' : '#000000')
-      const cardTitleColor = getAccessibleTextColor(cardBg, null, 4.5)
-      const cardMutedColor = getAccessibleMutedTextColor(cardBg)
-      const cardBorder = cards.border || (isLight ? '1px solid rgba(0, 0, 0, 0.10)' : '1px solid #39414D')
+      const collSemantic = tokens?.semantic || {}
+      const cardBg = collSemantic.surfaceBackground || cards.bg || (isLight ? '#FFFFFF' : '#000000')
+      const cardTitleColor = collSemantic.primaryText || getAccessibleTextColor(cardBg, null, 4.5)
+      const cardMutedColor = collSemantic.mutedText || getAccessibleMutedTextColor(cardBg)
+      const cardBorder = collSemantic.borderColor ? `1px solid ${collSemantic.borderColor}` : (cards.border || (isLight ? '1px solid rgba(0, 0, 0, 0.10)' : '1px solid #39414D'))
 
       const renderCollectionItem = (item, idx) => {
         if (!item) return null
@@ -1648,8 +1660,11 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       if (!hasValidItems) {
         if (editor) {
           return (
-            <div className="w-full max-w-md mx-auto p-4 rounded-xl border border-dashed border-white/10 bg-[#000000] text-center text-xs font-medium text-[rgba(244,242,236,0.68)]">
-              <p className="font-bold text-white mb-1">{title}</p>
+            <div
+              className="w-full max-w-md mx-auto p-4 rounded-xl border border-dashed text-center text-xs font-medium"
+              style={{ backgroundColor: cardBg, borderColor: cardBorder, color: secondaryText }}
+            >
+              <p className="font-bold mb-1" style={{ color: primaryText }}>{title}</p>
               <p>Your collection is empty. Add products or links to group related content.</p>
             </div>
           )
@@ -1660,7 +1675,7 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       return (
         <div className="w-full max-w-md mx-auto space-y-3">
           {title && (
-            <div className="flex items-center gap-2 pb-1 border-b border-[#2E2E2E]/60">
+            <div className="flex items-center gap-2 pb-1" style={{ borderBottom: cardBorder }}>
               <Layers className="h-4 w-4 text-primary" />
               <h3
                 className="text-base sm:text-lg font-black tracking-tight"
@@ -1831,18 +1846,30 @@ function ProfileHeader({ profile, tokens, editor, username, store }) {
     <p className="text-xs sm:text-base leading-relaxed opacity-80 pt-1 break-words" style={{ color: colors.text }}>{bio}</p>
   ) : null
 
+  const igIconStyle = {
+    backgroundColor: tokens?.semantic?.surfaceElevated || tokens?.semantic?.surfaceBackground || '#1A1A1A',
+    borderColor: tokens?.semantic?.borderColor || '#2E2E2E',
+    borderWidth: 1,
+    borderStyle: 'solid',
+    color: tokens?.semantic?.iconColor || tokens?.semantic?.primaryText || '#D4D4D8',
+  }
+
   const igIcon = showIg ? (
     !editor && igHref ? (
       <a
         href={igHref}
         target="_blank"
         rel="noreferrer"
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#1A1A1A] border border-[#2E2E2E] text-[#D4D4D8]"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full transition-transform hover:scale-105"
+        style={igIconStyle}
       >
         <Instagram className="h-4 w-4" />
       </a>
     ) : (
-      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#1A1A1A] border border-[#2E2E2E] text-[#D4D4D8]">
+      <span
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full"
+        style={igIconStyle}
+      >
         <Instagram className="h-4 w-4" />
       </span>
     )
@@ -1976,9 +2003,9 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
 
   // 1. MINIMAL CARD (Minimal Theme)
   if (layout.productCardStyle === 'flat-minimal' || tokens.presetId === 'minimal') {
-    const cardBg = cards.bg || '#FFFFFF'
-    const cardTitleColor = getAccessibleTextColor(cardBg, null, 4.5)
-    const cardMutedColor = getAccessibleMutedTextColor(cardBg)
+    const cardBg = tokens?.semantic?.surfaceBackground || cards.bg || '#FFFFFF'
+    const cardTitleColor = tokens?.semantic?.primaryText || getAccessibleTextColor(cardBg, null, 4.5)
+    const cardMutedColor = tokens?.semantic?.mutedText || getAccessibleMutedTextColor(cardBg)
 
     return (
       <Wrapper>
@@ -2147,18 +2174,19 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
 
   // 5. CREATOR CLASSIC CARD (Creator Theme)
   const isLight = tokens?.contrast?.isLight ?? false
+  const semantic = tokens?.semantic || {}
   const cardBg = (header?.layout === 'immersive' && tokens?.contrast?.surface)
     ? tokens.contrast.surface
-    : (cards.bg || (isLight ? '#FFFFFF' : '#000000'))
+    : (semantic.surfaceBackground || cards.bg || (isLight ? '#FFFFFF' : '#000000'))
   const cardTitleColor = (header?.layout === 'immersive' && tokens?.contrast?.text)
     ? tokens.contrast.text
-    : getAccessibleTextColor(cardBg, null, 4.5)
+    : (semantic.primaryText || getAccessibleTextColor(cardBg, null, 4.5))
   const cardMutedColor = (header?.layout === 'immersive' && tokens?.contrast?.textSecondary)
     ? tokens.contrast.textSecondary
-    : getAccessibleMutedTextColor(cardBg)
+    : (semantic.mutedText || getAccessibleMutedTextColor(cardBg))
   const cardBorder = (header?.layout === 'immersive' && tokens?.contrast?.border)
     ? `1px solid ${tokens.contrast.border}`
-    : (cards.border || (isLight ? '1px solid rgba(0, 0, 0, 0.10)' : '1px solid #39414D'))
+    : (semantic.borderColor ? `1px solid ${semantic.borderColor}` : (cards.border || (isLight ? '1px solid rgba(0, 0, 0, 0.10)' : '1px solid #39414D')))
 
   return (
     <Wrapper>
@@ -2351,9 +2379,12 @@ function SocialLinks({ links = {}, socialStyle = 'pills', colors, tokens, editor
         const strVal = typeof val === 'string' ? val : ''
         const href = strVal.startsWith('http') ? strVal : `https://${strVal}`
 
-        let circleStyle = isLight
-          ? { background: '#F4F4F4', color: '#0F172A', border: '1px solid #E5E5E5' }
-          : { background: '#1A1A1A', color: '#D4D4D8', border: '1px solid #2E2E2E' }
+        const semantic = tokens?.semantic || {}
+        let circleStyle = {
+          background: semantic.surfaceElevated || (isLight ? '#F4F4F4' : '#1A1A1A'),
+          color: semantic.iconColor || semantic.primaryText || (isLight ? '#0F172A' : '#D4D4D8'),
+          border: `1px solid ${semantic.borderColor || (isLight ? '#E5E5E5' : '#2E2E2E')}`,
+        }
 
         if (socialStyle === 'filled-dark') {
           circleStyle = { background: '#1E293B', color: '#FFFFFF', border: 'none' }
