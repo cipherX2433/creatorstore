@@ -48,6 +48,7 @@ function DashboardContent({ children }) {
   const [myStoreOpen, setMyStoreOpen] = useState(true)
   const [earnOpen, setEarnOpen] = useState(true)
   const [availableEarnings, setAvailableEarnings] = useState(null)
+  const [unreadFormsCount, setUnreadFormsCount] = useState(0)
   const [moreDrawerOpen, setMoreDrawerOpen] = useState(false)
 
   // Auto-expand sections if matching route is active
@@ -64,7 +65,11 @@ function DashboardContent({ children }) {
     api.get('/payouts/dashboard')
       .then((res) => setAvailableEarnings(res?.overview?.availableEarnings ?? 0))
       .catch(() => setAvailableEarnings(0))
-  }, [])
+
+    api.get('/forms/unread-count')
+      .then((res) => setUnreadFormsCount(res?.unreadCount ?? res?.count ?? 0))
+      .catch(() => setUnreadFormsCount(0))
+  }, [pathname])
 
   async function logout() {
     try { await api.post('/auth/logout') } catch { }
@@ -317,7 +322,15 @@ function DashboardContent({ children }) {
                               NEW
                             </span>
                           )}
+                          {item.href === '/dashboard/forms' && unreadFormsCount > 0 && (
+                            <span className="ml-auto text-[11px] font-bold text-white bg-rose-500 rounded-full px-2 py-0.5 shrink-0">
+                              {unreadFormsCount}
+                            </span>
+                          )}
                         </>
+                      )}
+                      {!isHovered && item.href === '/dashboard/forms' && unreadFormsCount > 0 && (
+                        <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#F2F1EF]" />
                       )}
                       {!isHovered && <NavTooltip label={item.label} visible={!isHovered} />}
                     </Link>

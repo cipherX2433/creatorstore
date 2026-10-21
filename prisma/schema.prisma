@@ -51,6 +51,9 @@ model User {
   subscriptionAuditLogs SubscriptionAuditLog[]
   subscriptionInvoices  SubscriptionInvoice[]
   supportTickets        SupportTicket[]
+  forms                 Form[]
+  formSubmissions       FormSubmission[]
+  newsletterSubscribers NewsletterSubscriber[]
 
   @@map("users")
 }
@@ -837,5 +840,80 @@ model SupportTicket {
   @@index([status], map: "idx_support_tickets_status")
   @@map("support_tickets")
 }
+
+// ------------------------------------------------------------------------------
+// 10. Forms, Submissions & Subscribers
+// ------------------------------------------------------------------------------
+
+model Form {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId         String    @map("creator_id") @db.Uuid
+  sectionId         String?   @map("section_id") @db.Uuid
+  formType          String    @default("contact") @map("form_type") // contact, feedback, newsletter, qa
+  title             String
+  description       String?
+  buttonText        String?   @map("button_text")
+  successMessage    String?   @map("success_message")
+  notificationEmail String?   @map("notification_email")
+  status            String    @default("PUBLISHED") // PUBLISHED, DRAFT, ARCHIVED
+  settings          Json?     @default("{}")
+  createdAt         DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  creator     User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  submissions FormSubmission[]
+
+  @@index([creatorId, status], map: "idx_forms_creator_status")
+  @@index([sectionId], map: "idx_forms_section_id")
+  @@map("forms")
+}
+
+model FormSubmission {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  formId      String?   @map("form_id") @db.Uuid
+  creatorId   String    @map("creator_id") @db.Uuid
+  formType    String    @default("contact") @map("form_type")
+  name        String?
+  email       String?
+  message     String?
+  rating      Int?
+  isRead      Boolean   @default(false) @map("is_read")
+  status      String    @default("ACTIVE") // ACTIVE, ARCHIVED, SPAM, APPROVED
+  answers     Json?     @default("{}")
+  metadata    Json?     @default("{}")
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  form    Form? @relation(fields: [formId], references: [id], onDelete: SetNull)
+  creator User  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId, isRead], map: "idx_form_submissions_creator_read")
+  @@index([formId, createdAt], map: "idx_form_submissions_form_date")
+  @@index([creatorId, formType], map: "idx_form_submissions_creator_type")
+  @@map("form_submissions")
+}
+
+model NewsletterSubscriber {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId        String    @map("creator_id") @db.Uuid
+  formId           String?   @map("form_id") @db.Uuid
+  email            String
+  name             String?
+  status           String    @default("SUBSCRIBED") // SUBSCRIBED, UNSUBSCRIBED
+  consentGiven     Boolean   @default(true) @map("consent_given")
+  consentText      String?   @map("consent_text")
+  consentTimestamp DateTime? @default(now()) @map("consent_timestamp") @db.Timestamptz
+  source           String?   @default("storefront_form")
+  metadata         Json?     @default("{}")
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([creatorId, email], map: "idx_newsletter_subscribers_creator_email")
+  @@index([creatorId, status], map: "idx_newsletter_subscribers_creator_status")
+  @@map("newsletter_subscribers")
+}
+
 
 

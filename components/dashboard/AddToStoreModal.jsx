@@ -1670,14 +1670,33 @@ export default function AddToStoreModal({
                   setAddModalType('forms_menu')
                 }
               }}
-              onSubmit={(formProps) => {
+              onSubmit={async (formProps) => {
                 if (editingFormSection) {
+                  try {
+                    if (editingFormSection.props?.formId) {
+                      await api.patch(`/forms/${editingFormSection.props.formId}`, formProps)
+                    }
+                  } catch (e) {
+                    console.warn('Backend form sync warning:', e)
+                  }
                   onUpdateSectionProps?.(editingFormSection.id, formProps)
                   toast.success('Form updated successfully!')
                   setEditingFormSection(null)
                 } else {
+                  let createdForm = null
+                  try {
+                    const res = await api.post('/forms', {
+                      ...formProps,
+                      addToStore: false,
+                      status: 'PUBLISHED',
+                    })
+                    createdForm = res?.form
+                  } catch (e) {
+                    console.warn('Backend form creation warning:', e)
+                  }
+                  const enrichedProps = createdForm ? { ...formProps, formId: createdForm.id } : formProps
                   if (onAddSection) {
-                    onAddSection('form', formProps)
+                    onAddSection('form', enrichedProps)
                   }
                   toast.success('Form block added!')
                 }
