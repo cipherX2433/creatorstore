@@ -54,6 +54,7 @@ import { getGalleryTheme, getGalleryThemeId, wallpaperStyleFromTheme } from '@/l
 import WallpaperPanel from '@/components/dashboard/design/WallpaperPanel'
 import TextPanel from '@/components/dashboard/design/TextPanel'
 import ColorsPanel from '@/components/dashboard/design/ColorsPanel'
+import ButtonsPanel from '@/components/dashboard/design/ButtonsPanel'
 import HeaderPanel from '@/components/dashboard/design/HeaderPanel'
 import ThemeMatchModal from '@/components/dashboard/design/ThemeMatchModal'
 import { extractImagePalette } from '@/lib/imageContrast'
@@ -6088,123 +6089,11 @@ function DesignStudioPage({
 
               {/* ---------------- SUB-PANEL 4: BUTTONS ---------------- */}
               {activeSection === 'buttons' && (
-                <div className="space-y-5 bg-[#1A1A1A] border border-[#2E2E2E] rounded-[24px] p-4">
-                  <Field label="Button style">
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { key: 'filled', label: 'Solid', swatch: 'bg-brand' },
-                        { key: 'glass', label: 'Solid', swatch: 'bg-[#1A1A1A] border border-[#2E2E2E]' },
-                        { key: 'outline', label: 'Outline', swatch: 'bg-transparent border-2 border-brand' },
-                      ].map((opt) => {
-                        const selected = styleKeyFromTheme(theme) === opt.key
-                        return (
-                          <button
-                            key={opt.key}
-                            type="button"
-                            onClick={() => onChange({ buttonStyle: opt.key })}
-                            className={`flex flex-col gap-2 p-2 rounded-control border text-center cursor-pointer transition-all ${selected
-                              ? 'border-edge-focus bg-brand-soft'
-                              : 'border-edge bg-surface-raised hover:border-edge-strong'
-                              }`}
-                          >
-                            <div className={`h-10 w-full rounded-control ${opt.swatch}`} />
-                            <span className="text-micro text-content-primary">{opt.label}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </Field>
-
-                  <Field label="Corner roundness">
-                    <div className="grid grid-cols-4 gap-2">
-                      {ROUNDNESS_PRESETS.map((opt) => {
-                        const selected = roundnessKeyFromTheme(theme) === opt.key
-                        const r = opt.radius >= 90 ? '9999px' : `${opt.radius}px`
-                        return (
-                          <button
-                            key={opt.key}
-                            type="button"
-                            title={opt.label}
-                            onClick={() => onChange({ buttonShape: opt.shape, buttonRadius: opt.radius })}
-                            className={`flex flex-col items-center gap-2 p-2 rounded-control border cursor-pointer transition-all ${selected
-                              ? 'border-edge-focus bg-brand-soft'
-                              : 'border-edge bg-surface-raised hover:border-edge-strong'
-                              }`}
-                          >
-                            <span
-                              className="h-8 w-full bg-brand"
-                              style={{ borderRadius: r }}
-                            />
-                            <span className="text-micro text-content-muted">{opt.label}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </Field>
-
-                  <Field label="Button shadow">
-                    <div className="grid grid-cols-4 gap-2">
-                      {[
-                        { key: 'none', label: 'None', cls: 'shadow-none' },
-                        { key: 'soft', label: 'Soft', cls: 'shadow-raised' },
-                        { key: 'strong', label: 'Strong', cls: 'shadow-card' },
-                        { key: 'hard', label: 'Hard', cls: 'shadow-brand' },
-                      ].map((opt) => {
-                        const selected = shadowKeyFromTheme(theme) === opt.key
-                        return (
-                          <button
-                            key={opt.key}
-                            type="button"
-                            onClick={() => onChange({ buttonShadow: opt.key })}
-                            className={`flex flex-col items-center gap-2 p-2 rounded-control border cursor-pointer transition-all ${selected
-                              ? 'border-edge-focus bg-brand-soft'
-                              : 'border-edge bg-surface-raised hover:border-edge-strong'
-                              }`}
-                          >
-                            <span className={`h-8 w-full bg-surface-overlay rounded-control ${opt.cls}`} />
-                            <span className="text-micro text-content-muted">{opt.label}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </Field>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label="Button color">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={theme.buttonColor || activePreset.colors.buttonColor || '#194DF5'}
-                          onChange={(e) => onChange({ buttonColor: e.target.value })}
-                          className="h-9 w-10 cursor-pointer rounded-control border border-edge bg-surface-raised"
-                        />
-                        <Input
-                          value={theme.buttonColor || ''}
-                          placeholder="#194DF5"
-                          onChange={(e) => onChange({ buttonColor: e.target.value })}
-                          className="text-xs bg-surface-raised border-edge text-content-primary rounded-control"
-                        />
-                      </div>
-                    </Field>
-
-                    <Field label="Button text color">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={theme.buttonTextColor || '#000000'}
-                          onChange={(e) => onChange({ buttonTextColor: e.target.value })}
-                          className="h-9 w-10 cursor-pointer rounded-control border border-edge bg-surface-raised"
-                        />
-                        <Input
-                          value={theme.buttonTextColor || ''}
-                          placeholder="#000000"
-                          onChange={(e) => onChange({ buttonTextColor: e.target.value })}
-                          className="text-xs bg-surface-raised border-edge text-content-primary rounded-control"
-                        />
-                      </div>
-                    </Field>
-                  </div>
-                </div>
+                <ButtonsPanel
+                  theme={theme}
+                  activePreset={activePreset}
+                  onChange={onChange}
+                />
               )}
 
               {/* ---------------- SUB-PANEL 5: TEXT (TYPOGRAPHY) ---------------- */}
