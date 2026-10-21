@@ -279,7 +279,7 @@ export default function DashboardOverviewPage() {
             <span>Add</span>
           </Link>
           <Link
-            href="/dashboard/store?tab=shop"
+            href="/dashboard/products"
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F2F1EF] hover:bg-[#EAE9E6] text-xs font-bold text-[#1F1F1F] transition-colors"
           >
             <ShoppingBag className="h-3.5 w-3.5 stroke-[1.8]" />

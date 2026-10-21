@@ -95,13 +95,13 @@ function DashboardContent({ children }) {
   const isEarnActive = pathname === '/dashboard' || pathname.startsWith('/dashboard/earn') || pathname.startsWith('/dashboard/orders')
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[#0D0D0D] text-[#1F1F1F] font-sans flex flex-col selection:bg-[#1F1F1F] selection:text-[#FFFFFF]">
+    <div className="h-screen w-screen overflow-hidden bg-[#FBFAF9] md:bg-[#0D0D0D] text-[#1F1F1F] font-sans flex flex-col selection:bg-[#1F1F1F] selection:text-[#FFFFFF]">
 
-      {/* 1. GLOBAL TOPBAR (REFERENCE STYLE: Full-width dark bar with brand mark, trial countdown & Keep Pro access CTA) */}
+      {/* 1. GLOBAL TOPBAR (REFERENCE STYLE: Full-width dark bar with brand mark, trial countdown & Keep Pro access CTA) - Hidden on mobile */}
       <GlobalTopBar me={me} onOpenPricing={() => setPricingModalOpen(true)} />
 
-      {/* 2. DASHBOARD BODY (SIDEBAR + MAIN CANVAS) - WITH ROUNDED TOP CORNER CUTOUTS */}
-      <div className="flex-1 flex min-h-0 relative w-full overflow-hidden bg-[#FBFAF9] rounded-t-[20px] md:rounded-t-[24px]">
+      {/* 2. DASHBOARD BODY (SIDEBAR + MAIN CANVAS) - WITH ROUNDED TOP CORNER CUTOUTS ON DESKTOP */}
+      <div className="flex-1 flex min-h-0 relative w-full overflow-hidden bg-[#FBFAF9] rounded-none md:rounded-t-[24px]">
 
         {/* STATIC SPACER FOR DESKTOP (PREVENTS DASHBOARD FROM JUMPING/RESIZING ON SIDEBAR HOVER) */}
         <div className="hidden md:block w-[72px] shrink-0 bg-[#F2F1EF] rounded-tl-[20px] md:rounded-tl-[24px]" aria-hidden="true" />
@@ -405,14 +405,14 @@ function DashboardContent({ children }) {
         </aside>
 
         {/* MAIN CONTENT CANVAS */}
-        <div className={`flex-1 flex flex-col min-w-0 min-h-0 bg-[#FBFAF9] text-[#1F1F1F] no-scrollbar rounded-tr-[20px] md:rounded-tr-[24px] ${
+        <div className={`flex-1 flex flex-col min-w-0 min-h-0 bg-[#FBFAF9] text-[#1F1F1F] no-scrollbar rounded-none md:rounded-tr-[24px] ${
           isStorePage ? 'overflow-y-auto lg:overflow-hidden' : 'overflow-y-auto'
         }`}>
 
           {/* MAIN PAGE VIEW CANVAS */}
           <main className={`flex-1 w-full max-w-full min-w-0 bg-[#FBFAF9] text-[#1F1F1F] ${
             isStorePage
-              ? 'px-3.5 sm:px-6 md:px-8 pb-28 sm:pb-32 lg:pb-5 pt-4 sm:pt-6 lg:pt-5 lg:h-full lg:min-h-0 lg:overflow-hidden flex flex-col'
+              ? 'p-0 lg:px-8 lg:pb-5 lg:pt-5 lg:h-full lg:min-h-0 lg:overflow-hidden flex flex-col'
               : 'px-3.5 sm:px-6 md:px-8 pb-28 sm:pb-32 md:pb-20 pt-4 sm:pt-6'
           }`}>
             <div className={
@@ -522,7 +522,7 @@ function GlobalTopBar({ me, onOpenPricing }) {
   }
 
   return (
-    <header className="h-13 sm:h-14 w-full bg-[#0D0D0D] text-white flex items-center justify-between px-4 sm:px-6 z-50 shrink-0 select-none border-b border-[#242424]">
+    <header className="hidden md:flex h-13 sm:h-14 w-full bg-[#0D0D0D] text-white items-center justify-between px-4 sm:px-6 z-50 shrink-0 select-none border-b border-[#242424]">
 
       {/* Left: CreatorStore Logo */}
       <div className="flex items-center gap-2.5">

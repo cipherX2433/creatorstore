@@ -51,11 +51,11 @@ import MobileStorePreviewModal from '@/components/dashboard/MobileStorePreviewMo
  * 
  * Includes:
  * - Header: Back arrow, handle @username, overflow menu (...), share button
- * - Profile Section: Avatar with upload trigger, handle @username, connected social icons, status badge
- * - Segmented Tabs: Links | Shop
+ * - Profile Section: Compact avatar (72px) with upload trigger, handle @username, connected social icons, status badge
+ * - Primary Tab: Store with CreatorStore orange active indicator
  * - Action Buttons: [ 📁 Add collection ] [ + Add ]
  * - Content List: Compact cards with thumbnail, title, metadata (clicks, price), setup badge, 3-dot overflow menu
- * - Floating Bottom Action Pill: + Add | Preview | Design | Enhance
+ * - Floating Bottom Action Pill: Add | Preview | Design
  * - Mobile Add Bottom Sheet, Mobile Product Wizard & Mobile Store Preview Modal
  */
 export default function MobileStoreDashboard({
@@ -85,9 +85,6 @@ export default function MobileStoreDashboard({
 }) {
   const router = useRouter()
 
-  // Mobile Tabs: 'links' | 'shop'
-  const [mobileTab, setMobileTab] = useState('links')
-
   // Modals & Bottom Sheets
   const [addSheetOpen, setAddSheetOpen] = useState(false)
   const [productWizardOpen, setProductWizardOpen] = useState(false)
@@ -105,37 +102,8 @@ export default function MobileStoreDashboard({
     ? `${window.location.origin}/${cleanUsername}`
     : `/${cleanUsername}`
 
-  // Categorize sections between 'links' and 'shop'
-  const filteredSections = useMemo(() => {
-    return contentSections.filter((s) => {
-      const isProduct =
-        s.type === 'product' ||
-        s.type === 'course' ||
-        s.type === 'coaching' ||
-        s.type === 'bundle' ||
-        s.type === 'product_collection'
-
-      if (mobileTab === 'shop') {
-        return isProduct
-      } else {
-        // 'links' tab includes links, socials, forms, youtube, media, gallery, standard collections
-        return !isProduct || s.type === 'collection'
-      }
-    })
-  }, [contentSections, mobileTab])
-
-  // Count items for each tab
-  const linksCount = useMemo(() => {
-    return contentSections.filter((s) =>
-      !['product', 'course', 'coaching', 'bundle', 'product_collection'].includes(s.type) || s.type === 'collection'
-    ).length
-  }, [contentSections])
-
-  const shopCount = useMemo(() => {
-    return contentSections.filter((s) =>
-      ['product', 'course', 'coaching', 'bundle', 'product_collection'].includes(s.type)
-    ).length
-  }, [contentSections])
+  // Unified store content sections list (links, digital products, coaching, courses, collections, forms)
+  const filteredSections = contentSections
 
   function handleSelectAddOption(type, payload) {
     if (type === 'collection') {
@@ -260,11 +228,11 @@ export default function MobileStoreDashboard({
       </div>
 
       {/* 2. STORE PROFILE SECTION (Screenshot 2) */}
-      <div className="px-5 pt-5 pb-4 bg-[#FFFFFF] border-b border-[#E5E5E3] flex flex-col items-center text-center">
-        {/* Creator Avatar with camera trigger */}
+      <div className="px-4 pt-3.5 pb-3 bg-[#FFFFFF] border-b border-[#E5E5E3] flex flex-col items-center text-center">
+        {/* Creator Avatar with camera trigger - Target 64–80px (72px) */}
         <div
           onClick={onOpenAvatar}
-          className="relative h-18 w-18 rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden cursor-pointer group border border-[#E5E5E3] shadow-2xs shrink-0"
+          className="relative w-[72px] h-[72px] min-w-[72px] min-h-[72px] max-w-[72px] max-h-[72px] rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden cursor-pointer group border border-[#E5E5E3] shadow-xs shrink-0"
         >
           {store?.theme?.avatarUrl || store?.avatarUrl || profile?.avatarUrl ? (
             <img
@@ -283,12 +251,12 @@ export default function MobileStoreDashboard({
         </div>
 
         {/* Username */}
-        <h2 className="text-base font-bold text-[#1F1F1F] mt-2.5 tracking-tight truncate max-w-full">
+        <h2 className="text-sm font-bold text-[#1F1F1F] mt-2 tracking-tight truncate max-w-full">
           @{cleanUsername}
         </h2>
 
         {/* Social Links Row */}
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-1.5 mt-1.5">
           {igAccount?.connected ? (
             <a
               href={`https://instagram.com/${String(igAccount.username).replace(/^@/, '')}`}
@@ -321,51 +289,27 @@ export default function MobileStoreDashboard({
         </div>
 
         {/* Followers / Public Status Pill */}
-        <div className="mt-3">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#E5E5E3] bg-[#F9F9F8] text-[11px] font-semibold text-[#71717A]">
+        <div className="mt-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full border border-[#E5E5E3] bg-[#F9F9F8] text-[11px] font-semibold text-[#71717A]">
             <span className={`h-1.5 w-1.5 rounded-full ${store?.published ? 'bg-[#16A34A]' : 'bg-[#9CA3AF]'}`} />
             <span>{store?.published ? 'Storefront live' : 'Draft store'}</span>
           </span>
         </div>
       </div>
 
-      {/* 3. SEGMENTED TABS: LINKS | SHOP (Screenshot 2) */}
-      <div className="bg-[#FFFFFF] border-b border-[#E5E5E3] px-5 flex items-center gap-8 shrink-0">
-        <button
-          type="button"
-          onClick={() => setMobileTab('links')}
-          className={`py-3 text-sm transition-all cursor-pointer relative ${
-            mobileTab === 'links'
-              ? 'font-bold text-[#1F1F1F]'
-              : 'font-semibold text-[#71717A] hover:text-[#1F1F1F]'
-          }`}
+      {/* 3. STORE TAB (Consolidated single primary content tab with orange active indicator) */}
+      <div className="bg-[#FFFFFF] border-b border-[#E5E5E3] px-5 flex items-center shrink-0">
+        <div
+          role="tab"
+          aria-selected="true"
+          className="py-3 text-sm font-bold text-[#1F1F1F] relative cursor-default"
         >
-          <span>Links</span>
-          {mobileTab === 'links' && (
-            <div
-              className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1F1F1F]"
-              style={{ backgroundColor: BRAND_COLOR }}
-            />
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setMobileTab('shop')}
-          className={`py-3 text-sm transition-all cursor-pointer relative ${
-            mobileTab === 'shop'
-              ? 'font-bold text-[#1F1F1F]'
-              : 'font-semibold text-[#71717A] hover:text-[#1F1F1F]'
-          }`}
-        >
-          <span>Shop</span>
-          {mobileTab === 'shop' && (
-            <div
-              className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1F1F1F]"
-              style={{ backgroundColor: BRAND_COLOR }}
-            />
-          )}
-        </button>
+          <span>Store</span>
+          <div
+            className="absolute bottom-0 left-0 right-0 h-0.5"
+            style={{ backgroundColor: BRAND_COLOR }}
+          />
+        </div>
       </div>
 
       {/* 4. MAIN ACTION BUTTONS: [ 📁 Add collection ] [ + Add ] (Screenshot 2) */}
@@ -390,7 +334,7 @@ export default function MobileStoreDashboard({
       </div>
 
       {/* 5. CONTENT ITEMS LIST (Screenshot 2) */}
-      <div className="flex-1 min-h-0 px-4 pb-32 space-y-2.5">
+      <div className="flex-1 min-h-0 px-4 pb-36 space-y-2.5">
         {filteredSections.length > 0 ? (
           filteredSections.map((s) => {
             const isMenuOpen = activeCardMenuId === s.id
@@ -558,43 +502,34 @@ export default function MobileStoreDashboard({
             )
           })
         ) : (
-          /* Empty state for current tab */
+          /* Empty state for Store */
           <div className="py-12 px-4 text-center rounded-2xl border border-dashed border-[#E5E5E3] bg-[#FFFFFF] space-y-3">
             <div className="h-12 w-12 rounded-full bg-[#F2F1EF] mx-auto flex items-center justify-center text-[#71717A]">
-              {mobileTab === 'shop' ? <Package className="h-6 w-6" /> : <Link2 className="h-6 w-6" />}
+              <Package className="h-6 w-6" />
             </div>
             <div className="space-y-1">
               <p className="text-sm font-bold text-[#1F1F1F]">
-                {mobileTab === 'shop' ? 'No products in shop yet' : 'No links or content yet'}
+                Your store is empty
               </p>
               <p className="text-xs text-[#71717A] max-w-xs mx-auto">
-                {mobileTab === 'shop'
-                  ? 'Add your first digital product or coaching session to start earning.'
-                  : 'Add links, forms, or socials to share with your audience.'}
+                Add links, products, courses, or forms to start sharing and earning.
               </p>
             </div>
             <button
               type="button"
-              onClick={() => {
-                if (mobileTab === 'shop') {
-                  setEditingProduct(null)
-                  setProductWizardOpen(true)
-                } else {
-                  setAddSheetOpen(true)
-                }
-              }}
+              onClick={() => setAddSheetOpen(true)}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#1F1F1F] text-white text-xs font-bold shadow-xs hover:bg-black transition-colors cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span>{mobileTab === 'shop' ? 'Add product' : 'Add content'}</span>
+              <span>Add to store</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* 6. FLOATING BOTTOM EDITOR ACTION PILL (Screenshot 2) */}
+      {/* 6. FLOATING BOTTOM EDITOR ACTION PILL */}
       <div className="fixed bottom-[68px] left-1/2 -translate-x-1/2 z-30 select-none">
-        <div className="flex items-center gap-4 px-5 py-2.5 rounded-full bg-[#FFFFFF] border border-[#E5E5E3] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+        <div className="flex items-center gap-5 px-6 py-2.5 rounded-full bg-[#FFFFFF] border border-[#E5E5E3] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
           <button
             type="button"
             onClick={() => setAddSheetOpen(true)}
@@ -604,7 +539,7 @@ export default function MobileStoreDashboard({
             <span>Add</span>
           </button>
 
-          <div className="h-3 w-px bg-[#E5E5E3]" />
+          <div className="h-3.5 w-px bg-[#E5E5E3]" />
 
           <button
             type="button"
@@ -615,7 +550,7 @@ export default function MobileStoreDashboard({
             <span>Preview</span>
           </button>
 
-          <div className="h-3 w-px bg-[#E5E5E3]" />
+          <div className="h-3.5 w-px bg-[#E5E5E3]" />
 
           <button
             type="button"
@@ -624,17 +559,6 @@ export default function MobileStoreDashboard({
           >
             <Palette className="h-4 w-4" />
             <span>Design</span>
-          </button>
-
-          <div className="h-3 w-px bg-[#E5E5E3]" />
-
-          <button
-            type="button"
-            onClick={() => setAddSheetOpen(true)}
-            className="flex items-center gap-1.5 text-xs font-bold text-[#1F1F1F] hover:text-[#000000] cursor-pointer"
-          >
-            <Sparkles className="h-4 w-4 text-[#FF4B1F]" />
-            <span>Enhance</span>
           </button>
         </div>
       </div>

@@ -205,6 +205,27 @@ async function runMobileUxTests() {
     fail('Mobile More screen audit failed', err)
   }
 
+  // --- TEST 9: Mobile Store Dashboard UI Refinements Audit ---
+  console.log('\n--- TEST 9: Mobile Store Dashboard UI Refinements Audit ---')
+  try {
+    const layoutFile = fs.readFileSync(path.resolve('app/dashboard/layout.js'), 'utf8')
+    assert.ok(layoutFile.includes('hidden md:flex'), 'GlobalTopBar must be hidden on mobile (<md)')
+    assert.ok(layoutFile.includes('rounded-none md:rounded-t-[24px]'), 'Body must be flush (rounded-none) on mobile')
+    assert.ok(layoutFile.includes("'p-0 lg:px-8"), 'Store page canvas must have p-0 on mobile to reclaim top vertical space')
+
+    const mobileDashboardFile = fs.readFileSync(path.resolve('components/dashboard/MobileStoreDashboard.jsx'), 'utf8')
+    assert.ok(mobileDashboardFile.includes('w-[72px] h-[72px]'), 'Profile avatar must be bounded to 64–80px (72px)')
+    assert.ok(mobileDashboardFile.includes('<span>Store</span>'), 'Tab must read Store')
+    assert.ok(!mobileDashboardFile.includes('<span>Shop</span>'), 'Shop tab must be completely absent from tab bar')
+    assert.ok(!mobileDashboardFile.includes('<span>Links</span>'), 'Links tab label must be replaced with Store')
+    assert.ok(!mobileDashboardFile.includes('Enhance'), 'Enhance must be removed from floating mobile action bar')
+    assert.ok(mobileDashboardFile.includes('Add') && mobileDashboardFile.includes('Preview') && mobileDashboardFile.includes('Design'), 'Action bar must contain Add, Preview, and Design')
+
+    pass('Mobile Store UI refinements verified: top bar hidden, 72px avatar, Store tab consolidated, Enhance removed')
+  } catch (err) {
+    fail('Mobile Store Dashboard UI Refinements Audit failed', err)
+  }
+
   // --- CLEANUP ---
   if (createdProduct?.id) {
     try {
