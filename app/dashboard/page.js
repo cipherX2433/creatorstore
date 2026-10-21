@@ -7,7 +7,8 @@ import { toast } from 'sonner'
 import {
   TrendingUp, ShoppingBag, Users, Eye, ArrowUpRight,
   Plus, Link2, Sparkles, Bot, Package, ArrowRight,
-  Calendar, CheckCircle2, ChevronRight, Store, DollarSign
+  Calendar, CheckCircle2, ChevronRight, Store, DollarSign,
+  Share2, Bell, Zap, Palette, Pencil
 } from 'lucide-react'
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
@@ -216,8 +217,129 @@ export default function DashboardOverviewPage() {
   return (
     <div className="space-y-6 sm:space-y-8 bg-transparent text-[#1F1F1F] min-h-screen">
 
-      {/* 1. WELCOME HEADER + STORE URL PILL */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-2">
+      {/* MOBILE HEADER & STORE PREVIEW CARD (md:hidden - Matching Screenshot 1) */}
+      <div className="md:hidden space-y-4 -mt-2 pb-1">
+        {/* Mobile Header Row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-9 w-9 rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden border border-[#E5E5E3]">
+              {me?.profile?.avatarUrl ? (
+                <img src={me.profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-xs font-bold text-[#1F1F1F]">{(username || 'C')[0].toUpperCase()}</span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setPricingModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#E5E5E3] bg-[#FFFFFF] text-[11px] font-bold text-[#1F1F1F] shadow-2xs cursor-pointer"
+            >
+              <Zap className="h-3 w-3 text-[#FF4B1F] fill-[#FF4B1F]" />
+              <span>{isPaid ? 'Pro Plan' : isTrialActive ? 'Keep Pro' : 'Reactivate Pro'}</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1 text-[#71717A]">
+            <a
+              href={`/${username}`}
+              target="_blank"
+              rel="noreferrer"
+              className="p-2 rounded-full hover:bg-[#F2F1EF] transition-colors"
+              title="Share / View store"
+            >
+              <Share2 className="h-4.5 w-4.5" />
+            </a>
+            <Link
+              href="/dashboard/help"
+              className="p-2 rounded-full hover:bg-[#F2F1EF] transition-colors"
+              title="Help & Notifications"
+            >
+              <Bell className="h-4.5 w-4.5" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Creator Name & Store URL */}
+        <div>
+          <h1 className="text-2xl font-extrabold text-[#1F1F1F] tracking-tight truncate">
+            {username}
+          </h1>
+          <p className="text-xs text-[#71717A] mt-0.5 truncate font-medium">
+            creatorstore.store/{username}
+          </p>
+        </div>
+
+        {/* Quick Action Pills: + Add, Products, Design */}
+        <div className="flex items-center gap-2 pt-0.5">
+          <Link
+            href="/dashboard/store"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F2F1EF] hover:bg-[#EAE9E6] text-xs font-bold text-[#1F1F1F] transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+            <span>Add</span>
+          </Link>
+          <Link
+            href="/dashboard/store?tab=shop"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F2F1EF] hover:bg-[#EAE9E6] text-xs font-bold text-[#1F1F1F] transition-colors"
+          >
+            <ShoppingBag className="h-3.5 w-3.5 stroke-[1.8]" />
+            <span>Products</span>
+          </Link>
+          <Link
+            href="/dashboard/store?tab=design"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F2F1EF] hover:bg-[#EAE9E6] text-xs font-bold text-[#1F1F1F] transition-colors"
+          >
+            <Palette className="h-3.5 w-3.5 stroke-[1.8]" />
+            <span>Design</span>
+          </Link>
+        </div>
+
+        {/* Store Preview Card (Screenshot 1) */}
+        <div className="relative rounded-[24px] bg-[#FFFFFF] border border-[#E5E5E3] p-5 shadow-2xs flex flex-col items-center text-center">
+          <div className="h-20 w-20 rounded-full bg-[#E5E7EB] border border-[#E5E5E3] overflow-hidden flex items-center justify-center my-2 shadow-xs">
+            {me?.profile?.avatarUrl ? (
+              <img src={me.profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-2xl font-bold text-[#1F1F1F]">{(username || 'C')[0].toUpperCase()}</span>
+            )}
+          </div>
+
+          <h3 className="text-base font-bold text-[#1F1F1F] mt-1 truncate max-w-full">
+            {username}
+          </h3>
+          <p className="text-xs text-[#71717A] mt-0.5 font-medium">
+            {products.length} {products.length === 1 ? 'item' : 'items'} + Shop
+          </p>
+
+          <div className="flex items-center gap-2 mt-4 w-full justify-end">
+            <a
+              href={`/${username}`}
+              target="_blank"
+              rel="noreferrer"
+              className="p-2 rounded-full border border-[#E5E5E3] bg-[#F9F9F8] text-[#1F1F1F] hover:bg-[#F2F1EF] transition-colors"
+              title="Share store"
+            >
+              <Share2 className="h-4 w-4" />
+            </a>
+            <Link
+              href="/dashboard/store"
+              className="px-4 py-1.5 rounded-full border border-[#E5E5E3] bg-[#F9F9F8] hover:bg-[#F2F1EF] text-xs font-bold text-[#1F1F1F] transition-colors shadow-2xs"
+            >
+              Edit
+            </Link>
+          </div>
+        </div>
+
+        {/* Section Heading: In the last week */}
+        <div className="pt-2">
+          <h2 className="text-base font-extrabold text-[#1F1F1F] tracking-tight">
+            In the last week
+          </h2>
+        </div>
+      </div>
+
+      {/* 1. DESKTOP WELCOME HEADER + STORE URL PILL (hidden md:flex) */}
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-2">
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#1F1F1F] tracking-tight truncate">
             {greeting}, {username}

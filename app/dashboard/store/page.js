@@ -73,6 +73,7 @@ import AddYouTubeModalView from '@/components/dashboard/AddYouTubeModalView'
 import AddMediaModalView from '@/components/dashboard/AddMediaModalView'
 import SocialDisplaySelectModalView from '@/components/dashboard/SocialDisplaySelectModalView'
 import SocialItemEditor from '@/components/dashboard/editors/SocialItemEditor'
+import MobileStoreDashboard from '@/components/dashboard/MobileStoreDashboard'
 import { getSocialPlatform, resolveSocialStyle } from '@/lib/socialPlatforms'
 import { isBookingItem, isBundleItem, resolveSectionProduct } from '@/lib/bookingItemUtils'
 export { isBookingItem, isBundleItem, resolveSectionProduct }
@@ -2984,8 +2985,9 @@ export default function StoreBuilderPage() {
             canRemoveFooterBranding={canRemoveFooterBranding}
           />
         ) : (
-          /* 2-COLUMN WORKSPACE: LEFT SINGLE UNIFIED EDITOR CARD (60-65%) & RIGHT PREVIEW (35-40%) */
-          <div className="grid gap-8 xl:gap-12 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_430px] lg:items-stretch lg:h-full lg:min-h-0 items-start pt-1 pb-12 lg:pb-0 lg:pt-0 flex-1 min-h-0">
+          <>
+            {/* DESKTOP 2-COLUMN WORKSPACE (lg:grid) */}
+            <div className="hidden lg:grid gap-8 xl:gap-12 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_430px] lg:items-stretch lg:h-full lg:min-h-0 items-start pt-1 pb-12 lg:pb-0 lg:pt-0 flex-1 min-h-0">
 
             {/* LEFT: ONE SINGLE LARGE WHITE EDITOR CARD CONTAINING EVERYTHING */}
             <div className="w-full max-w-[740px] mx-auto min-w-0 lg:h-full lg:min-h-0 flex flex-col">
@@ -3884,8 +3886,40 @@ export default function StoreBuilderPage() {
                 </div>
               </div>
             </div>
-
           </div>
+
+            {/* MOBILE COMPACT DASHBOARD (lg:hidden) */}
+            <div className="block lg:hidden w-full flex-1 min-h-0">
+              <MobileStoreDashboard
+                store={store}
+                storeSlug={storeSlug}
+                profile={profile}
+                products={products}
+                contentSections={contentSections}
+                pages={pages}
+                activePageId={activePageId}
+                setActivePageId={setActivePageId}
+                igAccount={igAccount}
+                me={me}
+                onAddCollection={() => {
+                  setAddCollectionName('')
+                  setAddCollectionOpen(true)
+                }}
+                onOpenAddModal={(type, payload) => handleAddToStore(type, payload)}
+                onEditProduct={(pid) => setEditingProductId(pid)}
+                onEditSection={(sec) => setEditingSectionId(sec.id)}
+                onDeleteSection={(secId) => remove(secId)}
+                onDuplicateSection={(secId) => duplicate(secId)}
+                onToggleHidden={(secId) => toggleHidden(secId)}
+                onOpenShare={() => setShareOpen?.(true)}
+                onOpenAvatar={() => setAvatarModalOpen(true)}
+                onTabChange={handleTabChange}
+                refreshStoreData={refreshStoreData}
+                setProducts={setProducts}
+                setStore={setStore}
+              />
+            </div>
+          </>
         )}
       </DashboardPageTransition>
 
