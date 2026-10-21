@@ -12,6 +12,9 @@ import {
   Image as ImageIcon,
   MoreVertical,
   Link2,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/clientApi'
@@ -56,7 +59,70 @@ export default function SocialItemEditor({
   const [urlError, setUrlError] = useState('')
   const [titleError, setTitleError] = useState('')
 
+  // Authoritative Instagram live state & media
+  const [liveIgAccount, setLiveIgAccount] = useState(igAccount || null)
+  const [igProfile, setIgProfile] = useState(initialProps?.instagramData?.profile || null)
+  const [igMedia, setIgMedia] = useState(Array.isArray(initialProps?.instagramData?.media) ? initialProps.instagramData.media : [])
+  const [loadingIg, setLoadingIg] = useState(false)
+  const [syncingIg, setSyncingIg] = useState(false)
+  const [carouselIndex, setCarouselIndex] = useState(0)
+
   const fileInputRef = useRef(null)
+
+  // Sync with prop igAccount changes
+  useEffect(() => {
+    if (igAccount) {
+      setLiveIgAccount(igAccount)
+    }
+  }, [igAccount])
+
+  // Fetch authoritative Instagram connection, profile, and media
+  useEffect(() => {
+    if (platform.id !== 'instagram') return
+    let isMounted = true
+
+    async function loadAuthoritativeInstagram() {
+      try {
+        setLoadingIg(true)
+        const accRes = await api.get('/integrations/instagram/account').catch(() => null)
+        const account = accRes?.account || accRes
+        if (isMounted && account) {
+          setLiveIgAccount(account)
+          if (account.connected) {
+            const [profileRes, mediaRes] = await Promise.all([
+              api.get('/integrations/instagram/profile').catch(() => null),
+              api.get('/integrations/instagram/media').catch(() => ({ media: [] })),
+            ])
+            if (isMounted) {
+              if (profileRes && profileRes.connected) setIgProfile(profileRes)
+              if (mediaRes && Array.isArray(mediaRes.media)) setIgMedia(mediaRes.media)
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Could not load Instagram integration state in editor:', e)
+      } finally {
+        if (isMounted) setLoadingIg(false)
+      }
+    }
+
+    loadAuthoritativeInstagram()
+    return () => { isMounted = false }
+  }, [platform.id])
+
+  const handleManualSync = async () => {
+    setSyncingIg(true)
+    try {
+      const res = await api.post('/integrations/instagram/sync', {})
+      if (res?.profile) setIgProfile(res.profile)
+      if (res?.media?.media) setIgMedia(res.media.media)
+      toast.success('Instagram profile and posts synchronized!')
+    } catch (err) {
+      toast.error(err.message || 'Failed to refresh Instagram data')
+    } finally {
+      setSyncingIg(false)
+    }
+  }
 
   // Sync state if section props change externally (and not dirty)
   useEffect(() => {
@@ -66,6 +132,8 @@ export default function SocialItemEditor({
       if (section.props.thumbnail !== undefined && section.props.thumbnail !== thumbnail) setThumbnail(section.props.thumbnail)
       const currentLayout = resolveSocialStyle(section.props)
       if (currentLayout !== layout) setLayout(currentLayout)
+      if (section.props.instagramData?.profile && !igProfile) setIgProfile(section.props.instagramData.profile)
+      if (Array.isArray(section.props.instagramData?.media) && igMedia.length === 0) setIgMedia(section.props.instagramData.media)
     }
   }, [section?.props])
 
@@ -89,6 +157,22 @@ export default function SocialItemEditor({
       return false
     }
   }
+
+  const isInstagram = platform.id === 'instagram'
+  const isIgConnected = Boolean(liveIgAccount?.connected || igAccount?.connected)
+  const isTokenExpired = Boolean(
+    liveIgAccount?.status === 'EXPIRED' ||
+    liveIgAccount?.error === 'TOKEN_EXPIRED' ||
+    igAccount?.status === 'EXPIRED' ||
+    igAccount?.error === 'TOKEN_EXPIRED'
+  )
+  const isWebhookFailed = Boolean(
+    liveIgAccount?.subscriptionStatus === 'FAILED' ||
+    liveIgAccount?.status === 'SUBSCRIPTION_FAILED' ||
+    igAccount?.subscriptionStatus === 'FAILED' ||
+    igAccount?.status === 'SUBSCRIPTION_FAILED'
+  )
+  const currentUsername = liveIgAccount?.username || igAccount?.username || igProfile?.username || ''
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -116,6 +200,28 @@ export default function SocialItemEditor({
         displayStyle: resolved,
         thumbnail: thumbnail || null,
         customThumbnail: thumbnail || null,
+      }
+
+      if (isInstagram && isIgConnected) {
+        patch.instagramAccountId = liveIgAccount?.id || igAccount?.id || null
+        patch.instagramUsername = currentUsername || null
+        patch.instagramData = {
+          connected: true,
+          username: currentUsername,
+          profile: igProfile || {
+            username: currentUsername,
+            name: currentUsername,
+            profileUrl: `https://instagram.com/${currentUsername}`,
+            profilePictureUrl: null,
+            mediaCount: igMedia.length,
+            followersCount: null,
+            followingCount: null,
+            followersCountUnavailable: true,
+            followingCountUnavailable: true,
+          },
+          media: igMedia,
+          lastSyncedAt: igProfile?.lastSyncedAt || new Date().toISOString(),
+        }
       }
 
       onUpdateProps?.(patch)
@@ -182,9 +288,6 @@ export default function SocialItemEditor({
     })
   }
 
-  const isInstagram = platform.id === 'instagram'
-  const isIgConnected = Boolean(igAccount?.connected)
-
   return (
     <StoreItemEditorShell
       title={platform.name}
@@ -218,7 +321,9 @@ export default function SocialItemEditor({
                     className="h-10 w-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden"
                     style={{ backgroundColor: `${platform.color}15`, color: platform.color }}
                   >
-                    {thumbnail ? (
+                    {isInstagram && isIgConnected && igProfile?.profilePictureUrl ? (
+                      <img src={igProfile.profilePictureUrl} alt="" className="h-full w-full object-cover" />
+                    ) : thumbnail ? (
                       <img src={thumbnail} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <PlatformIcon className="h-5 w-5" />
@@ -229,7 +334,7 @@ export default function SocialItemEditor({
                       {title || platform.name}
                     </h4>
                     <p className="text-xs text-[#6F6F6B] truncate">
-                      {isInstagram && isIgConnected ? `@${igAccount.username}` : url ? url.replace(/^https?:\/\//, '') : 'Connect'}
+                      {isInstagram && isIgConnected ? `@${currentUsername}` : url ? url.replace(/^https?:\/\//, '') : 'Connect'}
                     </p>
                   </div>
                 </div>
@@ -239,8 +344,14 @@ export default function SocialItemEditor({
 
             {layout === 'cards' && (
               <div className="w-full max-w-[340px] p-4 rounded-[20px] bg-white border border-[#E5E5E3] shadow-sm space-y-3">
-                <div className="h-40 w-full rounded-xl overflow-hidden bg-[#0A0A0A] flex items-center justify-center relative">
-                  {thumbnail ? (
+                <div className="h-44 w-full rounded-xl overflow-hidden bg-[#0A0A0A] flex items-center justify-center relative">
+                  {isInstagram && isIgConnected && igMedia.length > 0 ? (
+                    <img
+                      src={igMedia[0].thumbnailUrl || igMedia[0].mediaUrl}
+                      alt={igMedia[0].caption || 'Instagram Post'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : thumbnail ? (
                     <img src={thumbnail} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="flex flex-col items-center justify-center gap-2">
@@ -257,44 +368,81 @@ export default function SocialItemEditor({
                 <div className="text-center space-y-0.5">
                   <h4 className="text-sm font-bold text-[#1F1F1F] truncate">{title || platform.name}</h4>
                   <p className="text-xs text-[#6F6F6B] truncate">
-                    {isInstagram && isIgConnected ? `@${igAccount.username}` : url ? url.replace(/^https?:\/\//, '') : platform.name}
+                    {isInstagram && isIgConnected
+                      ? (igMedia[0]?.caption ? igMedia[0].caption.slice(0, 48) + '...' : `@${currentUsername}`)
+                      : url ? url.replace(/^https?:\/\//, '') : platform.name}
                   </p>
                 </div>
                 <button
                   type="button"
-                  className="w-full py-2 px-3 rounded-full text-xs font-semibold text-white shadow-xs"
+                  className="w-full py-2 px-3 rounded-full text-xs font-semibold text-white shadow-xs cursor-default"
                   style={{ backgroundColor: platform.color }}
                 >
-                  Follow on {platform.name}
+                  {isInstagram && isIgConnected ? 'View on Instagram' : `Follow on ${platform.name}`}
                 </button>
               </div>
             )}
 
             {layout === 'grid' && (
               <div className="w-full max-w-[340px] p-4 rounded-[20px] bg-white border border-[#E5E5E3] shadow-sm space-y-3">
-                <div className="grid grid-cols-2 gap-2 aspect-[2/1] rounded-xl overflow-hidden bg-[#0A0A0A] p-1">
-                  <div className="rounded-lg overflow-hidden relative flex items-center justify-center bg-slate-800">
-                    {thumbnail ? (
-                      <img src={thumbnail} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <PlatformIcon className="h-6 w-6 text-white/60" />
-                    )}
-                  </div>
-                  <div className="grid grid-rows-2 gap-1">
-                    <div className="rounded-md" style={{ backgroundColor: `${platform.color}35` }} />
-                    <div className="rounded-md" style={{ backgroundColor: `${platform.color}20` }} />
-                  </div>
-                </div>
                 <div className="flex items-center justify-between">
-                  <div className="min-w-0 flex-1">
-                    <h4 className="text-sm font-bold text-[#1F1F1F] truncate">{title || platform.name}</h4>
-                    <p className="text-xs text-[#6F6F6B] truncate">
-                      {isInstagram && isIgConnected ? `@${igAccount.username}` : url ? url.replace(/^https?:\/\//, '') : platform.name}
-                    </p>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className="h-6 w-6 rounded-full flex items-center justify-center shrink-0 shadow-xs"
+                      style={{ backgroundColor: platform.color, color: '#FFFFFF' }}
+                    >
+                      <PlatformIcon className="h-3.5 w-3.5" />
+                    </div>
+                    <h4 className="text-xs font-bold text-[#1F1F1F] truncate">
+                      {isInstagram && isIgConnected ? `@${currentUsername}` : (title || platform.name)}
+                    </h4>
                   </div>
+                  <span className="text-[10px] font-semibold text-[#6F6F6B]">
+                    {isInstagram && isIgConnected ? `${igMedia.length} posts` : 'Feed'}
+                  </span>
+                </div>
+
+                {isInstagram && isIgConnected ? (
+                  igMedia.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-1.5 aspect-[2/1] rounded-xl overflow-hidden bg-[#0A0A0A] p-1">
+                      {igMedia.slice(0, 4).map((item, idx) => (
+                        <div key={item.id || idx} className="rounded-lg overflow-hidden relative flex items-center justify-center bg-slate-800 aspect-square">
+                          <img
+                            src={item.thumbnailUrl || item.mediaUrl}
+                            alt={item.caption || 'Instagram Post'}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="aspect-[2/1] rounded-xl border border-dashed border-[#E5E5E3] flex flex-col items-center justify-center p-3 text-center bg-[#FAFAF9]">
+                      <PlatformIcon className="h-6 w-6 text-[#999995] mb-1" />
+                      <p className="text-xs font-medium text-[#6F6F6B]">No Instagram posts found</p>
+                    </div>
+                  )
+                ) : (
+                  <div className="grid grid-cols-2 gap-2 aspect-[2/1] rounded-xl overflow-hidden bg-[#0A0A0A] p-1">
+                    <div className="rounded-lg overflow-hidden relative flex items-center justify-center bg-slate-800">
+                      {thumbnail ? (
+                        <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <PlatformIcon className="h-6 w-6 text-white/60" />
+                      )}
+                    </div>
+                    <div className="flex flex-col items-center justify-center p-2 text-center bg-slate-900 rounded-lg">
+                      <p className="text-[10px] text-white/70">Connect account to load posts</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-[#6F6F6B] truncate">
+                    {isInstagram && isIgConnected ? `@${currentUsername}` : url ? url.replace(/^https?:\/\//, '') : platform.name}
+                  </p>
                   <button
                     type="button"
-                    className="py-1.5 px-3 rounded-full text-xs font-semibold text-white shadow-xs shrink-0"
+                    className="py-1 px-3 rounded-full text-xs font-semibold text-white shadow-xs shrink-0 cursor-default"
                     style={{ backgroundColor: platform.color }}
                   >
                     Follow
@@ -305,33 +453,81 @@ export default function SocialItemEditor({
 
             {layout === 'carousel' && (
               <div className="w-full max-w-[340px] p-4 rounded-[20px] bg-white border border-[#E5E5E3] shadow-sm space-y-3">
-                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-                  <div className="h-28 w-24 rounded-xl overflow-hidden shrink-0 shadow-xs border border-[#E5E5E3] relative flex items-center justify-center bg-slate-900">
-                    {thumbnail ? (
-                      <img src={thumbnail} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <PlatformIcon className="h-8 w-8 text-white/60" />
-                    )}
-                  </div>
-                  <div
-                    className="h-28 w-24 rounded-xl overflow-hidden shrink-0 shadow-xs border border-[#E5E5E3] flex items-center justify-center"
-                    style={{ backgroundColor: `${platform.color}20` }}
-                  />
-                  <div
-                    className="h-28 w-24 rounded-xl overflow-hidden shrink-0 shadow-xs border border-[#E5E5E3] flex items-center justify-center"
-                    style={{ backgroundColor: `${platform.color}10` }}
-                  />
-                </div>
                 <div className="flex items-center justify-between">
-                  <div className="min-w-0 flex-1">
-                    <h4 className="text-sm font-bold text-[#1F1F1F] truncate">{title || platform.name}</h4>
-                    <p className="text-xs text-[#6F6F6B] truncate">
-                      {isInstagram && isIgConnected ? `@${igAccount.username}` : url ? url.replace(/^https?:\/\//, '') : platform.name}
-                    </p>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className="h-6 w-6 rounded-full flex items-center justify-center shrink-0 shadow-xs"
+                      style={{ backgroundColor: platform.color, color: '#FFFFFF' }}
+                    >
+                      <PlatformIcon className="h-3.5 w-3.5" />
+                    </div>
+                    <h4 className="text-xs font-bold text-[#1F1F1F] truncate">
+                      {isInstagram && isIgConnected ? `@${currentUsername}` : (title || platform.name)}
+                    </h4>
                   </div>
+                  {isInstagram && isIgConnected && igMedia.length > 2 && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setCarouselIndex(Math.max(0, carouselIndex - 1))}
+                        disabled={carouselIndex === 0}
+                        className="h-6 w-6 rounded-full bg-[#F5F5F3] hover:bg-[#E5E5E3] disabled:opacity-30 flex items-center justify-center text-[#1F1F1F]"
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCarouselIndex(Math.min(Math.max(0, igMedia.length - 2), carouselIndex + 1))}
+                        disabled={carouselIndex >= igMedia.length - 2}
+                        className="h-6 w-6 rounded-full bg-[#F5F5F3] hover:bg-[#E5E5E3] disabled:opacity-30 flex items-center justify-center text-[#1F1F1F]"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {isInstagram && isIgConnected ? (
+                  igMedia.length > 0 ? (
+                    <div className="flex items-center gap-2 overflow-hidden py-1">
+                      {igMedia.slice(carouselIndex, carouselIndex + 3).map((item, idx) => (
+                        <div
+                          key={item.id || idx}
+                          className="h-32 w-24 rounded-xl overflow-hidden shrink-0 shadow-xs border border-[#E5E5E3] relative flex items-center justify-center bg-slate-900"
+                        >
+                          <img
+                            src={item.thumbnailUrl || item.mediaUrl}
+                            alt={item.caption || 'Instagram Post'}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="h-28 w-full rounded-xl border border-dashed border-[#E5E5E3] flex flex-col items-center justify-center p-3 text-center bg-[#FAFAF9]">
+                      <PlatformIcon className="h-6 w-6 text-[#999995] mb-1" />
+                      <p className="text-xs font-medium text-[#6F6F6B]">No Instagram posts found</p>
+                    </div>
+                  )
+                ) : (
+                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                    <div className="h-28 w-24 rounded-xl overflow-hidden shrink-0 shadow-xs border border-[#E5E5E3] relative flex items-center justify-center bg-slate-900">
+                      {thumbnail ? (
+                        <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <PlatformIcon className="h-8 w-8 text-white/60" />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-[#6F6F6B] truncate">
+                    {isInstagram && isIgConnected ? `@${currentUsername}` : url ? url.replace(/^https?:\/\//, '') : platform.name}
+                  </p>
                   <button
                     type="button"
-                    className="py-1.5 px-3 rounded-full text-xs font-semibold text-white shadow-xs shrink-0"
+                    className="py-1 px-3 rounded-full text-xs font-semibold text-white shadow-xs shrink-0 cursor-default"
                     style={{ backgroundColor: platform.color }}
                   >
                     Follow
@@ -344,7 +540,9 @@ export default function SocialItemEditor({
               <div className="w-full max-w-[340px] p-4 rounded-[20px] bg-white border border-[#E5E5E3] shadow-sm space-y-3 text-center">
                 <div className="relative inline-block mx-auto">
                   <div className="h-16 w-16 rounded-full overflow-hidden bg-slate-900 border-2 border-[#E5E5E3] flex items-center justify-center">
-                    {thumbnail ? (
+                    {isInstagram && isIgConnected && igProfile?.profilePictureUrl ? (
+                      <img src={igProfile.profilePictureUrl} alt="" className="w-full h-full object-cover" />
+                    ) : thumbnail ? (
                       <img src={thumbnail} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <PlatformIcon className="h-8 w-8 text-white/80" />
@@ -358,28 +556,42 @@ export default function SocialItemEditor({
                   </div>
                 </div>
                 <div className="space-y-0.5">
-                  <h4 className="text-sm font-bold text-[#1F1F1F] truncate">{title || platform.name}</h4>
+                  <h4 className="text-sm font-bold text-[#1F1F1F] truncate">
+                    {isInstagram && isIgConnected ? (igProfile?.name || `@${currentUsername}`) : (title || platform.name)}
+                  </h4>
                   <p className="text-xs text-[#6F6F6B] truncate">
-                    {isInstagram && isIgConnected ? `@${igAccount.username}` : url ? url.replace(/^https?:\/\//, '') : platform.name}
+                    {isInstagram && isIgConnected ? `@${currentUsername}` : url ? url.replace(/^https?:\/\//, '') : platform.name}
                   </p>
                 </div>
                 <div className="grid grid-cols-3 gap-1 py-1 border-y border-[#E5E5E3] text-center">
                   <div>
-                    <p className="text-xs font-bold text-[#1F1F1F]">Posts</p>
-                    <p className="text-[10px] text-[#6F6F6B]">Feed</p>
+                    <p className="text-xs font-bold text-[#1F1F1F]">
+                      {isInstagram && isIgConnected
+                        ? (typeof igProfile?.mediaCount === 'number' ? igProfile.mediaCount : igMedia.length || 0)
+                        : 'Feed'}
+                    </p>
+                    <p className="text-[10px] text-[#6F6F6B]">Posts</p>
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-[#1F1F1F]">Connect</p>
-                    <p className="text-[10px] text-[#6F6F6B]">{platform.name}</p>
+                    <p className="text-xs font-bold text-[#1F1F1F]">
+                      {isInstagram && isIgConnected
+                        ? (igProfile?.followersCount != null ? igProfile.followersCount : 'Unavailable')
+                        : platform.name}
+                    </p>
+                    <p className="text-[10px] text-[#6F6F6B]">Followers</p>
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-[#1F1F1F]">Share</p>
-                    <p className="text-[10px] text-[#6F6F6B]">Profile</p>
+                    <p className="text-xs font-bold text-[#1F1F1F]">
+                      {isInstagram && isIgConnected
+                        ? (igProfile?.followingCount != null ? igProfile.followingCount : 'Unavailable')
+                        : 'Profile'}
+                    </p>
+                    <p className="text-[10px] text-[#6F6F6B]">Following</p>
                   </div>
                 </div>
                 <button
                   type="button"
-                  className="w-full py-2 px-3 rounded-full text-xs font-semibold text-white shadow-xs"
+                  className="w-full py-2 px-3 rounded-full text-xs font-semibold text-white shadow-xs cursor-default"
                   style={{ backgroundColor: platform.color }}
                 >
                   Follow on {platform.name}
@@ -390,7 +602,13 @@ export default function SocialItemEditor({
             {layout === 'single' && (
               <div className="w-full max-w-[340px] p-4 rounded-[20px] bg-white border border-[#E5E5E3] shadow-sm space-y-3">
                 <div className="aspect-square w-full rounded-xl overflow-hidden bg-[#0A0A0A] relative flex items-center justify-center">
-                  {thumbnail ? (
+                  {isInstagram && isIgConnected && igMedia.length > 0 ? (
+                    <img
+                      src={igMedia[0].thumbnailUrl || igMedia[0].mediaUrl}
+                      alt={igMedia[0].caption || 'Instagram Post'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : thumbnail ? (
                     <img src={thumbnail} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <PlatformIcon className="h-12 w-12 text-white/70" />
@@ -405,12 +623,12 @@ export default function SocialItemEditor({
                 <div className="text-center space-y-0.5">
                   <h4 className="text-sm font-bold text-[#1F1F1F] truncate">{title || platform.name}</h4>
                   <p className="text-xs text-[#6F6F6B] truncate">
-                    {isInstagram && isIgConnected ? `@${igAccount.username}` : url ? url.replace(/^https?:\/\//, '') : platform.name}
+                    {isInstagram && isIgConnected ? `@${currentUsername}` : url ? url.replace(/^https?:\/\//, '') : platform.name}
                   </p>
                 </div>
                 <button
                   type="button"
-                  className="w-full py-2 px-3 rounded-full text-xs font-semibold text-white shadow-xs"
+                  className="w-full py-2 px-3 rounded-full text-xs font-semibold text-white shadow-xs cursor-default"
                   style={{ backgroundColor: platform.color }}
                 >
                   View on {platform.name}
@@ -481,7 +699,7 @@ export default function SocialItemEditor({
                     }`}
                   />
                   <span className="text-xs font-medium text-[#6F6F6B]">
-                    {isIgConnected ? `@${igAccount.username}` : 'Disconnected'}
+                    {isIgConnected ? `@${currentUsername}` : isTokenExpired ? 'Expired' : 'Disconnected'}
                   </span>
                 </div>
               )}
@@ -513,8 +731,8 @@ export default function SocialItemEditor({
               </p>
             )}
 
-            {/* INSTAGRAM OAUTH CONNECTION BANNER (Inspired by Screenshot 5) */}
-            {isInstagram && !isIgConnected && (
+            {/* INSTAGRAM TOKEN EXPIRED BANNER (Shown ONLY when token is genuinely expired) */}
+            {isInstagram && isTokenExpired && (
               <div className="p-4 rounded-[16px] bg-[#FEF2F2] border border-[#FEE2E2] flex items-start gap-3 mt-2">
                 <div className="h-8 w-8 rounded-full bg-[#EF4444]/15 text-[#EF4444] flex items-center justify-center shrink-0 mt-0.5">
                   <AlertCircle className="h-5 w-5" />
@@ -524,7 +742,7 @@ export default function SocialItemEditor({
                     Instagram connection expired
                   </h5>
                   <p className="text-xs text-[#B91C1C]">
-                    Reconnect your Instagram to automatically sync account information or display Instagram content. You can also save a manual profile link above without connecting.
+                    Your Instagram authorization has expired. Reconnect your account to continue syncing posts and profile stats automatically.
                   </p>
                   <div className="flex items-center gap-3 pt-2">
                     <button
@@ -535,14 +753,33 @@ export default function SocialItemEditor({
                     >
                       Reconnect
                     </button>
-                    <a
-                      href="https://help.instagram.com/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs font-semibold text-[#1F1F1F] hover:underline cursor-pointer"
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* INSTAGRAM NOT CONNECTED BANNER (Shown when no account is connected yet) */}
+            {isInstagram && !isIgConnected && !isTokenExpired && (
+              <div className="p-4 rounded-[16px] bg-[#F9F9F8] border border-[#E5E5E3] flex items-start gap-3 mt-2">
+                <div className="h-8 w-8 rounded-full bg-[#1F1F1F]/10 text-[#1F1F1F] flex items-center justify-center shrink-0 mt-0.5">
+                  <PlatformIcon className="h-4 w-4" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <h5 className="text-sm font-bold text-[#1F1F1F]">
+                    Connect Instagram
+                  </h5>
+                  <p className="text-xs text-[#6F6F6B]">
+                    Connect your official Instagram account to automatically sync account information and display real Instagram posts. You can also save a manual profile link above without connecting.
+                  </p>
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      id="instagram-connect-btn"
+                      type="button"
+                      onClick={() => onConnectInstagram?.()}
+                      className="px-4 py-1.5 rounded-full bg-[#1F1F1F] hover:bg-black text-white text-xs font-semibold shadow-xs cursor-pointer"
                     >
-                      Learn more
-                    </a>
+                      Connect Instagram
+                    </button>
                   </div>
                 </div>
               </div>
@@ -550,28 +787,47 @@ export default function SocialItemEditor({
 
             {/* INSTAGRAM CONNECTED BANNER */}
             {isInstagram && isIgConnected && (
-              <div className="p-4 rounded-[16px] bg-[#F0FDF4] border border-[#DCFCE7] flex items-center justify-between gap-3 mt-2">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-7 w-7 rounded-full bg-[#16A34A]/15 text-[#16A34A] flex items-center justify-center">
-                    <Check className="h-4 w-4" />
+              <div className="p-4 rounded-[16px] bg-[#F0FDF4] border border-[#DCFCE7] flex flex-col gap-2 mt-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-7 w-7 rounded-full bg-[#16A34A]/15 text-[#16A34A] flex items-center justify-center">
+                      <Check className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-[#166534]">
+                        Connected as @{currentUsername}
+                      </p>
+                      <p className="text-[11px] text-[#15803D]">
+                        Instagram account actively authenticated
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-[#166534]">
-                      Connected as @{igAccount.username}
-                    </p>
-                    <p className="text-[11px] text-[#15803D]">
-                      Instagram account actively authenticated
-                    </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleManualSync}
+                      disabled={syncingIg}
+                      className="px-2.5 py-1 rounded-full text-xs font-medium text-[#166534] hover:bg-[#DCFCE7] border border-[#BBF7D0] cursor-pointer flex items-center gap-1"
+                      title="Sync latest profile & posts"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${syncingIg ? 'animate-spin' : ''}`} />
+                      {syncingIg ? 'Syncing...' : 'Sync'}
+                    </button>
+                    <button
+                      id="instagram-disconnect-btn"
+                      type="button"
+                      onClick={() => onDisconnectInstagram?.()}
+                      className="px-3 py-1 rounded-full text-xs font-semibold text-[#DC2626] hover:bg-[#FEF2F2] border border-[#FCA5A5] cursor-pointer"
+                    >
+                      Disconnect
+                    </button>
                   </div>
                 </div>
-                <button
-                  id="instagram-disconnect-btn"
-                  type="button"
-                  onClick={() => onDisconnectInstagram?.()}
-                  className="px-3 py-1 rounded-full text-xs font-semibold text-[#DC2626] hover:bg-[#FEF2F2] border border-[#FCA5A5] cursor-pointer"
-                >
-                  Disconnect
-                </button>
+                {isWebhookFailed && (
+                  <p className="text-[11px] text-[#B45309] bg-[#FEF3C7] p-2 rounded-lg border border-[#FDE68A]">
+                    Note: Webhook subscription is pending. Automated comment triggers are paused, but your storefront media display is active.
+                  </p>
+                )}
               </div>
             )}
           </div>

@@ -15,7 +15,7 @@ import {
   razorpayAccountService, payoutService, earningsService, courseService, publicCourseService, learningService, certificateService, coachingService, communityService, webinarService, membershipService, customService, externalLink, customerAccountService, creatorSubscriptionService, accountUpgradeService, checkoutFieldsService,
   leadService, couponService, marketingService, emailMarketingService, onboardingService, successCenterService,
   instagramService, automationService, instagramMessagingService, httpError,
-  emailService, businessCardService,
+  emailService, businessCardService, supportService,
 } from '@/lib/services'
 import { purchaseOtpService, PURCHASE_SESSION_COOKIE } from '@/lib/purchaseOtpService'
 import { getAppUrl } from '@/config/site'
@@ -616,7 +616,14 @@ async function processRoute(request, context = {}) {
       try {
         const result = await instagramService.handleCallback(code, state)
         const target = result?.returnUrl || '/dashboard/settings/connected-accounts'
-        const redirectTarget = target.includes('?') ? `${target}&connected=1` : `${target}?connected=1`
+        let redirectTarget = target
+        if (result.status === 'SUBSCRIPTION_FAILED') {
+          const sep = redirectTarget.includes('?') ? '&' : '?'
+          redirectTarget = `${redirectTarget}${sep}warning=webhook_subscription_failed&message=${encodeURIComponent(result.subscriptionError || 'Webhook subscription pending')}`
+        } else {
+          const sep = redirectTarget.includes('?') ? '&' : '?'
+          redirectTarget = `${redirectTarget}${sep}connected=1`
+        }
         const safeTarget = redirectTarget.startsWith('/') ? redirectTarget : `/${redirectTarget}`
         return NextResponse.redirect(`${appUrl}${safeTarget}`)
       } catch (err) {
@@ -631,16 +638,38 @@ async function processRoute(request, context = {}) {
       return json(await instagramService.getStatus(user.id))
     }
 
+    if (route === '/integrations/instagram/subscribe' && method === 'POST') {
+      const user = await requireAuth(request)
+      requireCreator(user)
+      return json(await instagramService.retrySubscription(user.id))
+    }
+
     if (route === '/integrations/instagram/account' && method === 'DELETE') {
       const user = await requireAuth(request)
       requireCreator(user)
       return json(await instagramService.disconnectAccount(user.id))
     }
 
+    if (route === '/integrations/instagram/profile' && method === 'GET') {
+      const user = await requireAuth(request)
+      requireCreator(user)
+      const forceRefresh = url.searchParams.get('refresh') === '1'
+      return json(await instagramService.getProfile(user.id, { forceRefresh }))
+    }
+
+    if ((route === '/integrations/instagram/sync' || route === '/integrations/instagram/profile/refresh') && method === 'POST') {
+      const user = await requireAuth(request)
+      requireCreator(user)
+      const profile = await instagramService.getProfile(user.id, { forceRefresh: true })
+      const media = await instagramService.getMedia(user.id, { forceRefresh: true })
+      return json({ success: true, profile, media })
+    }
+
     if (route === '/integrations/instagram/media' && method === 'GET') {
       const user = await requireAuth(request)
       requireCreator(user)
-      return json(await instagramService.getMedia(user.id))
+      const forceRefresh = url.searchParams.get('refresh') === '1'
+      return json(await instagramService.getMedia(user.id, { forceRefresh }))
     }
 
     // ===== Automations =====
@@ -2060,6 +2089,40 @@ async function processRoute(request, context = {}) {
     if (path[0] === 'creator' && path[1] === 'success-center' && method === 'GET') {
       await requireCreatorUser(request)
       return json(await successCenterService.getResources())
+    }
+
+    if (path[0] === 'support') {
+      if (path[1] === 'categories' && method === 'GET') {
+        return json({ success: true, categories: await supportService.getCategories() })
+      }
+      if (path[1] === 'articles') {
+        if (!path[2] && method === 'GET') {
+          const category = url.searchParams.get('category')
+          const search = url.searchParams.get('search')
+          return json({ success: true, articles: await supportService.getArticles({ category, search }) })
+        }
+        if (path[2] && method === 'GET') {
+          const article = await supportService.getArticleBySlug(path[2])
+          if (!article) throw httpError(404, 'Help article not found')
+          return json({ success: true, article })
+        }
+      }
+      if (path[1] === 'tickets') {
+        const user = await requireCreatorUser(request)
+        if (!path[2] && method === 'GET') {
+          return json({ success: true, tickets: await supportService.listTickets(user.id) })
+        }
+        if (!path[2] && method === 'POST') {
+          const body = await request.json()
+          const ticket = await supportService.createTicket(user.id, body)
+          return json({ success: true, ticket }, 201)
+        }
+        if (path[2] && method === 'GET') {
+          const ticket = await supportService.getTicket(user.id, path[2])
+          if (!ticket) throw httpError(404, 'Support ticket not found')
+          return json({ success: true, ticket })
+        }
+      }
     }
 
     if (path[0] === 'business-card') {

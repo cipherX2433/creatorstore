@@ -50,6 +50,7 @@ model User {
   payoutAuditLogs     PayoutAuditLog[]
   subscriptionAuditLogs SubscriptionAuditLog[]
   subscriptionInvoices  SubscriptionInvoice[]
+  supportTickets        SupportTicket[]
 
   @@map("users")
 }
@@ -793,4 +794,30 @@ model OtpVerification {
   @@index([expiresAt], map: "idx_otp_expires_at")
   @@map("otp_verifications")
 }
+
+// ------------------------------------------------------------------------------
+// 9. Help & Support Tickets
+// ------------------------------------------------------------------------------
+
+model SupportTicket {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketNumber String    @unique @map("ticket_number")
+  creatorId    String    @map("creator_id") @db.Uuid
+  subject      String
+  category     String
+  description  String
+  relatedPage  String?   @map("related_page")
+  status       String    @default("OPEN")
+  priority     String    @default("NORMAL")
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId], map: "idx_support_tickets_creator_id")
+  @@index([status], map: "idx_support_tickets_status")
+  @@map("support_tickets")
+}
+
 

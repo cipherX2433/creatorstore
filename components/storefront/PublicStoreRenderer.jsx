@@ -1122,15 +1122,28 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       const thumbnail = section.props?.thumbnail || section.props?.customThumbnail
       const style = resolveSocialStyle(section.props?.layout || section.props?.displayMode || section.props?.displayStyle)
 
+      const isInstagram = platform.id === 'instagram'
+      const igData = section.props?.instagramData || null
+      const isIgConnected = Boolean(igData?.connected)
+      const igProfile = igData?.profile || null
+      const igMedia = Array.isArray(igData?.media) ? igData.media : []
+      const igUsername = igData?.username || igProfile?.username || ''
+      const targetUrl = (isInstagram && isIgConnected && igProfile?.profileUrl) ? igProfile.profileUrl : url
+
       if (style === 'cards') {
+        const hasRealPost = isInstagram && isIgConnected && igMedia.length > 0
+        const post = hasRealPost ? igMedia[0] : null
+        const postImg = post ? (post.thumbnailUrl || post.mediaUrl) : thumbnail
+        const postUrl = post?.permalink || targetUrl
+
         const card = (
           <div
             className="overflow-hidden border border-white/10 bg-[#000000] shadow-card space-y-2.5"
             style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
           >
             <div className="aspect-[2.1/1] w-full overflow-hidden bg-slate-900 relative flex items-center justify-center">
-              {thumbnail ? (
-                <img src={thumbnail} alt={label} className="w-full h-full object-cover" />
+              {postImg ? (
+                <img src={postImg} alt={label} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${platform.color}25` }}>
                   <PlatformIcon className="h-12 w-12" style={{ color: platform.color }} />
@@ -1146,29 +1159,26 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
             <div className="px-4 pb-4 space-y-2.5">
               <div className="space-y-0.5">
                 <h3 className="text-sm sm:text-base font-bold text-white">{label}</h3>
-                {url && url !== '#' && <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">{url}</p>}
+                {post?.caption ? (
+                  <p className="text-xs text-[rgba(244,242,236,0.6)] line-clamp-2">{post.caption}</p>
+                ) : url && url !== '#' ? (
+                  <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">{url.replace(/^https?:\/\//, '')}</p>
+                ) : null}
               </div>
-              <StyledButton label={`Follow on ${platform.name}`} tokens={tokens} fullWidth />
+              <StyledButton label={hasRealPost ? 'View on Instagram' : `Follow on ${platform.name}`} tokens={tokens} fullWidth />
             </div>
           </div>
         )
         return (
           <div className="w-full max-w-[420px] mx-auto">
-            {editor || !url || url === '#' ? card : (
-              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{card}</a>
+            {editor || !postUrl || postUrl === '#' ? card : (
+              <a href={postUrl} target="_blank" rel="noopener noreferrer" className="block group">{card}</a>
             )}
           </div>
         )
       }
 
       if (style === 'grid') {
-        const gridTiles = [
-          thumbnail ? { src: thumbnail } : { color: platform.color, icon: true },
-          { color: `${platform.color}45`, icon: false },
-          { color: `${platform.color}25`, icon: false },
-          { color: `${platform.color}35`, icon: false },
-        ]
-
         const gridCard = (
           <div
             className="overflow-hidden border border-white/10 bg-[#000000] shadow-card p-3.5 space-y-3"
@@ -1184,47 +1194,67 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-sm font-bold text-white truncate">{label}</h3>
-                  {url && url !== '#' && <p className="text-[11px] text-[rgba(244,242,236,0.5)] truncate">{url.replace(/^https?:\/\//, '')}</p>}
+                  <p className="text-[11px] text-[rgba(244,242,236,0.5)] truncate">
+                    {isInstagram && isIgConnected ? `@${igUsername}` : (url && url !== '#' ? url.replace(/^https?:\/\//, '') : platform.name)}
+                  </p>
                 </div>
               </div>
+              {isInstagram && isIgConnected && (
+                <span className="text-[11px] text-[rgba(244,242,236,0.4)]">
+                  {igMedia.length} posts
+                </span>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {gridTiles.map((tile, i) => (
-                <div
-                  key={i}
-                  className="aspect-square rounded-lg overflow-hidden bg-slate-900/80 border border-white/10 relative flex items-center justify-center"
-                >
-                  {tile.src ? (
-                    <img src={tile.src} alt="" className="w-full h-full object-cover" />
-                  ) : tile.icon ? (
-                    <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${tile.color}25` }}>
-                      <PlatformIcon className="h-8 w-8" style={{ color: tile.color }} />
-                    </div>
+
+            {isInstagram && isIgConnected ? (
+              igMedia.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {igMedia.slice(0, 4).map((item, i) => (
+                    <a
+                      key={item.id || i}
+                      href={item.permalink || targetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="aspect-square rounded-lg overflow-hidden bg-slate-900 border border-white/10 relative flex items-center justify-center group/item block"
+                    >
+                      <img src={item.thumbnailUrl || item.mediaUrl} alt={item.caption || 'Instagram Post'} className="w-full h-full object-cover group-hover/item:scale-105 transition-transform duration-200" />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="aspect-[2/1] rounded-lg border border-dashed border-white/15 flex flex-col items-center justify-center p-3 text-center bg-white/5">
+                  <PlatformIcon className="h-6 w-6 text-white/40 mb-1" />
+                  <p className="text-xs text-[rgba(244,242,236,0.6)]">No Instagram posts found</p>
+                </div>
+              )
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="aspect-square rounded-lg overflow-hidden bg-slate-900 border border-white/10 relative flex items-center justify-center">
+                  {thumbnail ? (
+                    <img src={thumbnail} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full" style={{ backgroundColor: tile.color }} />
+                    <PlatformIcon className="h-8 w-8" style={{ color: platform.color }} />
                   )}
                 </div>
-              ))}
-            </div>
+                <div className="aspect-square rounded-lg overflow-hidden bg-slate-900/60 border border-white/10 flex flex-col items-center justify-center p-2 text-center">
+                  <p className="text-[11px] text-white/50">{platform.name} Feed</p>
+                </div>
+              </div>
+            )}
+
             <StyledButton label={`Follow on ${platform.name}`} tokens={tokens} fullWidth />
           </div>
         )
         return (
           <div className="w-full max-w-[420px] mx-auto">
-            {editor || !url || url === '#' ? gridCard : (
-              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{gridCard}</a>
+            {editor || !targetUrl || targetUrl === '#' ? gridCard : (
+              <a href={targetUrl} target="_blank" rel="noopener noreferrer" className="block group">{gridCard}</a>
             )}
           </div>
         )
       }
 
       if (style === 'carousel') {
-        const carouselSlides = [
-          thumbnail ? { src: thumbnail } : { color: platform.color, icon: true },
-          { color: `${platform.color}45`, icon: false },
-          { color: `${platform.color}25`, icon: false },
-        ]
-
         const carouselCard = (
           <div
             className="overflow-hidden border border-white/10 bg-[#000000] shadow-card p-3.5 space-y-3"
@@ -1240,41 +1270,62 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-sm font-bold text-white truncate">{label}</h3>
-                  {url && url !== '#' && <p className="text-[11px] text-[rgba(244,242,236,0.5)] truncate">{url.replace(/^https?:\/\//, '')}</p>}
+                  <p className="text-[11px] text-[rgba(244,242,236,0.5)] truncate">
+                    {isInstagram && isIgConnected ? `@${igUsername}` : (url && url !== '#' ? url.replace(/^https?:\/\//, '') : platform.name)}
+                  </p>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
-              {carouselSlides.map((slide, i) => (
-                <div
-                  key={i}
-                  className="w-32 h-44 shrink-0 rounded-xl overflow-hidden bg-slate-900/80 border border-white/10 relative flex items-center justify-center"
-                >
-                  {slide.src ? (
-                    <img src={slide.src} alt="" className="w-full h-full object-cover" />
-                  ) : slide.icon ? (
-                    <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${slide.color}25` }}>
-                      <PlatformIcon className="h-10 w-10" style={{ color: slide.color }} />
-                    </div>
+
+            {isInstagram && isIgConnected ? (
+              igMedia.length > 0 ? (
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
+                  {igMedia.map((slide, i) => (
+                    <a
+                      key={slide.id || i}
+                      href={slide.permalink || targetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-32 h-44 shrink-0 rounded-xl overflow-hidden bg-slate-900 border border-white/10 relative flex items-center justify-center group/slide block"
+                    >
+                      <img src={slide.thumbnailUrl || slide.mediaUrl} alt={slide.caption || 'Instagram Post'} className="w-full h-full object-cover group-hover/slide:scale-105 transition-transform duration-200" />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="h-32 w-full rounded-xl border border-dashed border-white/15 flex flex-col items-center justify-center p-3 text-center bg-white/5">
+                  <PlatformIcon className="h-6 w-6 text-white/40 mb-1" />
+                  <p className="text-xs text-[rgba(244,242,236,0.6)]">No Instagram posts found</p>
+                </div>
+              )
+            ) : (
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
+                <div className="w-32 h-44 shrink-0 rounded-xl overflow-hidden bg-slate-900 border border-white/10 relative flex items-center justify-center">
+                  {thumbnail ? (
+                    <img src={thumbnail} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full" style={{ backgroundColor: slide.color }} />
+                    <PlatformIcon className="h-10 w-10" style={{ color: platform.color }} />
                   )}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+
             <StyledButton label={`Follow on ${platform.name}`} tokens={tokens} fullWidth />
           </div>
         )
         return (
           <div className="w-full max-w-[420px] mx-auto">
-            {editor || !url || url === '#' ? carouselCard : (
-              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{carouselCard}</a>
+            {editor || !targetUrl || targetUrl === '#' ? carouselCard : (
+              <a href={targetUrl} target="_blank" rel="noopener noreferrer" className="block group">{carouselCard}</a>
             )}
           </div>
         )
       }
 
       if (style === 'profile') {
+        const profileImg = (isInstagram && isIgConnected && igProfile?.profilePictureUrl) ? igProfile.profilePictureUrl : thumbnail
+        const profileName = (isInstagram && isIgConnected && igProfile?.name) ? igProfile.name : label
+
         const profileCard = (
           <div
             className="overflow-hidden border border-white/10 bg-[#000000] shadow-card p-4 space-y-3.5 text-center"
@@ -1282,8 +1333,8 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
           >
             <div className="relative inline-block mx-auto">
               <div className="h-16 w-16 rounded-full overflow-hidden bg-slate-900 border-2 border-white/20 mx-auto flex items-center justify-center">
-                {thumbnail ? (
-                  <img src={thumbnail} alt={label} className="w-full h-full object-cover" />
+                {profileImg ? (
+                  <img src={profileImg} alt={profileName} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${platform.color}30` }}>
                     <PlatformIcon className="h-8 w-8" style={{ color: platform.color }} />
@@ -1298,21 +1349,35 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
               </div>
             </div>
             <div className="space-y-0.5">
-              <h3 className="text-base font-bold text-white truncate">{label}</h3>
-              {url && url !== '#' && <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">{url.replace(/^https?:\/\//, '')}</p>}
+              <h3 className="text-base font-bold text-white truncate">{profileName}</h3>
+              <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">
+                {isInstagram && isIgConnected ? `@${igUsername}` : (url && url !== '#' ? url.replace(/^https?:\/\//, '') : platform.name)}
+              </p>
             </div>
             <div className="grid grid-cols-3 gap-2 py-2 border-y border-white/10">
               <div className="text-center">
-                <div className="text-xs font-bold text-white">Posts</div>
-                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">Feed</div>
+                <div className="text-xs font-bold text-white">
+                  {isInstagram && isIgConnected
+                    ? (typeof igProfile?.mediaCount === 'number' ? igProfile.mediaCount : (igMedia.length || 0))
+                    : 'Feed'}
+                </div>
+                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">Posts</div>
               </div>
               <div className="text-center">
-                <div className="text-xs font-bold text-white">Connect</div>
-                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">{platform.name}</div>
+                <div className="text-xs font-bold text-white">
+                  {isInstagram && isIgConnected
+                    ? (igProfile?.followersCount != null ? igProfile.followersCount : 'Unavailable')
+                    : platform.name}
+                </div>
+                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">Followers</div>
               </div>
               <div className="text-center">
-                <div className="text-xs font-bold text-white">Share</div>
-                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">Profile</div>
+                <div className="text-xs font-bold text-white">
+                  {isInstagram && isIgConnected
+                    ? (igProfile?.followingCount != null ? igProfile.followingCount : 'Unavailable')
+                    : 'Profile'}
+                </div>
+                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">Following</div>
               </div>
             </div>
             <StyledButton label={`Follow on ${platform.name}`} tokens={tokens} fullWidth />
@@ -1320,22 +1385,27 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
         )
         return (
           <div className="w-full max-w-[420px] mx-auto">
-            {editor || !url || url === '#' ? profileCard : (
-              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{profileCard}</a>
+            {editor || !targetUrl || targetUrl === '#' ? profileCard : (
+              <a href={targetUrl} target="_blank" rel="noopener noreferrer" className="block group">{profileCard}</a>
             )}
           </div>
         )
       }
 
       if (style === 'single') {
+        const hasRealPost = isInstagram && isIgConnected && igMedia.length > 0
+        const post = hasRealPost ? igMedia[0] : null
+        const postImg = post ? (post.thumbnailUrl || post.mediaUrl) : thumbnail
+        const postUrl = post?.permalink || targetUrl
+
         const singleCard = (
           <div
             className="overflow-hidden border border-white/10 bg-[#000000] shadow-card space-y-2.5"
             style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
           >
             <div className="aspect-square w-full overflow-hidden bg-slate-900 relative flex items-center justify-center">
-              {thumbnail ? (
-                <img src={thumbnail} alt={label} className="w-full h-full object-cover" />
+              {postImg ? (
+                <img src={postImg} alt={label} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${platform.color}25` }}>
                   <PlatformIcon className="h-16 w-16" style={{ color: platform.color }} />
@@ -1351,16 +1421,20 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
             <div className="px-4 pb-4 space-y-2.5">
               <div className="space-y-0.5">
                 <h3 className="text-sm sm:text-base font-bold text-white">{label}</h3>
-                {url && url !== '#' && <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">{url}</p>}
+                {post?.caption ? (
+                  <p className="text-xs text-[rgba(244,242,236,0.6)] line-clamp-2">{post.caption}</p>
+                ) : url && url !== '#' ? (
+                  <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">{url.replace(/^https?:\/\//, '')}</p>
+                ) : null}
               </div>
-              <StyledButton label={`View on ${platform.name}`} tokens={tokens} fullWidth />
+              <StyledButton label={hasRealPost ? 'View on Instagram' : `View on ${platform.name}`} tokens={tokens} fullWidth />
             </div>
           </div>
         )
         return (
           <div className="w-full max-w-[420px] mx-auto">
-            {editor || !url || url === '#' ? singleCard : (
-              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{singleCard}</a>
+            {editor || !postUrl || postUrl === '#' ? singleCard : (
+              <a href={postUrl} target="_blank" rel="noopener noreferrer" className="block group">{singleCard}</a>
             )}
           </div>
         )

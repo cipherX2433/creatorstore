@@ -1764,8 +1764,11 @@ export default function StoreBuilderPage() {
           }
           setProducts(loadedProducts)
           setBioInput(loadedStore?.bio || me?.profile?.bio || '')
-          if (igRes?.account) {
-            setIgAccount(igRes.account)
+          if (igRes) {
+            const acc = igRes.account || igRes
+            if (acc && acc.connected !== undefined) {
+              setIgAccount(acc)
+            }
           }
           // Load pages
           const storePagesRaw = Array.isArray(loadedStore?.pages) ? loadedStore.pages : []

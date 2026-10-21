@@ -230,7 +230,7 @@ export default function SidebarProfileRow({
           {/* Section 2: Support & Feedback */}
           <div className="space-y-0.5">
             <Link
-              href="/dashboard/success-center"
+              href="/dashboard/help"
               onClick={() => closeAnd()}
               className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-[10px] text-xs font-medium text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors duration-150"
             >

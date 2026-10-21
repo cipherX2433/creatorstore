@@ -15,12 +15,15 @@ export default function ConnectedAccountsPage() {
   const [account, setAccount] = useState({ connected: false })
   const [connecting, setConnecting] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
+  const [subscribing, setSubscribing] = useState(false)
 
   useEffect(() => {
     fetchAccountStatus()
 
     if (searchParams.get('connected') === '1') {
       toast.success('Instagram account connected successfully!')
+    } else if (searchParams.get('warning') === 'webhook_subscription_failed') {
+      toast.warning(searchParams.get('message') || 'Instagram authorized, but webhook subscription failed. You can retry activating webhooks below.')
     } else if (searchParams.get('error')) {
       toast.error(`Instagram connection error: ${searchParams.get('error')}`)
     }
@@ -36,6 +39,24 @@ export default function ConnectedAccountsPage() {
       setAccount({ connected: false })
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleRetrySubscription() {
+    setSubscribing(true)
+    try {
+      const res = await api.post('/integrations/instagram/subscribe')
+      if (res.success) {
+        toast.success(res.message || 'Webhook subscription activated successfully!')
+        await fetchAccountStatus()
+      } else {
+        toast.error(res.message || res.error || 'Failed to activate webhook subscription')
+        await fetchAccountStatus()
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to retry webhook subscription')
+    } finally {
+      setSubscribing(false)
     }
   }
 
@@ -131,6 +152,10 @@ export default function ConnectedAccountsPage() {
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#16A34A]/10 text-[#16A34A] border border-[#16A34A]/20">
                     <CheckCircle2 className="h-3 w-3" /> Connected
                   </span>
+                ) : account.status === 'SUBSCRIPTION_FAILED' ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#F59E0B]/10 text-[#D97706] border border-[#F59E0B]/20">
+                    <AlertCircle className="h-3 w-3" /> Webhook Inactive
+                  </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F2F1EF] text-[#6F6F6B] border border-[#E5E5E3]">
                     Not Connected
@@ -140,6 +165,8 @@ export default function ConnectedAccountsPage() {
               <p className="text-xs text-[#6F6F6B] mt-1">
                 {account.connected
                   ? `Authorized account: @${account.username || 'connected_account'}`
+                  : account.status === 'SUBSCRIPTION_FAILED'
+                  ? `Authorized: @${account.username || 'account'} (Webhook event delivery pending)`
                   : 'Connect via official Meta OAuth to trigger automated DMs from comment keywords.'}
               </p>
             </div>
@@ -171,6 +198,35 @@ export default function ConnectedAccountsPage() {
                   Disconnect
                 </Button>
               </div>
+            ) : account.status === 'SUBSCRIPTION_FAILED' ? (
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleRetrySubscription}
+                  disabled={subscribing}
+                  className="bg-[#D97706] hover:bg-[#B45309] text-white font-semibold rounded-full px-4 text-xs"
+                >
+                  {subscribing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
+                  Retry Webhook
+                </Button>
+                <Button
+                  onClick={handleConnectInstagram}
+                  disabled={connecting}
+                  variant="outline"
+                  className="border-[#E5E5E3] bg-[#FFFFFF] text-[#1F1F1F] hover:bg-[#F5F5F3] rounded-full text-xs"
+                >
+                  {connecting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                  Reconnect
+                </Button>
+                <Button
+                  onClick={handleDisconnectInstagram}
+                  disabled={disconnecting}
+                  variant="outline"
+                  className="border-[#E5E5E3] text-[#DC2626] bg-[#FFFFFF] hover:bg-[#F5F5F3] rounded-full text-xs"
+                >
+                  {disconnecting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Unlink className="h-3.5 w-3.5 mr-1.5" />}
+                  Disconnect
+                </Button>
+              </div>
             ) : (
               <Button
                 onClick={handleConnectInstagram}
@@ -190,6 +246,29 @@ export default function ConnectedAccountsPage() {
             )}
           </div>
         </div>
+
+        {/* Recoverable Failure Warning Card */}
+        {account.status === 'SUBSCRIPTION_FAILED' && (
+          <div className="p-4 rounded-[18px] bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div className="space-y-1">
+              <p className="font-semibold text-sm flex items-center gap-1.5">
+                <AlertCircle className="h-4 w-4 shrink-0 text-[#D97706]" />
+                Webhook Event Subscription Inactive
+              </p>
+              <p className="text-[#B45309]">
+                Instagram OAuth token is saved, but Meta rejected the webhook subscription edge. Your automations will not receive comment keyword triggers until subscription is active. Click Retry to re-attempt subscription with Meta.
+              </p>
+            </div>
+            <Button
+              onClick={handleRetrySubscription}
+              disabled={subscribing}
+              className="bg-[#D97706] text-white hover:bg-[#B45309] rounded-full px-4 text-xs font-semibold shrink-0"
+            >
+              {subscribing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
+              Retry Webhook Subscription
+            </Button>
+          </div>
+        )}
 
         {/* Feature Highlights */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
