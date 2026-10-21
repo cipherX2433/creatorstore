@@ -73,7 +73,7 @@ import AddYouTubeModalView from '@/components/dashboard/AddYouTubeModalView'
 import AddMediaModalView from '@/components/dashboard/AddMediaModalView'
 import SocialDisplaySelectModalView from '@/components/dashboard/SocialDisplaySelectModalView'
 import SocialItemEditor from '@/components/dashboard/editors/SocialItemEditor'
-import { getSocialPlatform } from '@/lib/socialPlatforms'
+import { getSocialPlatform, resolveSocialStyle } from '@/lib/socialPlatforms'
 import { isBookingItem, resolveSectionProduct } from '@/lib/bookingItemUtils'
 export { isBookingItem, resolveSectionProduct }
 import { IconBadge, ICON_BADGE_COLORS } from '@/components/ui/icon-badge'
@@ -4571,15 +4571,16 @@ export default function StoreBuilderPage() {
                 setAddModalOpen(false)
                 setAddModalType('menu')
                 const platformInfo = getSocialPlatform(selectedSocialPlatform)
+                const safeStyleKey = resolveSocialStyle(styleKey, platformInfo?.id)
                 const defaultTitle = platformInfo?.name || 'Social'
                 const newSec = await addSectionWithProps('social', {
                   platform: selectedSocialPlatform,
                   title: defaultTitle,
                   label: defaultTitle,
                   url: '',
-                  layout: styleKey,
-                  displayMode: styleKey,
-                  displayStyle: styleKey,
+                  layout: safeStyleKey,
+                  displayMode: safeStyleKey,
+                  displayStyle: safeStyleKey,
                   thumbnail: null,
                   customThumbnail: null,
                 })

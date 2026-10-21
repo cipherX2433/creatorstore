@@ -23,6 +23,7 @@ import {
   getSocialPlatform,
   SOCIAL_DISPLAY_STYLES,
   resolveSocialStyle,
+  isSocialStyleAvailable,
 } from '@/lib/socialPlatforms'
 import SocialStylePicker from '@/components/dashboard/SocialStylePicker'
 
@@ -49,7 +50,7 @@ export default function SocialItemEditor({
   const [title, setTitle] = useState(initialProps.title || initialProps.label || platform.name)
   const [url, setUrl] = useState(initialProps.url || '')
   const [thumbnail, setThumbnail] = useState(initialProps.thumbnail || initialProps.customThumbnail || '')
-  const [layout, setLayout] = useState(resolveSocialStyle(initialProps))
+  const [layout, setLayout] = useState(resolveSocialStyle(initialProps, platform.id))
 
   const [activeTab, setActiveTab] = useState('details')
   const [saveState, setSaveState] = useState('saved')
@@ -130,7 +131,7 @@ export default function SocialItemEditor({
       if (section.props.title !== undefined && section.props.title !== title) setTitle(section.props.title)
       if (section.props.url !== undefined && section.props.url !== url) setUrl(section.props.url)
       if (section.props.thumbnail !== undefined && section.props.thumbnail !== thumbnail) setThumbnail(section.props.thumbnail)
-      const currentLayout = resolveSocialStyle(section.props)
+      const currentLayout = resolveSocialStyle(section.props, platform.id)
       if (currentLayout !== layout) setLayout(currentLayout)
       if (section.props.instagramData?.profile && !igProfile) setIgProfile(section.props.instagramData.profile)
       if (Array.isArray(section.props.instagramData?.media) && igMedia.length === 0) setIgMedia(section.props.instagramData.media)
@@ -189,7 +190,7 @@ export default function SocialItemEditor({
     setSaveState('saving')
     try {
       const canonicalUrl = url.trim() ? (url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`) : ''
-      const resolved = resolveSocialStyle(layout)
+      const resolved = resolveSocialStyle(layout, platform.id)
       const patch = {
         title: title.trim(),
         label: title.trim(),
@@ -280,7 +281,8 @@ export default function SocialItemEditor({
   }
 
   const handleLayoutChange = (newLayout) => {
-    const resolved = resolveSocialStyle(newLayout)
+    if (!isSocialStyleAvailable(newLayout, platform.id)) return
+    const resolved = resolveSocialStyle(newLayout, platform.id)
     setLayout(resolved)
     setIsDirty(true)
     onUpdateProps?.({

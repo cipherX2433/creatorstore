@@ -1129,7 +1129,7 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       const label = section.props?.title || section.props?.label || platform.name
       const url = section.props?.url || '#'
       const thumbnail = section.props?.thumbnail || section.props?.customThumbnail
-      const style = resolveSocialStyle(section.props?.layout || section.props?.displayMode || section.props?.displayStyle)
+      const style = resolveSocialStyle(section.props?.layout || section.props?.displayMode || section.props?.displayStyle, platform.id)
 
       const isInstagram = platform.id === 'instagram'
       const igData = section.props?.instagramData || null

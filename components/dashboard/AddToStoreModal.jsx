@@ -17,7 +17,7 @@ import AddToStoreMenuView from '@/components/dashboard/AddToStoreMenuView'
 import AddYouTubeModalView from '@/components/dashboard/AddYouTubeModalView'
 import AddMediaModalView from '@/components/dashboard/AddMediaModalView'
 import SocialDisplaySelectModalView from '@/components/dashboard/SocialDisplaySelectModalView'
-import { getSocialPlatform } from '@/lib/socialPlatforms'
+import { getSocialPlatform, resolveSocialStyle } from '@/lib/socialPlatforms'
 import { CoachingBookingWizardContent } from '@/components/coaching/CoachingBookingWizardModal'
 import { CourseWizardContent } from '@/components/course/CourseWizardModal'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
@@ -1775,6 +1775,7 @@ export default function AddToStoreModal({
             onSelectStyle={async (styleKey) => {
               closeWizard()
               const platformInfo = getSocialPlatform(selectedSocialPlatform)
+              const safeStyleKey = resolveSocialStyle(styleKey, platformInfo?.id)
               const defaultTitle = platformInfo?.name || 'Social'
               if (onAddSection) {
                 onAddSection('social', {
@@ -1782,8 +1783,9 @@ export default function AddToStoreModal({
                   title: defaultTitle,
                   label: defaultTitle,
                   url: '',
-                  layout: styleKey === 'cards' ? 'image' : styleKey,
-                  displayMode: styleKey === 'cards' ? 'featured' : styleKey,
+                  layout: safeStyleKey === 'cards' ? 'image' : safeStyleKey,
+                  displayMode: safeStyleKey === 'cards' ? 'featured' : safeStyleKey,
+                  displayStyle: safeStyleKey,
                   thumbnail: null,
                   customThumbnail: null,
                 })

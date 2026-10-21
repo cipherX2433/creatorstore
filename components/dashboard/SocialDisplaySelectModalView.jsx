@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   X,
   Zap,
@@ -14,6 +14,8 @@ import {
 import {
   getSocialPlatform,
   SOCIAL_DISPLAY_STYLES,
+  isInstagramPlatform,
+  isSocialStyleAvailable,
 } from '@/lib/socialPlatforms'
 import SocialStylePicker from '@/components/dashboard/SocialStylePicker'
 
@@ -37,12 +39,29 @@ export default function SocialDisplaySelectModalView({
   const [selectedStyle, setSelectedStyle] = useState('classic')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Ensure selected style is available for this platform (defaulting to classic)
+  useEffect(() => {
+    if (!isSocialStyleAvailable(selectedStyle, platform.id)) {
+      setSelectedStyle('classic')
+    }
+  }, [platform.id, selectedStyle])
+
+  const isCurrentStyleAvailable = isSocialStyleAvailable(selectedStyle, platform.id)
   const activeStyleConfig =
     SOCIAL_DISPLAY_STYLES.find((s) => s.id === selectedStyle) || SOCIAL_DISPLAY_STYLES[0]
 
-  const isProLocked = activeStyleConfig.isPro && !isPro
+  const isProLocked = isCurrentStyleAvailable && activeStyleConfig.isPro && !isPro
+
+  const handleSelectStyle = (styleId) => {
+    if (isSocialStyleAvailable(styleId, platform.id)) {
+      setSelectedStyle(styleId)
+    }
+  }
 
   const handleAction = async () => {
+    if (!isCurrentStyleAvailable) {
+      return
+    }
     if (isProLocked) {
       onOpenPricing?.()
       return
@@ -63,6 +82,7 @@ export default function SocialDisplaySelectModalView({
       setIsSubmitting(false)
     }
   }
+
 
   // Realistic sample photos for preview
   const samplePhotos = [
@@ -87,7 +107,7 @@ export default function SocialDisplaySelectModalView({
 
             <SocialStylePicker
               selectedStyle={selectedStyle}
-              onSelectStyle={setSelectedStyle}
+              onSelectStyle={handleSelectStyle}
               platform={platform}
               isPro={isPro}
               onOpenPricing={onOpenPricing}
@@ -287,11 +307,13 @@ export default function SocialDisplaySelectModalView({
           id="social-modal-confirm-btn"
           type="button"
           onClick={handleAction}
-          disabled={isSubmitting}
-          className={`px-7 py-2.5 rounded-full text-sm font-semibold transition-all cursor-pointer shadow-md inline-flex items-center gap-2 ${
-            isProLocked
-              ? 'bg-[#7C3AED] hover:bg-[#6D28D9] text-white'
-              : 'bg-[#1F1F1F] hover:bg-black text-white'
+          disabled={isSubmitting || !isCurrentStyleAvailable}
+          className={`px-7 py-2.5 rounded-full text-sm font-semibold transition-all shadow-md inline-flex items-center gap-2 ${
+            !isCurrentStyleAvailable
+              ? 'bg-[#E5E5E3] text-[#999995] cursor-not-allowed shadow-none'
+              : isProLocked
+              ? 'bg-[#7C3AED] hover:bg-[#6D28D9] text-white cursor-pointer'
+              : 'bg-[#1F1F1F] hover:bg-black text-white cursor-pointer'
           }`}
         >
           {isSubmitting ? (
