@@ -1366,7 +1366,11 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
               <div className="text-center">
                 <div className="text-xs font-bold text-white">
                   {isInstagram && isIgConnected
-                    ? (igProfile?.followersCount != null ? igProfile.followersCount : 'Unavailable')
+                    ? (igProfile?.followersCount != null
+                        ? Number(igProfile.followersCount).toLocaleString()
+                        : (igProfile?.followerCount != null
+                            ? Number(igProfile.followerCount).toLocaleString()
+                            : 'Unavailable'))
                     : platform.name}
                 </div>
                 <div className="text-[11px] text-[rgba(244,242,236,0.5)]">Followers</div>
@@ -1374,7 +1378,11 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
               <div className="text-center">
                 <div className="text-xs font-bold text-white">
                   {isInstagram && isIgConnected
-                    ? (igProfile?.followingCount != null ? igProfile.followingCount : 'Unavailable')
+                    ? (igProfile?.followingCount != null
+                        ? Number(igProfile.followingCount).toLocaleString()
+                        : (igProfile?.followsCount != null
+                            ? Number(igProfile.followsCount).toLocaleString()
+                            : 'Unavailable'))
                     : 'Profile'}
                 </div>
                 <div className="text-[11px] text-[rgba(244,242,236,0.5)]">Following</div>

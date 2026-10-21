@@ -207,10 +207,12 @@ try {
     profilePictureUrl: 'https://instagram.fcdn.net/real_avatar.jpg',
     biography: 'Official verified storefront account.',
     mediaCount: 42,
-    followersCount: null,
-    followingCount: null,
-    followersCountUnavailable: true,
-    followingCountUnavailable: true,
+    followersCount: 5200,
+    followerCount: 5200,
+    followingCount: 310,
+    followsCount: 310,
+    followersCountUnavailable: false,
+    followingCountUnavailable: false,
     profileUrl: 'https://instagram.com/creator_studio_real',
     lastSyncedAt: new Date().toISOString(),
     status: 'CONNECTED',
@@ -255,29 +257,29 @@ try {
   console.log('✅ Test 5 PASSED: Temporary API errors retain cache and do not disconnect account.\n')
 
   // -------------------------------------------------------------------------
-  // TEST 6 & 7: Profile Mode & Honest Statistic Scopes
+  // TEST 6 & 7: Profile Mode Displays Real Follower/Following Counts
   // -------------------------------------------------------------------------
-  console.log('Test 6 & 7: Profile Mode Displays Real Fields & Honest Scopes (No Mock Counts)...')
+  console.log('Test 6 & 7: Profile Mode Displays Real Fields & Real Follower Counts...')
 
   assert.strictEqual(
     cachedProfileResult.followersCount,
-    null,
-    'Follower count must NOT be fabricated; basic display scope does not provide it'
+    5200,
+    'Follower count must match real returned count'
   )
   assert.strictEqual(
     cachedProfileResult.followersCountUnavailable,
-    true,
-    'followersCountUnavailable flag must be true'
+    false,
+    'followersCountUnavailable flag must be false when count is present'
   )
   assert.strictEqual(
     cachedProfileResult.followingCount,
-    null,
-    'Following count must NOT be fabricated'
+    310,
+    'Following count must match real returned count'
   )
   assert.strictEqual(
     cachedProfileResult.followingCountUnavailable,
-    true,
-    'followingCountUnavailable flag must be true'
+    false,
+    'followingCountUnavailable flag must be false when count is present'
   )
   assert.strictEqual(
     cachedProfileResult.mediaCount,
@@ -368,14 +370,25 @@ try {
   console.log('✅ Test 11 PASSED: Empty media accounts produce honest empty state, zero fake posts.\n')
 
   // -------------------------------------------------------------------------
-  // TEST 12: Unsupported Profile Fields Handled Honestly
+  // TEST 12: Unsupported Profile Fields Omitted or Marked Unavailable
   // -------------------------------------------------------------------------
   console.log('Test 12: Unsupported Profile Fields Omitted or Marked Unavailable...')
 
-  assert.strictEqual(cachedProfileResult.followersCount, null)
-  assert.strictEqual(cachedProfileResult.followingCount, null)
-  assert.strictEqual(cachedProfileResult.followersCountUnavailable, true)
-  assert.strictEqual(cachedProfileResult.followingCountUnavailable, true)
+  global.__instagramProfileCache.set(TEST_CREATOR_ID_1, {
+    ...global.__instagramProfileCache.get(TEST_CREATOR_ID_1),
+    followersCount: null,
+    followerCount: null,
+    followingCount: null,
+    followsCount: null,
+    followersCountUnavailable: true,
+    followingCountUnavailable: true,
+    _cachedAt: Date.now(),
+  })
+  const unavailProf = await instagramService.getProfile(TEST_CREATOR_ID_1, { forceRefresh: false })
+  assert.strictEqual(unavailProf.followersCount, null)
+  assert.strictEqual(unavailProf.followingCount, null)
+  assert.strictEqual(unavailProf.followersCountUnavailable, true)
+  assert.strictEqual(unavailProf.followingCountUnavailable, true)
 
   console.log('✅ Test 12 PASSED: Unsupported fields properly marked unavailable.\n')
 

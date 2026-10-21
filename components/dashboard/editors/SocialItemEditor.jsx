@@ -215,7 +215,9 @@ export default function SocialItemEditor({
             profilePictureUrl: null,
             mediaCount: igMedia.length,
             followersCount: null,
+            followerCount: null,
             followingCount: null,
+            followsCount: null,
             followersCountUnavailable: true,
             followingCountUnavailable: true,
           },
@@ -575,7 +577,11 @@ export default function SocialItemEditor({
                   <div>
                     <p className="text-xs font-bold text-[#1F1F1F]">
                       {isInstagram && isIgConnected
-                        ? (igProfile?.followersCount != null ? igProfile.followersCount : 'Unavailable')
+                        ? (igProfile?.followersCount != null
+                            ? Number(igProfile.followersCount).toLocaleString()
+                            : (igProfile?.followerCount != null
+                                ? Number(igProfile.followerCount).toLocaleString()
+                                : 'Unavailable'))
                         : platform.name}
                     </p>
                     <p className="text-[10px] text-[#6F6F6B]">Followers</p>
@@ -583,7 +589,11 @@ export default function SocialItemEditor({
                   <div>
                     <p className="text-xs font-bold text-[#1F1F1F]">
                       {isInstagram && isIgConnected
-                        ? (igProfile?.followingCount != null ? igProfile.followingCount : 'Unavailable')
+                        ? (igProfile?.followingCount != null
+                            ? Number(igProfile.followingCount).toLocaleString()
+                            : (igProfile?.followsCount != null
+                                ? Number(igProfile.followsCount).toLocaleString()
+                                : 'Unavailable'))
                         : 'Profile'}
                     </p>
                     <p className="text-[10px] text-[#6F6F6B]">Following</p>
