@@ -146,16 +146,16 @@ export default function AllFeaturesSection({
               return (
                 <div
                   key={feature.id}
-                  className="bg-white rounded-[24px] sm:rounded-[28px] p-6 sm:p-7 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-150 border border-black/5 group"
+                  className="bg-white rounded-[32px] sm:rounded-[40px] p-7 sm:p-8 flex flex-col justify-between shadow-[0_6px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_36px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-150 border border-black/5 group"
                 >
                   <div>
-                    {/* Top Row: Icon + Category Pill */}
+                    {/* Top Row: Circular Icon + Category Pill */}
                     <div className="flex items-center justify-between gap-3">
-                      <div className="w-11 h-11 rounded-full bg-[#F3F3F0] flex items-center justify-center text-[#1C1C1C] group-hover:scale-105 transition-transform duration-150">
+                      <div className="w-12 h-12 rounded-full bg-[#F3F3F0] flex items-center justify-center text-[#1C1C1C] group-hover:scale-105 transition-transform duration-150 shrink-0">
                         <IconComponent className="w-5 h-5 stroke-[2]" />
                       </div>
 
-                      <span className="px-3 py-1 rounded-full bg-[#F3F3F0] text-[#1C1C1C] text-xs font-bold tracking-wide uppercase">
+                      <span className="px-3.5 py-1 rounded-full bg-[#F3F3F0] text-[#1C1C1C] text-xs font-bold tracking-wide uppercase">
                         {feature.category}
                       </span>
                     </div>
@@ -190,7 +190,7 @@ export default function AllFeaturesSection({
           </div>
         ) : (
           /* Empty Search Results State */
-          <div className="bg-white rounded-[28px] p-10 sm:p-14 text-center max-w-lg mx-auto shadow-sm border border-black/5 space-y-4">
+          <div className="bg-white rounded-[32px] sm:rounded-[40px] p-10 sm:p-14 text-center max-w-lg mx-auto shadow-sm border border-black/5 space-y-4">
             <div className="w-14 h-14 rounded-2xl bg-[#F3F3F0] flex items-center justify-center mx-auto text-[#787878]">
               <SearchX className="w-7 h-7 stroke-[1.8]" />
             </div>

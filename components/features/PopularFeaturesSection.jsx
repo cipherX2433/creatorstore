@@ -44,16 +44,16 @@ export default function PopularFeaturesSection() {
             return (
               <div
                 key={feature.id}
-                className="bg-white rounded-[28px] p-7 sm:p-8 flex flex-col justify-between shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_rgba(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-200 group"
+                className="bg-white rounded-[40px] sm:rounded-[48px] p-8 sm:p-9 flex flex-col justify-between shadow-[0_12px_36px_rgba(0,0,0,0.06)] hover:shadow-[0_18px_48px_rgba(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-200 group border border-black/5"
               >
                 <div>
-                  {/* Top Row: Icon on Left, Category Pill on Right */}
+                  {/* Top Row: Circular Icon on Left, Category Pill on Right */}
                   <div className="flex items-center justify-between gap-3">
-                    <div className="w-12 h-12 rounded-full bg-[#F3F3F0] flex items-center justify-center text-[#1C1C1C] group-hover:scale-105 transition-transform duration-200">
-                      <IconComponent className="w-5 h-5 stroke-[2]" />
+                    <div className="w-14 h-14 rounded-full bg-[#F3F3F0] flex items-center justify-center text-[#1C1C1C] group-hover:scale-105 transition-transform duration-200 shrink-0">
+                      <IconComponent className="w-6 h-6 stroke-[2]" />
                     </div>
 
-                    <span className="px-3.5 py-1 rounded-full bg-[#F3F3F0] text-[#1C1C1C] text-xs font-bold tracking-wide uppercase">
+                    <span className="px-4 py-1.5 rounded-full bg-[#F3F3F0] text-[#1C1C1C] text-xs font-bold tracking-wide uppercase">
                       {feature.category}
                     </span>
                   </div>

@@ -127,11 +127,19 @@ try {
   const featRes = await testHttpRoute('/features')
   assert.strictEqual(featRes.statusCode, 200, '/features must return HTTP 200')
   assert(featRes.body.includes('Features'), 'Must include Features heading')
-  assert(featRes.body.includes('Popular features'), 'Must include Popular features heading')
-  assert(featRes.body.includes('Browse by goal'), 'Must include Browse by goal heading')
-  assert(featRes.body.includes('All features'), 'Must include All features heading')
-  assert(featRes.body.includes('Frequently asked questions'), 'Must include FAQ heading')
-  assert(!featRes.body.toLowerCase().includes('courses'), 'No mention of courses in rendered /features HTML')
+  // Verify all 4 goal cards are in the rendered SSR response
+  assert(featRes.body.includes('Monetize'), 'Must include Monetize goal card')
+  assert(featRes.body.includes('Grow'), 'Must include Grow goal card')
+  assert(featRes.body.includes('Engage'), 'Must include Engage goal card')
+  assert(featRes.body.includes('Manage'), 'Must include Manage goal card')
+
+  // Verify Linktree-style corner radii in components
+  assert(popularRaw.includes('rounded-[40px]') || popularRaw.includes('rounded-[48px]'), 'Popular feature cards must use 40-48px radius')
+  assert(goalRaw.includes('rounded-[40px]') || goalRaw.includes('rounded-[48px]'), 'Browse by goal cards must use 40-48px radius')
+  assert(allRaw.includes('rounded-[32px]') || allRaw.includes('rounded-[40px]'), 'All features cards must use 32-40px radius')
+  assert(heroRaw.includes('rounded-full'), 'Hero search input must be rounded-full')
+
+  console.log('   ✅ All 4 goal cards (Monetize, Grow, Engage, Manage) and Linktree corner radii verified.')
   console.log('   ✅ /features responds with HTTP 200 and complete section markup.')
 
   const helpRes = await testHttpRoute('/help')

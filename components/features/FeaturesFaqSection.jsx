@@ -29,7 +29,7 @@ export default function FeaturesFaqSection() {
             <AccordionItem
               key={faq.id}
               value={faq.id}
-              className="bg-white rounded-[22px] border border-[#E2E3DD] shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden px-6 sm:px-8 border-b-0"
+              className="bg-white rounded-[28px] sm:rounded-[32px] border border-[#E2E3DD] shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden px-6 sm:px-8 border-b-0"
             >
               <AccordionTrigger
                 className="py-5 sm:py-6 text-left hover:no-underline font-bold text-lg sm:text-xl text-[#1C1C1C] group"
