@@ -48,7 +48,7 @@ const STORAGE_KEY = 'creatorstore_onboarding_draft_v3'
 // 1. Creator Categories (What do you create?)
 const CREATOR_TYPES = [
   { id: 'Content Creator', title: 'Content Creator', desc: 'Videos, reels, podcasts & social media', icon: '📹' },
-  { id: 'Educator', title: 'Educator / Teacher', desc: 'Courses, workshops, guides & tutorials', icon: '🎓' },
+  { id: 'Educator', title: 'Educator / Teacher', desc: 'Workshops, guides, templates & tutorials', icon: '📚' },
   { id: 'Coach', title: 'Coach / Mentor', desc: '1:1 coaching, personal calls & advisory', icon: '👥' },
   { id: 'Consultant', title: 'Consultant', desc: 'Strategy, business audits & consulting', icon: '💼' },
   { id: 'Designer', title: 'Designer / Creative', desc: 'UI kits, templates, graphics & design assets', icon: '🎨' },
@@ -62,7 +62,6 @@ const CREATOR_TYPES = [
 // 2. Offerings / Products to sell
 const OFFERING_TYPES = [
   { id: 'digital_products', title: 'Digital Downloads & Guides', desc: 'Ebooks, PDFs, presets & templates', icon: '📘' },
-  { id: 'courses', title: 'Online Courses', desc: 'Video lessons, masterclasses & modules', icon: '🎓' },
   { id: 'coaching', title: '1:1 Coaching & Calls', desc: 'Personal video sessions & consultations', icon: '👥' },
   { id: 'memberships', title: 'Memberships & Subscriptions', desc: 'Recurring subscriber content & access', icon: '🏆' },
   { id: 'communities', title: 'Exclusive Community', desc: 'Member groups, discussions & chats', icon: '💬' },

@@ -187,7 +187,6 @@ const TYPE_FILTERS = [
   { id: 'all', label: 'All types' },
   { id: 'booking', label: 'Booking' },
   { id: 'digital', label: 'Digital Download' },
-  { id: 'course', label: 'Course' },
   { id: 'membership', label: 'Membership' },
   { id: 'webinar', label: 'Webinar' },
   { id: 'service', label: 'Custom Service' },
@@ -914,7 +913,7 @@ export default function ProductsClient() {
             <div className="max-w-md space-y-1.5">
               <h3 className="text-lg font-bold text-[#1F1F1F]">You haven&apos;t created a product yet</h3>
               <p className="text-xs sm:text-sm text-[#6F6F6B]">
-                Create your first digital product, course, booking, or membership and start selling on CreatorStore.
+                Create your first digital product, booking, or membership and start selling on CreatorStore.
               </p>
             </div>
             <button

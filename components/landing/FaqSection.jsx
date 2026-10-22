@@ -15,7 +15,7 @@ const FAQ_ITEMS = [
     id: '01',
     question: 'What is CreatorStore?',
     answer:
-      'CreatorStore is an all-in-one commerce and automation platform for creators. It lets you create your personal storefront, sell digital downloads and courses, share links, collect leads, and automate Instagram direct messages — all without any technical skills.',
+      'CreatorStore is an all-in-one commerce and automation platform for creators. It lets you create your personal storefront, sell digital downloads and services, share links, collect leads, and automate Instagram direct messages — all without any technical skills.',
   },
   {
     id: '02',
@@ -27,7 +27,7 @@ const FAQ_ITEMS = [
     id: '03',
     question: 'What kind of products can I sell?',
     answer:
-      'You can sell digital downloads (PDF guides, Notion templates, presets, ebooks), structured video courses with lessons and modules, and 1:1 coaching sessions with automated calendar scheduling.',
+      'You can sell digital downloads (PDF guides, Notion templates, presets, ebooks), product bundles, custom services, and 1:1 coaching sessions with automated calendar scheduling.',
   },
   {
     id: '04',

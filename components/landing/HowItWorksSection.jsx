@@ -32,7 +32,7 @@ const STEP_CARDS = [
   {
     step: '02',
     title: 'ADD YOUR PRODUCTS',
-    description: 'Upload digital products, templates, courses, or set up your creator offerings.',
+    description: 'Upload digital products, templates, resources, or set up your creator offerings.',
     bgColor: themeColors.neonAccent || '#A8FF2A',
     textColor: '#0D0D0D',
     descColor: '#17220B',

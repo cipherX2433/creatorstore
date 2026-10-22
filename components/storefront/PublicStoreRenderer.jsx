@@ -1066,7 +1066,7 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
     case 'text':
     case 'text_block':
     case 'paragraph_text': {
-      const textContent = section.props?.text ?? section.props?.content ?? 'Explore my exclusive digital products and courses.'
+      const textContent = section.props?.text ?? section.props?.content ?? 'Explore my exclusive digital products.'
       return (
         <div
           className={`w-full ${alignClass} text-sm sm:text-base md:text-lg leading-relaxed opacity-85 max-w-3xl mx-auto whitespace-pre-wrap break-words`}

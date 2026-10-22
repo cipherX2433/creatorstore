@@ -81,14 +81,14 @@ const ROW_2_TESTIMONIALS = [
   },
   {
     id: 't11',
-    quote: 'The Instagram AutoDM feature and direct checkout doubled my lead capture and course enrollments.',
+    quote: 'The Instagram AutoDM feature and direct checkout doubled my lead capture and product sales.',
     name: 'Tanmay B.',
     username: '@tanmaybuilds',
     initial: 'T',
   },
   {
     id: 't12',
-    quote: 'Selling courses, coaching calls, and digital guides under one sleek link gave my brand a massive upgrade.',
+    quote: 'Selling coaching calls, digital guides, and services under one sleek link gave my brand a massive upgrade.',
     name: 'Ritu G.',
     username: '@ritugrowth',
     initial: 'R',

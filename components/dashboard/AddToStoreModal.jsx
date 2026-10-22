@@ -19,7 +19,6 @@ import AddMediaModalView from '@/components/dashboard/AddMediaModalView'
 import SocialDisplaySelectModalView from '@/components/dashboard/SocialDisplaySelectModalView'
 import { getSocialPlatform, resolveSocialStyle } from '@/lib/socialPlatforms'
 import { CoachingBookingWizardContent } from '@/components/coaching/CoachingBookingWizardModal'
-import { CourseWizardContent } from '@/components/course/CourseWizardModal'
 import ProductBundleModal from '@/components/dashboard/ProductBundleModal'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
 import { useDashboardHeader } from '@/components/dashboard/HeaderContext'
@@ -936,7 +935,6 @@ export default function AddToStoreModal({
   const [wizardStep, setWizardStep] = useState(1)
   const [editingProductId, setEditingProductId] = useState(null)
   const [coachingWizardProductId, setCoachingWizardProductId] = useState(null)
-  const [courseWizardId, setCourseWizardId] = useState(null)
   const [bundleModalOpen, setBundleModalOpen] = useState(false)
   const [editingBundle, setEditingBundle] = useState(null)
 
@@ -1042,17 +1040,6 @@ export default function AddToStoreModal({
     setAddModalType('coaching')
   }, [canCreate, setPricingModalOpen, onClose])
 
-  const openCourseCreationFlow = useCallback(() => {
-    if (!canCreate) {
-      toast.error('Your Pro trial has ended. Upgrade your plan to create products and continue selling.')
-      setPricingModalOpen?.(true)
-      onClose?.()
-      return
-    }
-    setCourseWizardId(null)
-    setModalOrigin('menu')
-    setAddModalType('course')
-  }, [canCreate, setPricingModalOpen, onClose])
 
   const openBundleCreationFlow = useCallback(() => {
     if (!canCreate) {
@@ -1265,23 +1252,23 @@ export default function AddToStoreModal({
         if (!op) requestCloseModal()
       }}
       hideFooter
-      hideClose={addModalType === 'coaching' || addModalType === 'course'}
+      hideClose={addModalType === 'coaching'}
       className={
-        addModalType === 'coaching' || addModalType === 'course'
+        addModalType === 'coaching'
           ? 'sm:max-w-4xl max-w-4xl w-[95vw] sm:w-full max-h-[90vh] p-0 gap-0 overflow-hidden'
           : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)
           ? 'sm:max-w-[780px] w-[95vw] sm:w-full h-[88vh] sm:h-[640px] max-h-[92vh] p-4 sm:p-7 rounded-[28px] bg-white border border-[#E8E8E8] shadow-[0_20px_60px_rgba(0,0,0,0.08)] gap-0 overflow-hidden flex flex-col'
           : 'sm:max-w-[700px]'
       }
       bodyClassName={
-        addModalType === 'coaching' || addModalType === 'course'
+        addModalType === 'coaching'
           ? 'p-0 min-h-[500px] flex flex-col flex-1'
           : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)
           ? 'p-0 flex flex-col flex-1 min-h-0 overflow-hidden'
           : 'pt-5'
       }
       title={
-        addModalType === 'coaching' || addModalType === 'course'
+        addModalType === 'coaching'
           ? null
           : addModalType === 'menu'
           ? (
@@ -1341,7 +1328,7 @@ export default function AddToStoreModal({
           : 'Add to your store'
       }
       headerLeft={
-        addModalType === 'coaching' || addModalType === 'course' ? null : addModalType === 'menu' ? (
+        addModalType === 'coaching' ? null : addModalType === 'menu' ? (
           <div className="w-9 shrink-0" aria-hidden="true" />
         ) : (
           <button
@@ -1584,27 +1571,6 @@ export default function AddToStoreModal({
           />
         )}
 
-        {/* COURSE 7-STEP WIZARD */}
-        {addModalType === 'course' && (
-          <CourseWizardContent
-            key={courseWizardId || 'new-course'}
-            editCourseId={courseWizardId}
-            onClose={closeWizard}
-            onSuccess={async (createdCourse) => {
-              if (context === 'store' && createdCourse?.id && !courseWizardId) {
-                if (onAddSection) {
-                  onAddSection('product', {
-                    productId: createdCourse.id,
-                    layout: 'classic',
-                  })
-                }
-              }
-              toast.success('Course created!')
-              onSuccess?.(createdCourse, 'course')
-              closeWizard()
-            }}
-          />
-        )}
 
         {/* DIGITAL PRODUCT 3-STEP FORM */}
         {addModalType === 'digital_product' && (

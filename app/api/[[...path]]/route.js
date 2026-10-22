@@ -3319,8 +3319,7 @@ async function processRoute(request, context = {}) {
       return json({ courses: await courseService.list(creatorId) })
     }
     if (route === '/courses' && method === 'POST') {
-      const body = await request.json()
-      return json(await courseService.create(creatorId, body), 201)
+      return json({ error: 'The Courses feature has been permanently retired. New courses cannot be created.' }, 410)
     }
     if (path[0] === 'courses' && path[1] && !path[2] && method === 'GET') {
       return json(await courseService.get(creatorId, path[1]))

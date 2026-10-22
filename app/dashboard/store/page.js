@@ -82,7 +82,6 @@ import ProductBundleModal from '@/components/dashboard/ProductBundleModal'
 import { IconBadge, ICON_BADGE_COLORS } from '@/components/ui/icon-badge'
 import { AddOptionRow, SettingsRow, SettingsValuePill } from '@/components/ui/settings-row'
 import CoachingBookingWizardModal, { CoachingBookingWizardContent } from '@/components/coaching/CoachingBookingWizardModal'
-import CourseWizardModal, { CourseWizardContent } from '@/components/course/CourseWizardModal'
 import DashboardPageTransition from '@/components/dashboard/DashboardPageTransition'
 import { getPreviewButtonStyles } from '@/lib/colorContrast'
 import { isThemeDirty } from '@/lib/themeComparison'
@@ -195,7 +194,7 @@ function defaultProps(type, products = []) {
     case 'heading_text': return { text: 'Welcome to my store', align: 'center' }
     case 'text':
     case 'text_block':
-    case 'paragraph_text': return { text: 'Explore my exclusive digital products and courses.', content: 'Explore my exclusive digital products and courses.', align: 'left' }
+    case 'paragraph_text': return { text: 'Explore my exclusive digital products.', content: 'Explore my exclusive digital products.', align: 'left' }
     case 'button': return { label: 'Follow me', url: '', layout: 'classic' }
     case 'social':
     case 'instagram': return {
@@ -769,7 +768,6 @@ function StoreContentCard({
   setAddModalOpen,
   setSelectedMediaType,
   setEditingMediaSection,
-  setCourseWizardId,
   setCoachingWizardProductId,
   setEditingProductId,
   setEditingSectionId,
@@ -893,10 +891,6 @@ function StoreContentCard({
       setSelectedId(s.id)
       setEditingProductId?.(null)
       setEditingSectionId?.(s.id)
-    } else if (prod?.type === 'COURSE' || String(prod?.type).toLowerCase() === 'course') {
-      setCourseWizardId(prod.courseId || prod.id)
-      setAddModalType('course')
-      setAddModalOpen(true)
     } else if (prod) {
       setEditingSectionId?.(null)
       setEditingProductId(prod.id)
@@ -1237,8 +1231,6 @@ export default function StoreBuilderPage() {
   }, [editingSectionId, store?.sections, editingSectionObject])
   const [coachingWizardOpen, setCoachingWizardOpen] = useState(false)
   const [coachingWizardProductId, setCoachingWizardProductId] = useState(null)
-  const [courseWizardOpen, setCourseWizardOpen] = useState(false)
-  const [courseWizardId, setCourseWizardId] = useState(null)
   // Legacy unfinished drafts (already in the DB) can still be resumed.
   // New Digital Product creates stay in memory until the final Complete step.
   const [draftProductId, setDraftProductId] = useState(null)
@@ -1605,17 +1597,6 @@ export default function StoreBuilderPage() {
     setCoachingWizardOpen(true)
   }, [canCreate, setPricingModalOpen])
 
-  const openCourseCreationFlow = useCallback(() => {
-    if (!canCreate) {
-      toast.error('Your Pro trial has ended. Upgrade your plan to create products and continue selling.')
-      setPricingModalOpen(true)
-      return
-    }
-    setCourseWizardId(null)
-    setModalOrigin('menu')
-    setAddModalType('course')
-    setAddModalOpen(true)
-  }, [canCreate, setPricingModalOpen])
 
   const openBundleCreationFlow = useCallback(() => {
     if (!canCreate) {
@@ -1641,8 +1622,6 @@ export default function StoreBuilderPage() {
       setAddModalOpen(true)
     } else if (type === 'coaching') {
       openCoachingCreationFlow()
-    } else if (type === 'course') {
-      openCourseCreationFlow()
     } else if (type === 'bundle') {
       openBundleCreationFlow()
     } else if (type === 'form' || type === 'forms_menu') {
@@ -1673,7 +1652,7 @@ export default function StoreBuilderPage() {
     } else {
       handleAddToStore(type)
     }
-  }, [openCoachingCreationFlow, openCourseCreationFlow, openBundleCreationFlow, handleAddToStore])
+  }, [openCoachingCreationFlow, openBundleCreationFlow, handleAddToStore])
 
   const handleTabChange = useCallback((newTab) => {
     if (tab === 'design' && newTab !== 'design' && hasUnsavedThemeChanges) {
@@ -2511,17 +2490,15 @@ export default function StoreBuilderPage() {
       if (consumedAddIntent === addKey) return
       consumedAddIntent = addKey
 
-      if (addParam === 'course') {
-        openCourseCreationFlow()
-      } else if (addParam === 'booking' || addParam === 'coaching') {
+      if (addParam === 'booking' || addParam === 'coaching') {
         openCoachingCreationFlow()
-      } else if (addParam === 'digital_product' || addParam === 'product') {
+      } else if (addParam === 'digital_product' || addParam === 'product' || addParam === 'course') {
         openDigitalProductWizard()
       } else {
         handleAddToStore(addParam === 'social' ? 'social' : 'suggested')
       }
     }
-  }, [searchParams, openDigitalProductWizard, openCourseCreationFlow, openCoachingCreationFlow, handleAddToStore])
+  }, [searchParams, openDigitalProductWizard, openCoachingCreationFlow, handleAddToStore])
 
   const resumeDigitalProductDraft = useCallback((sectionOrProd, prodOrSection) => {
     let section = null
@@ -3908,7 +3885,6 @@ export default function StoreBuilderPage() {
                           setAddModalOpen={setAddModalOpen}
                           setSelectedMediaType={setSelectedMediaType}
                           setEditingMediaSection={setEditingMediaSection}
-                          setCourseWizardId={setCourseWizardId}
                           setCoachingWizardProductId={setCoachingWizardProductId}
                           setEditingProductId={setEditingProductId}
                           setEditingSectionId={setEditingSectionId}
@@ -4647,28 +4623,6 @@ export default function StoreBuilderPage() {
             />
           )}
 
-          {/* COURSE 7-STEP WIZARD */}
-          {addModalType === 'course' && (
-            <CourseWizardContent
-              key={courseWizardId || 'new-course'}
-              editCourseId={courseWizardId}
-              onClose={() => {
-                setAddModalOpen(false)
-                setAddModalType('menu')
-                setCourseWizardId(null)
-              }}
-              onSuccess={async (createdCourse) => {
-                await refreshStoreData()
-                if (createdCourse?.id && !courseWizardId) {
-                  addSectionWithProps('product', { productId: createdCourse.id, layout: 'classic' })
-                }
-                setAddModalOpen(false)
-                setAddModalType('menu')
-                setCourseWizardId(null)
-              }}
-            />
-          )}
-
           {/* DIGITAL PRODUCT 3-STEP FORM */}
           {addModalType === 'digital_product' && (
             <DigitalProductForm
@@ -5108,21 +5062,6 @@ export default function StoreBuilderPage() {
         editProductId={coachingWizardProductId}
         creatorProfile={profile}
         currentPlan={me?.user?.plan || 'FREE'}
-      />
-
-      <CourseWizardModal
-        open={courseWizardOpen}
-        onClose={() => {
-          setCourseWizardOpen(false)
-          setCourseWizardId(null)
-        }}
-        onSuccess={async (createdCourse) => {
-          await refreshStoreData()
-          if (createdCourse?.id && !courseWizardId) {
-            addSectionWithProps('product', { productId: createdCourse.id, layout: 'classic' })
-          }
-        }}
-        editCourseId={courseWizardId}
       />
 
       <ProductBundleModal

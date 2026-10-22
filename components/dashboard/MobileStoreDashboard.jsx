@@ -119,8 +119,6 @@ export default function MobileStoreDashboard({
       }
     } else if (type === 'coaching') {
       onOpenAddModal?.('coaching')
-    } else if (type === 'course') {
-      onOpenAddModal?.('course')
     } else if (type === 'bundle') {
       onOpenAddModal?.('bundle')
     } else if (type === 'form' || type === 'form_contact' || type === 'form_newsletter') {
@@ -581,7 +579,7 @@ export default function MobileStoreDashboard({
                 Your store is empty
               </p>
               <p className="text-xs text-[#777777] max-w-xs mx-auto">
-                Add links, products, courses, or forms to start sharing and earning.
+                Add links, products, coaching, or forms to start sharing and earning.
               </p>
             </div>
             <button

@@ -765,7 +765,7 @@ export default function PayoutSettingsView({ showSettingsNav = true }) {
         <div className="md:col-span-4 space-y-2">
           <h2 className="text-lg font-bold text-[#1F1F1F] tracking-tight">Fee structure</h2>
           <p className="text-xs sm:text-sm text-[#6F6F6B] leading-relaxed font-medium">
-            CreatorStore charges zero commission on your digital products and course sales.
+            CreatorStore charges zero commission on your digital products and services.
           </p>
         </div>
 

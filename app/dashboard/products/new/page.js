@@ -26,15 +26,6 @@ const PRODUCT_TYPES = [
     available: true,
   },
   {
-    type: 'COURSE',
-    title: 'Course or tutorial',
-    desc: 'Sell a single lesson or teach a whole cohort of students.',
-    icon: GraduationCap,
-    color: '#1F1F1F',
-    bg: 'bg-[#F2F1EF] text-[#1F1F1F] border-[#E5E5E3]',
-    available: true,
-  },
-  {
     type: 'EBOOK',
     title: 'E-book or guide',
     desc: 'PDF guides, cheatsheets, and digital books.',
@@ -190,9 +181,7 @@ export default function NewProductPage() {
         toast.success('Product created successfully!')
 
         // Route to dedicated setup or customizer
-        if (selectedType === 'COURSE') {
-          router.push(`/dashboard/courses`)
-        } else if (selectedType === 'COACHING') {
+        if (selectedType === 'COACHING') {
           router.push(`/dashboard/coaching`)
         } else if (selectedType === 'WEBINAR') {
           router.push(`/dashboard/webinar/${res.product.id}/setup`)
@@ -275,7 +264,7 @@ export default function NewProductPage() {
 
               <div className="p-3 bg-[#FBFBFB] rounded-[16px] border border-[#E5E5E3] space-y-1">
                 <span className="font-bold text-[#1F1F1F] block text-xs">2. Type Selection</span>
-                <p>Digital downloads, video courses, and 1:1 coaching are supported natively.</p>
+                <p>Digital downloads and 1:1 coaching are supported natively.</p>
               </div>
 
               <div className="p-3 bg-[#FBFBFB] rounded-[16px] border border-[#E5E5E3] space-y-1">
