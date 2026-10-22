@@ -189,7 +189,7 @@ export default function MobileStoreDashboard({
       <div className="flex items-center justify-between px-4 h-14 bg-[#FFFFFF] border-b border-[#E8E8E8] sticky top-0 z-30 shrink-0">
         <Link
           href="/dashboard"
-          className="p-2 -ml-2 rounded-full text-[#222222] hover:bg-[#F2F2F2] transition-colors"
+          className="w-11 h-11 -ml-2 rounded-full text-[#222222] hover:bg-[#F2F2F2] active:scale-95 transition-all flex items-center justify-center cursor-pointer"
           aria-label="Back to dashboard"
         >
           <ArrowLeft className="h-5 w-5 stroke-[2.2]" />
@@ -201,11 +201,11 @@ export default function MobileStoreDashboard({
         </span>
 
         {/* Right Header Controls: Overflow menu & Share button */}
-        <div className="flex items-center gap-1.5 -mr-1 relative">
+        <div className="flex items-center gap-1 -mr-1 relative">
           <button
             type="button"
             onClick={() => setHeaderMenuOpen((v) => !v)}
-            className="p-2 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] transition-colors cursor-pointer"
+            className="w-11 h-11 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] active:scale-95 transition-all flex items-center justify-center cursor-pointer"
             aria-label="Store options"
           >
             <MoreHorizontal className="h-5 w-5 stroke-[2]" />
@@ -214,7 +214,7 @@ export default function MobileStoreDashboard({
           <button
             type="button"
             onClick={onOpenShare}
-            className="p-2 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] transition-colors cursor-pointer"
+            className="w-11 h-11 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] active:scale-95 transition-all flex items-center justify-center cursor-pointer"
             aria-label="Share store"
           >
             <Share2 className="h-5 w-5 stroke-[1.8]" />
@@ -227,23 +227,23 @@ export default function MobileStoreDashboard({
                 className="fixed inset-0 z-40"
                 onClick={() => setHeaderMenuOpen(false)}
               />
-              <div className="absolute right-0 top-11 z-50 w-48 rounded-2xl bg-[#FFFFFF] border border-[#E8E8E8] shadow-lg p-1 space-y-0.5">
+              <div className="absolute right-0 top-12 z-50 w-52 rounded-2xl bg-[#FFFFFF] border border-[#E8E8E8] shadow-lg p-1.5 space-y-0.5">
                 <a
                   href={liveStoreUrl}
                   target="_blank"
                   rel="noreferrer"
                   onClick={() => setHeaderMenuOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors min-h-[44px]"
                 >
-                  <ExternalLink className="h-4 w-4 text-[#71717A]" />
+                  <ExternalLink className="h-4 w-4 text-[#777777]" />
                   <span>View live store</span>
                 </a>
                 <button
                   type="button"
                   onClick={handleCopyStoreLink}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors text-left min-h-[44px] cursor-pointer"
                 >
-                  <Copy className="h-4 w-4 text-[#71717A]" />
+                  <Copy className="h-4 w-4 text-[#777777]" />
                   <span>Copy store link</span>
                 </button>
                 <button
@@ -252,9 +252,9 @@ export default function MobileStoreDashboard({
                     setHeaderMenuOpen(false)
                     onTabChange?.('design')
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors text-left min-h-[44px] cursor-pointer"
                 >
-                  <Palette className="h-4 w-4 text-[#71717A]" />
+                  <Palette className="h-4 w-4 text-[#777777]" />
                   <span>Design theme</span>
                 </button>
               </div>
@@ -264,7 +264,7 @@ export default function MobileStoreDashboard({
       </div>
 
       {/* 2. STORE PROFILE SECTION (Matching Reference Image 3) */}
-      <div className="px-4 pt-3.5 pb-3 bg-[#FFFFFF] border-b border-[#E8E8E8] flex flex-col items-center text-center">
+      <div className="px-4 pt-4 pb-2 bg-[#FFFFFF] flex flex-col items-center text-center">
         {/* Creator Avatar with camera trigger - Target 64–80px (72px) */}
         <div
           onClick={onOpenAvatar}
@@ -325,9 +325,9 @@ export default function MobileStoreDashboard({
           </button>
         </div>
 
-        {/* Followers / Public Status Pill */}
+        {/* Status Pill */}
         <div className="mt-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full border border-[#E8E8E8] bg-[#F2F2F2] text-[11px] font-semibold text-[#777777]">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#E8E8E8] bg-[#FFFFFF] text-[11px] font-semibold text-[#777777] shadow-2xs">
             <span className={`h-1.5 w-1.5 rounded-full ${store?.published ? 'bg-[#16A34A]' : 'bg-[#9CA3AF]'}`} />
             <span>{store?.published ? 'Storefront live' : 'Draft store'}</span>
           </span>
@@ -354,7 +354,7 @@ export default function MobileStoreDashboard({
         <button
           type="button"
           onClick={onAddCollection}
-          className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-full bg-[#FFFFFF] hover:bg-[#F2F2F2] border border-[#E8E8E8] text-xs font-bold text-[#222222] shadow-2xs transition-colors cursor-pointer"
+          className="flex-1 inline-flex items-center justify-center gap-2 h-12 min-h-[44px] px-4 rounded-full bg-[#FFFFFF] hover:bg-[#F2F2F2] active:scale-[0.98] border border-[#E8E8E8] text-xs font-bold text-[#222222] shadow-2xs transition-all cursor-pointer"
         >
           <Folder className="h-4 w-4" />
           <span>Add collection</span>
@@ -363,7 +363,7 @@ export default function MobileStoreDashboard({
         <button
           type="button"
           onClick={() => setAddSheetOpen(true)}
-          className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-full bg-[#1F1F1F] hover:bg-[#2A2A2A] text-white text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+          className="flex-1 inline-flex items-center justify-center gap-2 h-12 min-h-[44px] px-4 rounded-full bg-[#1F1F1F] hover:bg-[#2A2A2A] active:scale-[0.98] text-white text-xs font-bold shadow-2xs transition-all cursor-pointer"
         >
           <Plus className="h-4 w-4 stroke-[2.5]" />
           <span>Add</span>
@@ -456,7 +456,7 @@ export default function MobileStoreDashboard({
                         e.stopPropagation()
                         handleCardEdit(s)
                       }}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FEF3C7] text-[#D97706] text-[11px] font-bold cursor-pointer hover:bg-[#FDE68A] transition-colors"
+                      className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1 rounded-full bg-[#FEF3C7] text-[#D97706] text-[11px] font-bold cursor-pointer hover:bg-[#FDE68A] active:scale-95 transition-all"
                     >
                       <Wrench className="h-3 w-3" />
                       <span>Setup</span>
@@ -470,7 +470,7 @@ export default function MobileStoreDashboard({
                         e.stopPropagation()
                         setActiveCardMenuId(isMenuOpen ? null : s.id)
                       }}
-                      className="p-1.5 rounded-full text-[#71717A] hover:text-[#1F1F1F] hover:bg-[#F2F1EF] transition-colors cursor-pointer"
+                      className="w-11 h-11 flex items-center justify-center rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] active:scale-95 transition-all cursor-pointer"
                       aria-label="Item options"
                     >
                       <MoreVertical className="h-4.5 w-4.5" />
@@ -487,7 +487,7 @@ export default function MobileStoreDashboard({
                           }}
                         />
                         <div
-                          className="absolute right-0 top-8 z-50 w-44 rounded-2xl bg-[#FFFFFF] border border-[#E8E8E8] shadow-lg p-1 space-y-0.5 animate-in fade-in duration-150"
+                          className="absolute right-0 top-11 z-50 w-48 rounded-2xl bg-[#FFFFFF] border border-[#E8E8E8] shadow-lg p-1.5 space-y-0.5 animate-in fade-in duration-150"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
@@ -497,9 +497,9 @@ export default function MobileStoreDashboard({
                               setActiveCardMenuId(null)
                               handleCardEdit(s)
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors text-left"
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors text-left min-h-[44px] cursor-pointer"
                           >
-                            <Pencil className="h-3.5 w-3.5 text-[#71717A]" />
+                            <Pencil className="h-4 w-4 text-[#777777]" />
                             <span>Edit item</span>
                           </button>
                           <button
@@ -509,9 +509,9 @@ export default function MobileStoreDashboard({
                               setActiveCardMenuId(null)
                               setPreviewModalOpen(true)
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors text-left"
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors text-left min-h-[44px] cursor-pointer"
                           >
-                            <Eye className="h-3.5 w-3.5 text-[#71717A]" />
+                            <Eye className="h-4 w-4 text-[#777777]" />
                             <span>Preview</span>
                           </button>
                           <button
@@ -521,9 +521,9 @@ export default function MobileStoreDashboard({
                               setActiveCardMenuId(null)
                               onDuplicateSection?.(s.id)
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors text-left"
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors text-left min-h-[44px] cursor-pointer"
                           >
-                            <Copy className="h-3.5 w-3.5 text-[#71717A]" />
+                            <Copy className="h-4 w-4 text-[#777777]" />
                             <span>Duplicate</span>
                           </button>
                           <button
@@ -533,9 +533,9 @@ export default function MobileStoreDashboard({
                               setActiveCardMenuId(null)
                               onToggleHidden?.(s.id)
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors text-left"
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors text-left min-h-[44px] cursor-pointer"
                           >
-                            <Power className="h-3.5 w-3.5 text-[#71717A]" />
+                            <Power className="h-4 w-4 text-[#777777]" />
                             <span>{s.hidden ? 'Show on store' : 'Hide from store'}</span>
                           </button>
                           <button
@@ -545,9 +545,9 @@ export default function MobileStoreDashboard({
                               setActiveCardMenuId(null)
                               setDeleteConfirmSection(s)
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#DC2626] hover:bg-rose-50 transition-colors text-left"
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#DC2626] hover:bg-rose-50 active:bg-rose-100 transition-colors text-left min-h-[44px] cursor-pointer"
                           >
-                            <Trash2 className="h-3.5 w-3.5 text-[#DC2626]" />
+                            <Trash2 className="h-4 w-4 text-[#DC2626]" />
                             <span>Delete</span>
                           </button>
                         </div>

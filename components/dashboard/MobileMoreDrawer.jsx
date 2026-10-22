@@ -149,14 +149,14 @@ export default function MobileMoreDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-[#FFFFFF] text-[#1F1F1F] md:hidden overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col bg-[#FFFFFF] text-[#222222] md:hidden overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-label="More Menu"
     >
       {/* 1. TOP HEADER */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-3 border-b border-[#E5E5E3] shrink-0 bg-[#FFFFFF]">
-        <h1 className="text-2xl font-extrabold text-[#1F1F1F] tracking-tight">
+      <div className="flex items-center justify-between px-4 pt-3 pb-3 border-b border-[#E8E8E8] shrink-0 bg-[#FFFFFF]">
+        <h1 className="text-2xl font-extrabold text-[#222222] tracking-tight">
           More
         </h1>
 
@@ -168,7 +168,7 @@ export default function MobileMoreDrawer({
               onClose()
               setPricingModalOpen?.(true)
             }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#E5E5E3] bg-[#FFFFFF] hover:bg-[#F5F5F3] text-xs font-bold text-[#1F1F1F] shadow-2xs transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] active:scale-95 text-xs font-bold text-[#222222] shadow-2xs transition-all cursor-pointer"
           >
             <Zap className="h-3.5 w-3.5 text-[#FF4B1F] fill-[#FF4B1F]" />
             <span>{isPaid ? 'Pro Plan' : isTrialActive ? 'Keep Pro access' : 'Reactivate Pro'}</span>
@@ -178,7 +178,7 @@ export default function MobileMoreDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full text-[#71717A] hover:text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors cursor-pointer"
+            className="w-11 h-11 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] active:scale-95 transition-all flex items-center justify-center cursor-pointer"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -187,30 +187,30 @@ export default function MobileMoreDrawer({
       </div>
 
       {/* 2. SCROLLABLE CONTENT BODY */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-6 pb-28">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 space-y-6 pb-28">
 
         {/* PROFILE / ACCOUNT SWITCHER ROW */}
-        <div className="flex items-center justify-between p-3 rounded-2xl bg-[#F9F9F8] border border-[#E5E5E3] shadow-2xs">
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-[#FFFFFF] border border-[#E8E8E8] shadow-2xs">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-12 w-12 rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden shrink-0 border border-[#E5E5E3]">
+            <div className="h-12 w-12 rounded-full bg-[#F2F2F2] flex items-center justify-center overflow-hidden shrink-0 border border-[#E8E8E8]">
               {me?.profile?.avatarUrl ? (
                 <img src={me.profile.avatarUrl} alt="" className="h-full w-full object-cover" />
               ) : (
-                <span className="text-base font-bold text-[#1F1F1F]">{initial}</span>
+                <span className="text-base font-bold text-[#222222]">{initial}</span>
               )}
             </div>
 
             <div className="min-w-0 flex flex-col">
-              <span className="text-base font-bold text-[#1F1F1F] truncate">
+              <span className="text-base font-bold text-[#222222] truncate">
                 {username}
               </span>
-              <span className="text-xs text-[#71717A] truncate font-medium">
+              <span className="text-xs text-[#777777] truncate font-medium">
                 {storeUrl}
               </span>
             </div>
           </div>
 
-          <div className="p-1.5 text-[#71717A] shrink-0">
+          <div className="p-1.5 text-[#777777] shrink-0">
             <ChevronsUpDown className="h-4.5 w-4.5" />
           </div>
         </div>
@@ -221,7 +221,7 @@ export default function MobileMoreDrawer({
             Tools
           </h2>
 
-          <div className="divide-y divide-[#F2F1EF] rounded-2xl bg-[#FFFFFF] border border-[#E5E5E3] overflow-hidden shadow-2xs">
+          <div className="divide-y divide-[#F2F2F2] rounded-2xl bg-[#FFFFFF] border border-[#E8E8E8] overflow-hidden shadow-2xs">
             {toolItems.map((item) => {
               const Icon = item.icon
               return (
@@ -229,15 +229,15 @@ export default function MobileMoreDrawer({
                   key={item.title}
                   href={item.href}
                   onClick={onClose}
-                  className="flex items-center justify-between p-3.5 hover:bg-[#F9F9F8] transition-colors group"
+                  className="flex items-center justify-between p-3.5 min-h-[48px] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-10 w-10 rounded-full bg-[#F2F1EF] group-hover:bg-[#EAE9E6] flex items-center justify-center text-[#1F1F1F] shrink-0 transition-colors">
+                    <div className="h-10 w-10 rounded-full bg-[#F2F2F2] group-hover:bg-[#E8E8E8] flex items-center justify-center text-[#222222] shrink-0 transition-colors">
                       <Icon className="h-5 w-5 stroke-[1.8]" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-[#1F1F1F] truncate">
+                        <span className="text-sm font-bold text-[#222222] truncate">
                           {item.title}
                         </span>
                         {item.badge && (
@@ -246,12 +246,12 @@ export default function MobileMoreDrawer({
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-[#71717A] truncate">
+                      <p className="text-xs text-[#777777] truncate">
                         {item.desc}
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-[#A1A1AA] group-hover:text-[#1F1F1F] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+                  <ChevronRight className="h-4 w-4 text-[#A1A1AA] group-hover:text-[#222222] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
                 </Link>
               )
             })}
@@ -264,7 +264,7 @@ export default function MobileMoreDrawer({
             Account
           </h2>
 
-          <div className="divide-y divide-[#F2F1EF] rounded-2xl bg-[#FFFFFF] border border-[#E5E5E3] overflow-hidden shadow-2xs">
+          <div className="divide-y divide-[#F2F2F2] rounded-2xl bg-[#FFFFFF] border border-[#E8E8E8] overflow-hidden shadow-2xs">
             {accountItems.map((item) => {
               const Icon = item.icon
               return (
@@ -272,15 +272,15 @@ export default function MobileMoreDrawer({
                   key={item.title}
                   href={item.href}
                   onClick={onClose}
-                  className="flex items-center justify-between p-3.5 hover:bg-[#F9F9F8] transition-colors group"
+                  className="flex items-center justify-between p-3.5 min-h-[48px] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <Icon className="h-4.5 w-4.5 text-[#71717A] group-hover:text-[#1F1F1F] shrink-0 stroke-[1.8]" />
-                    <span className="text-sm font-semibold text-[#1F1F1F]">
+                    <Icon className="h-4.5 w-4.5 text-[#777777] group-hover:text-[#222222] shrink-0 stroke-[1.8]" />
+                    <span className="text-sm font-semibold text-[#222222]">
                       {item.title}
                     </span>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-[#A1A1AA] group-hover:text-[#1F1F1F] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+                  <ChevronRight className="h-4 w-4 text-[#A1A1AA] group-hover:text-[#222222] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
                 </Link>
               )
             })}
@@ -293,7 +293,7 @@ export default function MobileMoreDrawer({
             Support
           </h2>
 
-          <div className="divide-y divide-[#F2F1EF] rounded-2xl bg-[#FFFFFF] border border-[#E5E5E3] overflow-hidden shadow-2xs">
+          <div className="divide-y divide-[#F2F2F2] rounded-2xl bg-[#FFFFFF] border border-[#E8E8E8] overflow-hidden shadow-2xs">
             <button
               type="button"
               onClick={() => {
@@ -301,35 +301,35 @@ export default function MobileMoreDrawer({
                 const subject = encodeURIComponent('Question from CreatorStore')
                 window.open(`mailto:${email}?subject=${subject}`, '_blank')
               }}
-              className="w-full flex items-center justify-between p-3.5 hover:bg-[#F9F9F8] transition-colors group text-left cursor-pointer"
+              className="w-full flex items-center justify-between p-3.5 min-h-[48px] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors group text-left cursor-pointer"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <HelpCircle className="h-4.5 w-4.5 text-[#71717A] group-hover:text-[#1F1F1F] shrink-0 stroke-[1.8]" />
-                <span className="text-sm font-semibold text-[#1F1F1F]">
+                <HelpCircle className="h-4.5 w-4.5 text-[#777777] group-hover:text-[#222222] shrink-0 stroke-[1.8]" />
+                <span className="text-sm font-semibold text-[#222222]">
                   Ask a question
                 </span>
               </div>
-              <ChevronRight className="h-4 w-4 text-[#A1A1AA] group-hover:text-[#1F1F1F] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              <ChevronRight className="h-4 w-4 text-[#A1A1AA] group-hover:text-[#222222] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
             </button>
 
             <Link
               href="/dashboard/help"
               onClick={onClose}
-              className="flex items-center justify-between p-3.5 hover:bg-[#F9F9F8] transition-colors group"
+              className="flex items-center justify-between p-3.5 min-h-[48px] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors group"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <ShieldCheck className="h-4.5 w-4.5 text-[#71717A] group-hover:text-[#1F1F1F] shrink-0 stroke-[1.8]" />
-                <span className="text-sm font-semibold text-[#1F1F1F]">
+                <ShieldCheck className="h-4.5 w-4.5 text-[#777777] group-hover:text-[#222222] shrink-0 stroke-[1.8]" />
+                <span className="text-sm font-semibold text-[#222222]">
                   Help topics & Documentation
                 </span>
               </div>
-              <ChevronRight className="h-4 w-4 text-[#A1A1AA] group-hover:text-[#1F1F1F] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              <ChevronRight className="h-4 w-4 text-[#A1A1AA] group-hover:text-[#222222] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
             </Link>
 
             <button
               type="button"
               onClick={onLogout}
-              className="w-full flex items-center justify-between p-3.5 hover:bg-rose-50/50 transition-colors group text-left cursor-pointer"
+              className="w-full flex items-center justify-between p-3.5 min-h-[48px] hover:bg-rose-50 active:bg-rose-100 transition-colors group text-left cursor-pointer"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <LogOut className="h-4.5 w-4.5 text-[#DC2626] shrink-0 stroke-[1.8]" />

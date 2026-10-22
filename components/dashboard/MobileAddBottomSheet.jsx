@@ -211,27 +211,40 @@ export default function MobileAddBottomSheet({
 
       {/* 2. SOLID BOTTOM SHEET CONTAINER */}
       <div
-        className="relative w-full max-h-[88vh] bg-[#FFFFFF] text-[#1F1F1F] rounded-t-[28px] shadow-[0_-8px_32px_rgba(0,0,0,0.12)] z-10 flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200"
+        className="relative w-full max-h-[85vh] bg-[#FFFFFF] text-[#222222] rounded-t-[28px] shadow-[0_-8px_32px_rgba(0,0,0,0.12)] z-10 flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200"
         style={{
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
         }}
       >
         {/* DRAG HANDLE */}
-        <div className="pt-3 pb-2 flex justify-center shrink-0">
-          <div className="w-10 h-1 bg-[#D1D5DB] rounded-full" />
+        <div className="pt-2.5 pb-1 flex justify-center shrink-0">
+          <div className="w-10 h-1 bg-[#E8E8E8] rounded-full" />
+        </div>
+
+        {/* VISIBLE TITLE BAR WITH CLOSE ACTION */}
+        <div className="flex items-center justify-between px-5 pt-1 pb-2 shrink-0">
+          <h2 className="text-base font-bold text-[#222222] tracking-tight">Add to store</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-11 h-11 -mr-2 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* SEARCH & URL INPUT */}
-        <div className="px-5 pt-1 pb-3 shrink-0">
-          <div className="relative flex items-center w-full h-12 rounded-full bg-[#F2F1EF] px-4 transition-all focus-within:ring-2 focus-within:ring-[#1F1F1F]/20">
-            <Search className="h-4.5 w-4.5 text-[#6F6F6B] shrink-0 mr-2.5" />
+        <div className="px-5 pt-0 pb-3 shrink-0">
+          <div className="relative flex items-center w-full h-12 rounded-full bg-[#F2F2F2] border border-[#E8E8E8] px-4 transition-all focus-within:border-[#222222] focus-within:ring-1 focus-within:ring-[#222222]">
+            <Search className="h-4.5 w-4.5 text-[#777777] shrink-0 mr-2.5" />
             <input
               ref={inputRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Paste a link or search..."
-              className="w-full bg-transparent border-none outline-none text-[#1F1F1F] placeholder:text-[#6F6F6B] text-[15px] font-medium"
+              className="w-full bg-transparent border-none outline-none text-[#222222] placeholder:text-[#777777] text-[15px] font-medium"
               autoCapitalize="off"
               autoCorrect="off"
               spellCheck="false"
@@ -240,7 +253,7 @@ export default function MobileAddBottomSheet({
               <button
                 type="button"
                 onClick={() => setSearch('')}
-                className="p-1 rounded-full text-[#6F6F6B] hover:text-[#1F1F1F] hover:bg-[#E5E5E3] transition-colors ml-1 cursor-pointer shrink-0"
+                className="w-8 h-8 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#E8E8E8] transition-colors ml-1 cursor-pointer shrink-0 flex items-center justify-center"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -249,7 +262,7 @@ export default function MobileAddBottomSheet({
         </div>
 
         {/* SCROLLABLE SHEET CONTENT */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-2 space-y-5">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-2 space-y-5">
 
           {/* A. URL DETECTED ACTION */}
           {isUrl && (
@@ -260,20 +273,20 @@ export default function MobileAddBottomSheet({
                   onSelectOption?.('link_direct', { url: search.trim() })
                   onClose?.()
                 }}
-                className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-[#F2F1EF] hover:bg-[#EAE9E6] transition-colors cursor-pointer group text-left border border-[#E5E5E3]"
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-[#F2F2F2] hover:bg-[#E8E8E8] active:scale-[0.98] transition-all cursor-pointer group text-left border border-[#E8E8E8]"
               >
                 <div className="flex items-center gap-3.5 min-w-0">
                   <div className="h-10 w-10 rounded-full bg-[#22C55E] flex items-center justify-center text-white shrink-0">
                     <Plus className="h-5 w-5 stroke-[2.5]" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[14px] font-bold text-[#1F1F1F] truncate">
-                      Add link: <span className="font-normal text-[#6F6F6B]">{search.trim()}</span>
+                    <p className="text-[14px] font-bold text-[#222222] truncate">
+                      Add link: <span className="font-normal text-[#777777]">{search.trim()}</span>
                     </p>
-                    <p className="text-xs text-[#6F6F6B]">Tap to configure this link</p>
+                    <p className="text-xs text-[#777777]">Tap to configure this link</p>
                   </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-[#6F6F6B] group-hover:text-[#1F1F1F] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+                <ChevronRight className="h-4 w-4 text-[#777777] group-hover:text-[#222222] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
               </button>
             </div>
           )}
@@ -290,10 +303,10 @@ export default function MobileAddBottomSheet({
                     onSelectOption?.(opt.id)
                     onClose?.()
                   }}
-                  className="flex flex-col items-center justify-center h-[82px] p-2 rounded-2xl bg-[#F2F1EF] hover:bg-[#EAE9E6] active:scale-[0.97] transition-all cursor-pointer group border-none select-none"
+                  className="flex flex-col items-center justify-center h-[82px] p-2 rounded-2xl bg-[#F2F2F2] hover:bg-[#E8E8E8] active:scale-[0.96] transition-all cursor-pointer group border border-[#E8E8E8] select-none shadow-2xs"
                 >
-                  <Icon className="h-6 w-6 text-[#1F1F1F] stroke-[1.8] group-hover:scale-105 transition-transform" />
-                  <span className="text-[12px] font-semibold text-[#1F1F1F] mt-2 tracking-tight">
+                  <Icon className="h-6 w-6 text-[#222222] stroke-[1.8] group-hover:scale-105 transition-transform" />
+                  <span className="text-[12px] font-semibold text-[#222222] mt-2 tracking-tight">
                     {opt.label}
                   </span>
                 </button>
@@ -304,11 +317,11 @@ export default function MobileAddBottomSheet({
           {/* C. SUGGESTED ITEMS SECTION */}
           {filteredSuggested.length > 0 && (
             <div className="space-y-2 pt-1">
-              <h3 className="text-xs font-bold text-[#8C8C88] uppercase tracking-wider px-0.5">
+              <h3 className="text-xs font-bold text-[#777777] uppercase tracking-wider px-0.5">
                 Suggested
               </h3>
 
-              <div className="divide-y divide-[#F2F1EF] rounded-2xl bg-[#FFFFFF] border border-[#E5E5E3] overflow-hidden shadow-2xs">
+              <div className="divide-y divide-[#E8E8E8] rounded-2xl bg-[#FFFFFF] border border-[#E8E8E8] overflow-hidden shadow-2xs">
                 {filteredSuggested.map((item) => {
                   const Icon = item.icon
                   return (
@@ -319,22 +332,22 @@ export default function MobileAddBottomSheet({
                         onSelectOption?.(item.type, item)
                         onClose?.()
                       }}
-                      className="w-full flex items-center justify-between p-3.5 hover:bg-[#F9F9F8] active:bg-[#F2F1EF] transition-colors group text-left cursor-pointer"
+                      className="w-full flex items-center justify-between p-3.5 hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors group text-left cursor-pointer min-h-[56px]"
                     >
                       <div className="flex items-center gap-3.5 min-w-0">
                         <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${item.iconBg}`}>
                           <Icon className="h-5 w-5" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[14px] font-bold text-[#1F1F1F] truncate">
+                          <p className="text-[14px] font-bold text-[#222222] truncate">
                             {item.title}
                           </p>
-                          <p className="text-xs text-[#71717A] truncate">
+                          <p className="text-xs text-[#777777] truncate">
                             {item.description}
                           </p>
                         </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-[#A1A1AA] group-hover:text-[#1F1F1F] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+                      <ChevronRight className="h-4 w-4 text-[#777777] group-hover:text-[#222222] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
                     </button>
                   )
                 })}
