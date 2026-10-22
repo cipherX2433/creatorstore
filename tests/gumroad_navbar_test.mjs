@@ -76,14 +76,27 @@ assert(
 )
 console.log('   ✅ Full-height rectangular white CTA (28-32px padding, 18-20px text) verified flush to the right edge.')
 
-console.log('\n▶ TEST 6: Mobile Menu & Preserved Authentication')
+console.log('\n▶ TEST 6: Dashboard Navigation & Pink Rectangular Avatar Segment')
+assert(navbarContent.includes('href="/dashboard"'), 'Dashboard CTA must navigate to /dashboard')
+assert(!navbarContent.includes('href="/dashboard/store"'), 'Navbar must NOT link to /dashboard/store anywhere')
+assert(navbarContent.includes('bg-[#EBC1E8]'), 'Avatar must use solid pink #EBC1E8 background')
+assert(!navbarContent.includes('bg-[#FF4B1F]'), 'Navbar avatar must NOT use orange fill #FF4B1F')
+assert(
+  navbarContent.includes('w-[88px]') || navbarContent.includes('w-[92px]') || navbarContent.includes('w-[94px]') || navbarContent.includes('w-[98px]'),
+  'Avatar width must be approximately 88-100px on desktop'
+)
+assert(navbarContent.includes("displayInitials || 'M'"), 'Avatar must center letter M')
+assert(navbarContent.includes('rounded-none'), 'Desktop avatar must be rectangular without pill/circle radius')
+console.log('   ✅ Dashboard routes to /dashboard and M avatar is full-height rectangular pink segment (#EBC1E8).')
+
+console.log('\n▶ TEST 7: Mobile Menu & Preserved Authentication')
 assert(navbarContent.includes('trackLoginClicked'), 'Must preserve login analytics')
 assert(navbarContent.includes('trackSignupCtaClicked'), 'Must preserve signup analytics')
 assert(navbarContent.includes('mobileMenuOpen'), 'Must maintain mobile menu state')
 assert(navbarContent.includes('isAuthenticated'), 'Must maintain authentication awareness')
 console.log('   ✅ Mobile collapsible menu and authentication behavior preserved.')
 
-console.log('\n▶ TEST 7: Live SSR Verification Across Public Pages')
+console.log('\n▶ TEST 8: Live SSR Verification Across Public Pages')
 async function testHttpRoute(urlPath) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {

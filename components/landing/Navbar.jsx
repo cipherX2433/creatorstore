@@ -124,75 +124,73 @@ export default function Navbar() {
             {/* Authenticated State vs Unauthenticated State */}
             {isAuthenticated ? (
               <div className="flex items-center h-full">
-                {/* Profile Trigger separated by vertical divider */}
-                <div className="h-full flex items-center px-4 lg:px-6 border-l border-[#303030]" ref={dropdownRef}>
-                  <div className="relative">
-                    <button
-                      onClick={() => setDropdownOpen(!dropdownOpen)}
-                      aria-expanded={dropdownOpen}
-                      aria-haspopup="true"
-                      aria-label="User Profile Menu"
-                      className="flex h-10 w-10 lg:h-11 lg:w-11 items-center justify-center rounded-full bg-[#FF4B1F] text-white font-bold text-sm shadow-xs hover:opacity-90 transition-all duration-150 overflow-hidden focus:outline-none focus:ring-2 focus:ring-white cursor-pointer border-0"
-                    >
-                      {displayAvatar ? (
-                        <img src={displayAvatar} alt={displayName} className="h-full w-full object-cover" />
-                      ) : (
-                        <span>{displayInitials}</span>
-                      )}
-                    </button>
+                {/* FULL-HEIGHT PINK AVATAR SEGMENT (88-100px wide, solid #EBC1E8, centered high-contrast M, rectangular) */}
+                <div className="h-full relative flex items-center border-l border-[#303030]" ref={dropdownRef}>
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    aria-expanded={dropdownOpen}
+                    aria-haspopup="true"
+                    aria-label="User Profile Menu"
+                    className="h-full w-[88px] sm:w-[92px] md:w-[94px] lg:w-[98px] flex items-center justify-center bg-[#EBC1E8] hover:bg-[#E2B3DF] text-[#1C1C1C] font-semibold text-xl sm:text-2xl tracking-tight transition-colors cursor-pointer rounded-none border-0 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-black select-none shrink-0"
+                  >
+                    {displayAvatar ? (
+                      <img src={displayAvatar} alt={displayName} className="h-full w-full object-cover" />
+                    ) : (
+                      <span>{displayInitials || 'M'}</span>
+                    )}
+                  </button>
 
-                    {/* Profile Dropdown Menu */}
-                    {dropdownOpen && (
-                      <div className="absolute right-0 mt-3 w-64 rounded-2xl bg-[#161616] border border-[#303030] shadow-2xl p-2.5 text-[#F5F5F5] z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                        <div className="px-3 py-2.5 border-b border-[#303030] mb-1">
-                          <p className="font-bold text-sm text-[#F5F5F5] truncate">{displayName}</p>
-                          <p className="text-xs text-[#A3A3A3] font-medium truncate">{user?.email}</p>
-                        </div>
+                  {/* Profile Dropdown Menu */}
+                  {dropdownOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl bg-[#161616] border border-[#303030] shadow-2xl p-2.5 text-[#F5F5F5] z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                      <div className="px-3 py-2.5 border-b border-[#303030] mb-1">
+                        <p className="font-bold text-sm text-[#F5F5F5] truncate">{displayName}</p>
+                        <p className="text-xs text-[#A3A3A3] font-medium truncate">{user?.email}</p>
+                      </div>
 
-                        <div className="space-y-1 text-sm font-medium">
-                          <Link
-                            href="/dashboard/settings"
-                            onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white transition-colors"
-                          >
-                            <User className="h-4 w-4" /> Profile
-                          </Link>
-                          <Link
-                            href="/dashboard/settings"
-                            onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white transition-colors"
-                          >
-                            <Settings className="h-4 w-4" /> Settings
-                          </Link>
-                          <Link
-                            href="/dashboard/settings"
-                            onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white transition-colors"
-                          >
-                            <CreditCard className="h-4 w-4" /> Billing
-                          </Link>
+                      <div className="space-y-1 text-sm font-medium">
+                        <Link
+                          href="/dashboard/settings"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white transition-colors"
+                        >
+                          <User className="h-4 w-4" /> Profile
+                        </Link>
+                        <Link
+                          href="/dashboard/settings"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white transition-colors"
+                        >
+                          <Settings className="h-4 w-4" /> Settings
+                        </Link>
+                        <Link
+                          href="/dashboard/settings"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 hover:text-white transition-colors"
+                        >
+                          <CreditCard className="h-4 w-4" /> Billing
+                        </Link>
 
-                          <div className="border-t border-[#303030] pt-1">
-                            <button
-                              onClick={() => {
-                                setDropdownOpen(false)
-                                logout()
-                              }}
-                              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 transition-colors text-left cursor-pointer"
-                            >
-                              <LogOut className="h-4 w-4" /> Logout
-                            </button>
-                          </div>
+                        <div className="border-t border-[#303030] pt-1">
+                          <button
+                            onClick={() => {
+                              setDropdownOpen(false)
+                              logout()
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 transition-colors text-left cursor-pointer"
+                          >
+                            <LogOut className="h-4 w-4" /> Logout
+                          </button>
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Full-Height Dashboard CTA on far right (matching Gumroad segment structure) */}
+                {/* Full-Height Dashboard CTA on far right (matching Gumroad segment structure, navigating to /dashboard) */}
                 <Link
-                  href="/dashboard/store"
-                  className="h-full flex items-center justify-center bg-white hover:bg-[#EAEAEA] text-black font-semibold text-base md:text-[17px] lg:text-[18px] tracking-tight px-6 lg:px-7 border-l border-[#303030] transition-colors shrink-0 whitespace-nowrap rounded-none"
+                  href="/dashboard"
+                  className="h-full flex items-center justify-center bg-white hover:bg-[#EAEAEA] text-black font-semibold text-base md:text-[17px] lg:text-[18px] tracking-tight px-6 lg:px-7 border-l border-[#303030] transition-colors shrink-0 whitespace-nowrap rounded-none focus:outline-none focus:ring-2 focus:ring-white"
                 >
                   <span>Dashboard</span>
                   <ArrowRight className="h-4 w-4 ml-2 stroke-[2.5]" />
@@ -292,11 +290,11 @@ export default function Navbar() {
               {isAuthenticated ? (
                 <>
                   <div className="flex items-center gap-3 p-3 bg-[#161616] rounded-xl border border-[#303030]">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FF4B1F] text-white font-bold text-sm overflow-hidden shrink-0">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EBC1E8] text-black font-bold text-base overflow-hidden shrink-0 select-none">
                       {displayAvatar ? (
                         <img src={displayAvatar} alt={displayName} className="h-full w-full object-cover" />
                       ) : (
-                        <span>{displayInitials}</span>
+                        <span>{displayInitials || 'M'}</span>
                       )}
                     </div>
                     <div className="min-w-0">
@@ -305,7 +303,7 @@ export default function Navbar() {
                     </div>
                   </div>
 
-                  <Link href="/dashboard/store" onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
                     <button
                       type="button"
                       className="w-full h-12 rounded-xl flex items-center justify-center gap-2 bg-white text-black hover:bg-neutral-200 font-bold text-sm border-0 shadow-sm cursor-pointer transition-colors"
