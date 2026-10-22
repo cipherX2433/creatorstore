@@ -161,7 +161,7 @@ export default function FaqSection() {
                 whileHover={prefersReducedMotion ? {} : { x: 3 }}
                 className="group cursor-pointer"
               >
-                <Link href="/contact" className="block">
+                <Link href="/help" className="block">
                   <div
                     className="p-[1px] bg-[#FF4B1F] shadow-[0_0_24px_rgba(255,75,31,0.25)] transition-shadow"
                     style={{ clipPath: notchedClipPath }}

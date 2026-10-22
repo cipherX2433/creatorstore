@@ -128,35 +128,35 @@ function ProductThumbnail({ thumbnail, title, type = 'DIGITAL', aspect = 'aspect
   if (showPlaceholder) {
     return (
       <div
-        className={`${aspect} w-full overflow-hidden rounded-lg relative shrink-0 flex flex-col items-center justify-center p-3 transition-colors ${theme === 'luxury'
-          ? 'bg-slate-900 border border-slate-800 text-[#D4AF37]/60'
+        className={`${aspect} w-full overflow-hidden rounded-xl relative shrink-0 flex flex-col items-center justify-center p-3 transition-colors ${theme === 'luxury'
+          ? 'bg-slate-900/90 border border-slate-800 text-[#D4AF37]/60'
           : theme === 'dark'
-            ? 'bg-zinc-800 border border-zinc-700 text-zinc-400'
+            ? 'bg-zinc-800/80 border border-zinc-700/80 text-zinc-400'
             : theme === 'editorial'
-              ? 'bg-stone-200 text-stone-500'
+              ? 'bg-stone-100 border border-stone-200 text-stone-500'
               : theme === 'creator'
-                ? 'bg-slate-900 border border-slate-800 text-[rgba(244,242,236,0.5)]'
-                : 'bg-slate-100 border border-slate-200 text-slate-500'
+                ? 'bg-slate-900/80 border border-slate-800/80 text-white/50'
+                : 'bg-slate-100/90 border border-slate-200/80 text-slate-500'
           } ${className}`}
       >
         {type === 'BUNDLE' ? (
           <>
-            <Layers className="h-6 w-6 opacity-70 mb-0.5" />
-            <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-60">Product Bundle</span>
+            <Layers className="h-6 w-6 opacity-60 mb-0.5" />
+            <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Bundle</span>
           </>
         ) : isCoaching ? (
           <>
-            <Video className="h-6 w-6 opacity-70 mb-0.5" />
-            <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-60">1:1 Session</span>
+            <Video className="h-6 w-6 opacity-60 mb-0.5" />
+            <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">1:1 Session</span>
           </>
         ) : (
           <>
-            <Package className="h-6 w-6 opacity-70 mb-0.5" />
-            <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-60">Digital Product</span>
+            <Package className="h-6 w-6 opacity-60 mb-0.5" />
+            <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Product</span>
           </>
         )}
         {price !== null && Number(price) === 0 && (
-          <span className="absolute top-2 left-2 bg-slate-900 text-white font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 rounded shadow-xs z-10">
+          <span className="absolute top-2 left-2 bg-emerald-500 text-white font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs z-10">
             FREE
           </span>
         )}
@@ -165,7 +165,7 @@ function ProductThumbnail({ thumbnail, title, type = 'DIGITAL', aspect = 'aspect
   }
 
   return (
-    <div className={`${aspect} w-full overflow-hidden rounded-lg relative shrink-0 ${className}`}>
+    <div className={`${aspect} w-full overflow-hidden rounded-xl relative shrink-0 ${className}`}>
       <img
         src={thumbnail}
         alt={title || 'Product'}
@@ -173,11 +173,11 @@ function ProductThumbnail({ thumbnail, title, type = 'DIGITAL', aspect = 'aspect
         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
       />
       {price !== null && Number(price) === 0 ? (
-        <span className="absolute top-2 left-2 bg-primary text-[#000000] font-black text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-black shadow-xs z-10">
+        <span className="absolute top-2 left-2 bg-emerald-500 text-white font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs z-10">
           FREE
         </span>
       ) : hasDiscount ? (
-        <span className="absolute top-2 right-2 bg-emerald-500 text-white font-black text-[11px] px-2 py-0.5 rounded-full shadow-md z-10">
+        <span className="absolute top-2 right-2 bg-emerald-500 text-white font-bold text-[10px] px-2 py-0.5 rounded-full shadow-xs z-10">
           {discountPct}% OFF
         </span>
       ) : null}
@@ -189,32 +189,66 @@ function ProductThumbnail({ thumbnail, title, type = 'DIGITAL', aspect = 'aspect
 export function StorefrontFooter({ editor = false, showBranding = true, tokens }) {
   if (showBranding === false) return null
 
-  const isLight = tokens?.contrast?.isLight ?? false
-  const semantic = tokens?.semantic || {}
-  const textColor = semantic.primaryText || tokens?.colors?.text || (isLight ? '#0F172A' : '#FFFFFF')
-  const btnBg = semantic.surfaceElevated || semantic.surfaceBackground || (isLight ? '#F4F4F4' : '#1A1A1A')
-  const btnBorder = semantic.borderColor || (isLight ? '#E5E5E5' : '#2E2E2E')
+  const bg = tokens?.contrast?.bg || tokens?.colors?.background || '#000000'
+  const isLight = tokens?.contrast?.isLight ?? (bg ? isLightColor(bg) : false)
+  const textColor = isLight ? '#0F172A' : '#FFFFFF'
+  const mutedColor = isLight ? 'rgba(15, 23, 42, 0.68)' : 'rgba(255, 255, 255, 0.72)'
+  const btnBg = isLight ? '#FFFFFF' : '#18181B'
+  const btnBorder = isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.16)'
 
   return (
-    <footer className="pt-8 pb-6 flex flex-col items-center justify-center gap-2 text-center shrink-0 w-full">
+    <footer className="pt-10 pb-8 sm:pb-12 flex flex-col items-center justify-center gap-3.5 text-center shrink-0 w-full relative z-20">
       {/* CreatorStore Branded CTA Button */}
       <Link
         href="/signup"
         target={editor ? undefined : '_blank'}
         rel="noopener noreferrer"
         onClick={editor ? (e) => e.preventDefault() : undefined}
-        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full transition-all duration-200 shadow-sm text-xs font-semibold tracking-tight cursor-pointer group hover:scale-[1.02] active:scale-[0.98]"
+        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full transition-all duration-200 shadow-sm text-xs font-semibold tracking-tight cursor-pointer group hover:scale-[1.02] active:scale-[0.98] border"
         style={{
           background: btnBg,
           borderColor: btnBorder,
-          borderWidth: 1,
-          borderStyle: 'solid',
           color: textColor,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
         }}
+        aria-label="Get your own CreatorStore"
       >
-        <span>CreatorStore</span>
-        <CreatorStoreMark size="xs" color="brand" className="h-3.5 w-3.5" />
+        <CreatorStoreMark size="xs" color="brand" className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:rotate-12 duration-300" />
+        <span>Get your own <span className="font-bold">CreatorStore</span></span>
       </Link>
+
+      {/* Secondary Legal & Utility Navigation */}
+      <nav aria-label="Storefront footer links" className="flex items-center justify-center gap-3.5 text-[11px] font-medium" style={{ color: mutedColor }}>
+        <Link
+          href="/terms"
+          target={editor ? undefined : '_blank'}
+          rel="noopener noreferrer"
+          onClick={editor ? (e) => e.preventDefault() : undefined}
+          className="hover:underline underline-offset-4 transition-opacity opacity-80 hover:opacity-100"
+        >
+          Terms
+        </Link>
+        <span className="opacity-30">·</span>
+        <Link
+          href="/privacy"
+          target={editor ? undefined : '_blank'}
+          rel="noopener noreferrer"
+          onClick={editor ? (e) => e.preventDefault() : undefined}
+          className="hover:underline underline-offset-4 transition-opacity opacity-80 hover:opacity-100"
+        >
+          Privacy
+        </Link>
+        <span className="opacity-30">·</span>
+        <Link
+          href="/contact"
+          target={editor ? undefined : '_blank'}
+          rel="noopener noreferrer"
+          onClick={editor ? (e) => e.preventDefault() : undefined}
+          className="hover:underline underline-offset-4 transition-opacity opacity-80 hover:opacity-100"
+        >
+          Report
+        </Link>
+      </nav>
     </footer>
   )
 }
@@ -1570,7 +1604,7 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       }
 
       const hasDrafts = editor && list.some(p => p.status !== 'PUBLISHED')
-      const gridColsClass = device === 'mobile' ? 'grid-cols-1 gap-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'
+      const gridColsClass = device === 'mobile' ? 'grid-cols-1 gap-3.5' : 'grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4'
 
       return (
         <div className="space-y-4">
@@ -1682,13 +1716,13 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       }
 
       return (
-        <div className="w-full max-w-md mx-auto space-y-3">
+        <div className="w-full space-y-3">
           {title && (
-            <div className="flex items-center gap-2 pb-1" style={{ borderBottom: cardBorder }}>
-              <Layers className="h-4 w-4 text-primary" />
+            <div className="flex items-center gap-2 pt-1 pb-0.5">
+              <Layers className="h-4 w-4 text-primary shrink-0 opacity-80" />
               <h3
-                className="text-base sm:text-lg font-black tracking-tight"
-                style={{ color: colors.text }}
+                className="text-sm sm:text-base font-bold tracking-tight"
+                style={{ color: colors.title || colors.text }}
               >
                 {title}
               </h3>
@@ -1843,16 +1877,23 @@ function ProfileHeader({ profile, tokens, editor, username, store }) {
   const titleNode = !showTitle ? null : titleStyle === 'logo' ? (
     <img src={header.logoUrl} alt={name} className="h-10 sm:h-12 max-w-[220px] object-contain mx-auto" />
   ) : (
-    <h1
-      className={`text-2xl sm:text-4xl md:text-5xl font-black tracking-tight ${typography.titleWeight || ''}`}
-      style={{ fontFamily: typography.headingFont, color: colors.title || colors.text }}
-    >
-      {name}
-    </h1>
+    <div className="space-y-0.5">
+      <h1
+        className={`text-xl sm:text-2xl font-bold tracking-tight ${typography.titleWeight || ''}`}
+        style={{ fontFamily: typography.headingFont, color: colors.title || colors.text }}
+      >
+        {name}
+      </h1>
+      {handle && name !== `@${handle}` && (
+        <p className="text-xs sm:text-sm font-medium opacity-60 tracking-normal" style={{ color: colors.text }}>
+          @{handle.replace(/^@/, '')}
+        </p>
+      )}
+    </div>
   )
 
   const bioNode = showBio && bio ? (
-    <p className="text-xs sm:text-base leading-relaxed opacity-80 pt-1 break-words" style={{ color: colors.text }}>{bio}</p>
+    <p className="text-xs sm:text-sm leading-relaxed opacity-75 max-w-sm sm:max-w-md mx-auto break-words pt-0.5" style={{ color: colors.text }}>{bio}</p>
   ) : null
 
   const igIconStyle = {
@@ -1889,7 +1930,7 @@ function ProfileHeader({ profile, tokens, editor, username, store }) {
       <img src={header.logoUrl} alt={name} className="h-10 sm:h-12 max-w-[220px] object-contain mx-auto drop-shadow-md" />
     ) : (
       <h1
-        className="text-3xl sm:text-4xl font-black tracking-tight text-white drop-shadow-md"
+        className="text-2xl sm:text-3xl font-bold tracking-tight text-white drop-shadow-md"
         style={{ fontFamily: typography.headingFont, color: colors.title || '#FFFFFF' }}
       >
         {name}
@@ -1897,9 +1938,9 @@ function ProfileHeader({ profile, tokens, editor, username, store }) {
     )
 
     return (
-      <div className="flex flex-col items-center text-center gap-4">
+      <div className="flex flex-col items-center text-center gap-3">
         {showAvatar && (
-          <div className="relative w-full h-[340px] overflow-hidden rounded-card bg-[#12141c]">
+          <div className="relative w-full h-[320px] overflow-hidden rounded-card bg-[#12141c]">
             {avatarUrl ? (
               <img
                 src={avatarUrl}
@@ -1937,20 +1978,24 @@ function ProfileHeader({ profile, tokens, editor, username, store }) {
   }
 
   return (
-    <div className="flex flex-col items-center text-center space-y-4 pt-2">
+    <div className="flex flex-col items-center text-center gap-3 pt-2">
       {showAvatar && (
-        <div className="relative overflow-hidden h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 shadow-md border-2 border-white/40 bg-slate-100 flex items-center justify-center shrink-0 rounded-full">
+        <div className="relative overflow-hidden h-20 w-20 sm:h-24 sm:w-24 shadow-xs ring-2 ring-black/5 dark:ring-white/10 bg-slate-100 dark:bg-zinc-800/80 flex items-center justify-center shrink-0 rounded-full">
           {avatarUrl ? (
             <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
           ) : (
-            <span className="text-3xl sm:text-4xl font-black opacity-40">{String(name).slice(0, 1)}</span>
+            <span className="text-2xl sm:text-3xl font-extrabold uppercase select-none opacity-70" style={{ color: colors.text }}>
+              {String(name).replace(/^@/, '').slice(0, 1)}
+            </span>
           )}
         </div>
       )}
-      <div className="space-y-1.5 max-w-xl mx-auto">
-        {titleNode}
-        {bioNode}
-      </div>
+      {(titleNode || bioNode) && (
+        <div className="space-y-1 max-w-md mx-auto">
+          {titleNode}
+          {bioNode}
+        </div>
+      )}
       <SocialLinks links={profile?.socialLinks} socialStyle={social.style} colors={colors} tokens={tokens} editor={editor} />
     </div>
   )
@@ -2023,10 +2068,10 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
     return (
       <Wrapper>
         <div
-          className="p-4 sm:p-4.5 transition-all duration-200 border border-slate-200 bg-white hover:border-slate-400 rounded-lg flex flex-col justify-between h-full space-y-3 overflow-hidden"
+          className="p-3.5 sm:p-4 transition-all duration-200 border border-slate-200/80 bg-white hover:border-slate-300 rounded-2xl flex flex-col justify-between h-full gap-3 overflow-hidden shadow-xs hover:scale-[1.01] active:scale-[0.99]"
           style={{
-            borderRadius: `${cards.radius}px`,
-            border: cards.border || '1px solid #E2E8F0',
+            borderRadius: `${cards.radius || 18}px`,
+            border: cards.border || '1px solid rgba(0,0,0,0.08)',
             background: cardBg,
           }}
         >
@@ -2039,15 +2084,20 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
             aspect="aspect-[2.1/1]"
           />
           <div className="space-y-1 flex-1 min-w-0">
-            <h3 className="text-sm sm:text-base font-bold leading-snug break-words" style={{ color: cardTitleColor }}>{product.title}</h3>
+            {isBundle && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">
+                Bundle{bundleCount > 0 ? ` · ${bundleCount} items` : ''}
+              </span>
+            )}
+            <h3 className="text-sm sm:text-base font-bold leading-snug break-words line-clamp-2" style={{ color: cardTitleColor }}>{product.title}</h3>
             {product.shortDescription && (
-              <p className="text-xs line-clamp-2 leading-relaxed break-words" style={{ color: cardMutedColor }}>{product.shortDescription}</p>
+              <p className="text-xs line-clamp-2 leading-relaxed break-words opacity-75" style={{ color: cardMutedColor }}>{product.shortDescription}</p>
             )}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-100 mt-auto min-w-0">
             <div className="flex items-baseline gap-1.5 shrink-0">
               <span className="text-sm sm:text-base font-extrabold" style={{ color: cardTitleColor }}>{priceDisplay}</span>
-              {origPriceDisplay && <span className="text-xs font-semibold line-through" style={{ color: cardMutedColor }}>{origPriceDisplay}</span>}
+              {origPriceDisplay && <span className="text-xs font-semibold line-through opacity-60" style={{ color: cardMutedColor }}>{origPriceDisplay}</span>}
             </div>
             <ProductCtaButton label={defaultCta} cardBg={cardBg} tokens={tokens} fullWidth={false} />
           </div>
@@ -2061,10 +2111,10 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
     return (
       <Wrapper>
         <div
-          className="p-4 sm:p-5 flex flex-col justify-between h-full space-y-3 transition-all duration-300 border border-slate-800 bg-[#111827] rounded-xl hover:border-[#D4AF37]/50 shadow-lg overflow-hidden"
+          className="p-3.5 sm:p-4 flex flex-col justify-between h-full gap-3 transition-all duration-200 border border-slate-800/80 bg-[#111827] rounded-2xl hover:border-[#D4AF37]/50 shadow-sm overflow-hidden hover:scale-[1.01] active:scale-[0.99]"
           style={{
-            borderRadius: `${cards.radius}px`,
-            boxShadow: cards.shadow,
+            borderRadius: `${cards.radius || 18}px`,
+            boxShadow: cards.shadow || '0 2px 8px rgba(0,0,0,0.12)',
           }}
         >
           <ProductThumbnail
@@ -2077,19 +2127,24 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
             theme="luxury"
             aspect="aspect-[2.1/1]"
           />
-          <div className="space-y-1.5 flex-1 min-w-0">
-            <h3 className="text-base sm:text-lg font-bold text-[#F3F4F6] leading-snug break-words" style={{ fontFamily: typography.headingFont }}>
+          <div className="space-y-1 flex-1 min-w-0">
+            {isBundle && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37]">
+                Bundle{bundleCount > 0 ? ` · ${bundleCount} items` : ''}
+              </span>
+            )}
+            <h3 className="text-sm sm:text-base font-bold text-[#F3F4F6] leading-snug break-words line-clamp-2" style={{ fontFamily: typography.headingFont }}>
               {product.title}
             </h3>
             {product.shortDescription && (
-              <p className="text-xs text-[rgba(244,242,236,0.5)] line-clamp-2 leading-relaxed break-words">{product.shortDescription}</p>
+              <p className="text-xs text-[rgba(244,242,236,0.65)] line-clamp-2 leading-relaxed break-words">{product.shortDescription}</p>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-800 mt-auto min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-800/80 mt-auto min-w-0">
             <div className="flex items-baseline gap-1.5 shrink-0">
-              <span className="text-lg sm:text-xl font-bold text-[#D4AF37]">{priceDisplay}</span>
-              {origPriceDisplay && <span className="text-xs text-[rgba(244,242,236,0.68)] line-through">{origPriceDisplay}</span>}
+              <span className="text-base sm:text-lg font-bold text-[#D4AF37]">{priceDisplay}</span>
+              {origPriceDisplay && <span className="text-xs text-[rgba(244,242,236,0.6)] line-through">{origPriceDisplay}</span>}
             </div>
             <ProductCtaButton label={defaultCta} cardBg="#111827" tokens={tokens} fullWidth={false} />
           </div>
@@ -2103,10 +2158,10 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
     return (
       <Wrapper>
         <div
-          className="p-4 sm:p-4.5 flex flex-col justify-between h-full space-y-3 transition-all duration-300 border border-[#27272A] bg-[#18181B] rounded-xl hover:border-slate-500 shadow-lg overflow-hidden"
+          className="p-3.5 sm:p-4 flex flex-col justify-between h-full gap-3 transition-all duration-200 border border-[#27272A] bg-[#18181B] rounded-2xl hover:border-slate-600 shadow-sm overflow-hidden hover:scale-[1.01] active:scale-[0.99]"
           style={{
-            borderRadius: `${cards.radius}px`,
-            boxShadow: cards.shadow,
+            borderRadius: `${cards.radius || 18}px`,
+            boxShadow: cards.shadow || '0 2px 8px rgba(0,0,0,0.15)',
           }}
         >
           <div className="flex items-start gap-3.5">
@@ -2118,9 +2173,14 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
               theme="dark"
             />
             <div className="min-w-0 flex-1 space-y-1">
-              <h3 className="text-sm sm:text-base font-bold text-white leading-snug break-words">{product.title}</h3>
+              {isBundle && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 text-white">
+                  Bundle{bundleCount > 0 ? ` · ${bundleCount} items` : ''}
+                </span>
+              )}
+              <h3 className="text-sm sm:text-base font-bold text-white leading-snug break-words line-clamp-2">{product.title}</h3>
               {product.shortDescription && (
-                <p className="text-xs text-[rgba(244,242,236,0.5)] line-clamp-2 leading-relaxed break-words">{product.shortDescription}</p>
+                <p className="text-xs text-[rgba(244,242,236,0.6)] line-clamp-2 leading-relaxed break-words">{product.shortDescription}</p>
               )}
             </div>
           </div>
@@ -2128,9 +2188,9 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
           <div className="flex items-center justify-between pt-0.5">
             <div className="flex items-baseline gap-1.5 shrink-0">
               <span className="text-base sm:text-lg font-black text-white">{priceDisplay}</span>
-              {origPriceDisplay && <span className="text-xs font-bold text-[rgba(244,242,236,0.68)] line-through">{origPriceDisplay}</span>}
+              {origPriceDisplay && <span className="text-xs font-bold text-[rgba(244,242,236,0.6)] line-through">{origPriceDisplay}</span>}
             </div>
-            <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 px-2 py-0.5 rounded-md text-xs font-bold text-slate-200 shrink-0">
+            <div className="flex items-center gap-1 bg-slate-900 border border-slate-700/80 px-2 py-0.5 rounded-md text-xs font-bold text-slate-200 shrink-0">
               <Star className="h-3 w-3 fill-white text-white" /> 5.0
             </div>
           </div>
@@ -2148,9 +2208,9 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
     return (
       <Wrapper>
         <div
-          className="p-4 flex flex-col justify-between h-full space-y-3 transition-all duration-300 border border-[#E7E5E4] bg-white hover:border-stone-400 rounded-lg shadow-xs overflow-hidden"
+          className="p-3.5 sm:p-4 flex flex-col justify-between h-full gap-3 transition-all duration-200 border border-[#E7E5E4] bg-white hover:border-stone-400 rounded-2xl shadow-xs overflow-hidden hover:scale-[1.01] active:scale-[0.99]"
           style={{
-            borderRadius: `${cards.radius}px`,
+            borderRadius: `${cards.radius || 18}px`,
           }}
         >
           <div className="flex flex-col sm:flex-row gap-3.5 items-start flex-1 min-w-0">
@@ -2163,7 +2223,12 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
             />
             <div className="flex-1 space-y-1.5 min-w-0 flex flex-col justify-between h-full">
               <div>
-                <h3 className="text-sm sm:text-base font-semibold tracking-tight leading-snug break-words" style={{ fontFamily: typography.headingFont, color: colors.text }}>
+                {isBundle && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-stone-100 text-stone-800 mb-1">
+                    Bundle{bundleCount > 0 ? ` · ${bundleCount} items` : ''}
+                  </span>
+                )}
+                <h3 className="text-sm sm:text-base font-semibold tracking-tight leading-snug break-words line-clamp-2" style={{ fontFamily: typography.headingFont, color: colors.text }}>
                   {product.title}
                 </h3>
                 {product.shortDescription && (
@@ -2190,7 +2255,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
   const semantic = tokens?.semantic || {}
   const cardBg = (header?.layout === 'immersive' && tokens?.contrast?.surface)
     ? tokens.contrast.surface
-    : (semantic.surfaceBackground || cards.bg || (isLight ? '#FFFFFF' : '#000000'))
+    : (semantic.surfaceBackground || cards.bg || (isLight ? '#FFFFFF' : '#12141A'))
   const cardTitleColor = (header?.layout === 'immersive' && tokens?.contrast?.text)
     ? tokens.contrast.text
     : (semantic.primaryText || getAccessibleTextColor(cardBg, null, 4.5))
@@ -2199,17 +2264,17 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
     : (semantic.mutedText || getAccessibleMutedTextColor(cardBg))
   const cardBorder = (header?.layout === 'immersive' && tokens?.contrast?.border)
     ? `1px solid ${tokens.contrast.border}`
-    : (semantic.borderColor ? `1px solid ${semantic.borderColor}` : (cards.border || (isLight ? '1px solid rgba(0, 0, 0, 0.10)' : '1px solid #39414D')))
+    : (semantic.borderColor ? `1px solid ${semantic.borderColor}` : (cards.border || (isLight ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)')))
 
   return (
     <Wrapper>
       <div
-        className="overflow-hidden flex flex-col justify-between h-full transition-all duration-300 group-hover:-translate-y-0.5 rounded-xl shadow-md"
+        className="overflow-hidden flex flex-col justify-between h-full transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] rounded-2xl shadow-xs border text-left p-3.5 sm:p-4 gap-3"
         style={{
-          borderRadius: `${cards.radius}px`,
+          borderRadius: `${cards.radius || 18}px`,
           background: cardBg,
           border: cardBorder,
-          boxShadow: cards.shadow,
+          boxShadow: cards.shadow || '0 2px 8px rgba(0,0,0,0.04)',
         }}
       >
         <ProductThumbnail
@@ -2222,25 +2287,30 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
           discountPct={discountPct}
           theme={isLight ? 'minimal' : 'creator'}
         />
-        <div className="p-4 sm:p-4.5 space-y-3 flex flex-col justify-between flex-1 min-w-0">
+        <div className="space-y-2 flex flex-col justify-between flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2.5">
             <div className="min-w-0 flex-1 space-y-0.5">
-              <h3 className="text-sm sm:text-base font-black tracking-tight leading-snug break-words" style={{ color: cardTitleColor }}>
+              {isBundle && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary mb-0.5">
+                  Bundle{bundleCount > 0 ? ` · ${bundleCount} items` : ''}
+                </span>
+              )}
+              <h3 className="text-sm sm:text-base font-bold tracking-tight leading-snug line-clamp-2 break-words" style={{ color: cardTitleColor }}>
                 {product.title}
               </h3>
               {product.shortDescription && (
-                <p className="text-xs line-clamp-2 leading-relaxed break-words" style={{ color: cardMutedColor }}>
+                <p className="text-xs line-clamp-2 leading-relaxed break-words opacity-75" style={{ color: cardMutedColor }}>
                   {product.shortDescription}
                 </p>
               )}
             </div>
-            <div className="shrink-0 text-right font-black text-base sm:text-lg" style={{ color: cardTitleColor }}>
+            <div className="shrink-0 text-right font-bold text-sm sm:text-base" style={{ color: cardTitleColor }}>
               <div>{priceDisplay}</div>
-              {origPriceDisplay && <div className="text-xs font-bold line-through" style={{ color: cardMutedColor }}>{origPriceDisplay}</div>}
+              {origPriceDisplay && <div className="text-[11px] font-semibold line-through opacity-60" style={{ color: cardMutedColor }}>{origPriceDisplay}</div>}
             </div>
           </div>
-          <div className="mt-auto">
-            <ProductCtaButton label={Number(product.price) === 0 ? 'Get it Free' : (ctaOverride || 'Get the Guide')} cardBg={cardBg} tokens={tokens} fullWidth />
+          <div className="mt-auto pt-1">
+            <ProductCtaButton label={defaultCta} cardBg={cardBg} tokens={tokens} fullWidth />
           </div>
         </div>
       </div>

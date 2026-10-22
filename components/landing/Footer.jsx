@@ -194,7 +194,7 @@ export default function Footer({ showCta = true }) {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="hover:text-[#FF4B1F] transition-colors">
+                  <Link href="/help" className="hover:text-[#FF4B1F] transition-colors">
                     Help Center
                   </Link>
                 </li>

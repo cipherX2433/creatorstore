@@ -117,9 +117,9 @@ export default function PublicStore({ data, currentPageSlug: initialPageSlug }) 
         />
       </div>
 
-      <div className="relative z-10 flex justify-center min-h-screen px-4 py-6 sm:px-6 sm:py-10">
+      <div className="relative z-10 flex justify-center min-h-screen sm:py-8 sm:px-4">
         <article
-          className="relative w-full max-w-[510px] rounded-[32px] overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.45)] ring-1 ring-black/20 shrink-0"
+          className="relative w-full max-w-[580px] sm:rounded-[28px] overflow-hidden sm:shadow-[0_16px_48px_rgba(0,0,0,0.18)] sm:ring-1 sm:ring-black/10 dark:sm:ring-white/10 shrink-0 flex flex-col"
           style={{ backgroundColor: isImmersive ? (contrastTheme?.bg || '#1E2532') : undefined }}
         >
           {(() => {
@@ -138,7 +138,7 @@ export default function PublicStore({ data, currentPageSlug: initialPageSlug }) 
                   boxShadow: semantic.cardShadow,
                 }
             return (
-              <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between p-card pointer-events-none">
+              <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between p-3.5 sm:p-4 pointer-events-none">
                 <Link
                   href="/"
                   aria-label="CreatorStore"
