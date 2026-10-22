@@ -27,6 +27,16 @@ export default function StoreItemEditorShell({
   customHeaderActions,
   children,
 }) {
+  const handleBack = () => {
+    if (saveState === 'dirty') {
+      const ok = typeof window !== 'undefined'
+        ? window.confirm('You have unsaved changes. Discard changes and leave?')
+        : true
+      if (!ok) return
+    }
+    onBack?.()
+  }
+
   return (
     <div className="w-full flex-1 flex flex-col min-h-0 relative bg-[#FFFFFF] rounded-[24px] border border-[#E5E5E3] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)] lg:h-full">
       {/* ========================================================================= */}
@@ -38,7 +48,7 @@ export default function StoreItemEditorShell({
           {onBack && (
             <button
               type="button"
-              onClick={onBack}
+              onClick={handleBack}
               className="h-9 w-9 rounded-full border border-[#D9D9D9] bg-[#FFFFFF] hover:bg-[#F5F5F3] flex items-center justify-center text-[#1F1F1F] transition-colors cursor-pointer shrink-0"
               title="Back to store items"
               aria-label="Back"

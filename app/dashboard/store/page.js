@@ -1219,13 +1219,14 @@ export default function StoreBuilderPage() {
   const [wizardStep, setWizardStep] = useState(1)
   const [editingProductId, setEditingProductId] = useState(null)
   const [editingSectionId, setEditingSectionId] = useState(null)
+  const [editingSectionObject, setEditingSectionObject] = useState(null)
   const [bundleModalOpen, setBundleModalOpen] = useState(false)
   const [editingBundle, setEditingBundle] = useState(null)
 
   const editingSection = useMemo(() => {
     if (!editingSectionId) return null
-    return (store?.sections || []).find((s) => s.id === editingSectionId) || null
-  }, [editingSectionId, store?.sections])
+    return (store?.sections || []).find((s) => s.id === editingSectionId) || (editingSectionObject?.id === editingSectionId ? editingSectionObject : null) || null
+  }, [editingSectionId, store?.sections, editingSectionObject])
   const [coachingWizardOpen, setCoachingWizardOpen] = useState(false)
   const [coachingWizardProductId, setCoachingWizardProductId] = useState(null)
   const [courseWizardOpen, setCourseWizardOpen] = useState(false)
@@ -1728,6 +1729,78 @@ export default function StoreBuilderPage() {
   }, [])
 
   const loadStoreData = refreshStoreData
+
+  const handleCloseEditor = useCallback(() => {
+    setEditingProductId(null)
+    setEditingSectionId(null)
+    setEditingSectionObject(null)
+    setSelectedId(null)
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('intent')
+      url.searchParams.delete('productId')
+      url.searchParams.delete('sectionId')
+      window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
+    }
+    refreshStoreData()
+  }, [refreshStoreData])
+
+  const handleEditProductNav = useCallback((pid) => {
+    setEditingSectionId(null)
+    setEditingSectionObject(null)
+    setEditingProductId(pid)
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.set('intent', 'edit_product')
+      url.searchParams.set('productId', pid)
+      window.history.pushState({ editingProductId: pid }, '', url.pathname + url.search)
+    }
+  }, [])
+
+  const handleEditSectionNav = useCallback((sec) => {
+    if (!sec) return
+    if (sec.type === 'form') {
+      setSelectedFormType(sec.props?.formType || 'contact')
+      setEditingFormSection(sec)
+      setAddModalType('form_config')
+      setAddModalOpen(true)
+      return
+    }
+    setEditingProductId(null)
+    setEditingSectionId(sec.id)
+    setEditingSectionObject(sec)
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.set('intent', 'edit_section')
+      url.searchParams.set('sectionId', sec.id)
+      window.history.pushState({ editingSectionId: sec.id }, '', url.pathname + url.search)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window === 'undefined') return
+      const sp = new URLSearchParams(window.location.search)
+      const intent = sp.get('intent')
+      const pid = sp.get('productId')
+      const secId = sp.get('sectionId')
+      if (intent === 'edit_product' && pid) {
+        setEditingSectionId(null)
+        setEditingSectionObject(null)
+        setEditingProductId(pid)
+      } else if (intent === 'edit_section' && secId) {
+        setEditingProductId(null)
+        setEditingSectionId(secId)
+      } else {
+        setEditingProductId(null)
+        setEditingSectionId(null)
+        setEditingSectionObject(null)
+        setSelectedId(null)
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -2325,10 +2398,11 @@ export default function StoreBuilderPage() {
   useEffect(() => {
     const intent = searchParams?.get('intent')
     const targetProdId = searchParams?.get('productId')
+    const targetSecId = searchParams?.get('sectionId')
     const addParam = searchParams?.get('add')
 
     if (intent) {
-      const intentKey = `${intent}:${targetProdId || ''}`
+      const intentKey = `${intent}:${targetProdId || targetSecId || ''}`
       if (consumedAddIntent === intentKey) return
       consumedAddIntent = intentKey
 
@@ -2336,6 +2410,9 @@ export default function StoreBuilderPage() {
         handleNewProduct()
       } else if (intent === 'edit_product' && targetProdId) {
         setEditingProductId(targetProdId)
+        setModalOrigin('direct')
+      } else if (intent === 'edit_section' && targetSecId) {
+        setEditingSectionId(targetSecId)
         setModalOrigin('direct')
       }
     } else if (addParam) {
@@ -2960,6 +3037,406 @@ export default function StoreBuilderPage() {
     </div>
   )
 
+  const renderActiveEditor = () => {
+    if (editingProductId) {
+      const prod = products.find((p) => p.id === editingProductId)
+      if (prod) {
+        if (prod?.type === 'COACHING') {
+          return (
+            <BookingEditor
+              key={`prod-${editingProductId}`}
+              product={prod}
+              creatorProfile={profile}
+              currentPlan={me?.user?.plan || 'FREE'}
+              onBack={handleCloseEditor}
+              onUpdateProps={(patch) => {
+                if (patch.title) {
+                  setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, title: patch.title } : p)))
+                }
+                if (patch.price !== undefined || patch.currency !== undefined) {
+                  setProducts((prev) => prev.map((p) => (p.id === editingProductId ? {
+                    ...p,
+                    ...(patch.price !== undefined ? { price: patch.price } : {}),
+                    ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                  } : p)))
+                }
+                if (patch.layout || patch.displayMode) {
+                  const mode = patch.layout || patch.displayMode
+                  setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, displayMode: mode } : p)))
+                  setStore((prev) => {
+                    if (!prev || !Array.isArray(prev.sections)) return prev
+                    const nextSecs = prev.sections.map((sec) =>
+                      sec.props?.productId === editingProductId
+                        ? { ...sec, props: { ...sec.props, layout: mode, displayMode: mode } }
+                        : sec
+                    )
+                    return { ...prev, sections: nextSecs }
+                  })
+                }
+              }}
+              onDelete={() => {
+                setEditingProductId(null)
+                refreshStoreData()
+              }}
+              onOpenMobilePreview={() => setShareOpen?.(true)}
+            />
+          )
+        }
+
+        if (prod?.type === 'BUNDLE') {
+          return (
+            <BundleEditor
+              key={`prod-${editingProductId}`}
+              product={prod}
+              creatorProfile={profile}
+              onBack={handleCloseEditor}
+              onUpdateProps={(patch) => {
+                if (patch.title) {
+                  setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, title: patch.title } : p)))
+                }
+                if (patch.thumbnail !== undefined) {
+                  setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, thumbnail: patch.thumbnail } : p)))
+                }
+                if (patch.price !== undefined || patch.currency !== undefined) {
+                  setProducts((prev) => prev.map((p) => (p.id === editingProductId ? {
+                    ...p,
+                    ...(patch.price !== undefined ? { price: patch.price } : {}),
+                    ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                  } : p)))
+                }
+                if (patch.layout || patch.displayMode) {
+                  const mode = patch.layout || patch.displayMode
+                  setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, displayMode: mode } : p)))
+                  setStore((prev) => {
+                    if (!prev || !Array.isArray(prev.sections)) return prev
+                    const nextSecs = prev.sections.map((sec) =>
+                      sec.props?.productId === editingProductId
+                        ? { ...sec, props: { ...sec.props, layout: mode, displayMode: mode } }
+                        : sec
+                    )
+                    return { ...prev, sections: nextSecs }
+                  })
+                }
+              }}
+              onDelete={() => {
+                setEditingProductId(null)
+                refreshStoreData()
+              }}
+              onOpenMobilePreview={() => setShareOpen?.(true)}
+            />
+          )
+        }
+
+        return (
+          <ProductEditor
+            key={`prod-${editingProductId}`}
+            productId={editingProductId}
+            initialProduct={prod}
+            isStoreContext={true}
+            storeSlug={storeSlug || store?.username}
+            onBack={handleCloseEditor}
+            onProductUpdated={(updatedProd) => {
+              const formatted = toPreviewProduct(updatedProd)
+              setProducts((prev) => prev.map((prodItem) => (prodItem.id === formatted.id ? formatted : prodItem)))
+              if (updatedProd.displayMode) {
+                setStore((prev) => {
+                  if (!prev || !Array.isArray(prev.sections)) return prev
+                  const nextSections = prev.sections.map((sec) =>
+                    sec.props?.productId === updatedProd.id
+                      ? { ...sec, props: { ...sec.props, layout: updatedProd.displayMode, displayMode: updatedProd.displayMode } }
+                      : sec
+                  )
+                  storeRef.current = { ...(storeRef.current || {}), sections: nextSections }
+                  return { ...prev, sections: nextSections }
+                })
+              }
+              refreshStoreData()
+            }}
+          />
+        )
+      } else if (products.length > 0) {
+        return (
+          <div key="prod-not-found" className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-4">
+            <div className="flex items-center justify-between pb-4 border-b border-[#E5E5E3]">
+              <h3 className="text-base font-bold text-[#1F1F1F]">Item Not Found</h3>
+              <button
+                type="button"
+                onClick={handleCloseEditor}
+                className="text-xs text-[#6F6F6B] hover:text-[#1F1F1F] font-semibold cursor-pointer"
+              >
+                Back to store
+              </button>
+            </div>
+            <p className="text-sm text-[#6F6F6B]">
+              This product could not be found or you do not have permission to access it.
+            </p>
+          </div>
+        )
+      }
+    }
+
+    if (editingSectionId && !editingSection && (store?.sections || []).length > 0) {
+      return (
+        <div key="sec-not-found" className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-4">
+          <div className="flex items-center justify-between pb-4 border-b border-[#E5E5E3]">
+            <h3 className="text-base font-bold text-[#1F1F1F]">Item Not Found</h3>
+            <button
+              type="button"
+              onClick={handleCloseEditor}
+              className="text-xs text-[#6F6F6B] hover:text-[#1F1F1F] font-semibold cursor-pointer"
+            >
+              Back to store
+            </button>
+          </div>
+          <p className="text-sm text-[#6F6F6B]">
+            This store item could not be found or you do not have permission to access it.
+          </p>
+        </div>
+      )
+    }
+
+    if (editingSection) {
+      return isBookingItem(editingSection, products) ? (
+        <BookingEditor
+          section={editingSection}
+          product={resolveSectionProduct(editingSection, products)}
+          creatorProfile={profile}
+          currentPlan={me?.user?.plan || 'FREE'}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => {
+            updateSectionProps(editingSection.id, patch)
+            const targetPid = editingSection.props?.productId || resolveSectionProduct(editingSection, products)?.id
+            if (targetPid) {
+              setProducts((prev) => prev.map((p) => (p.id === targetPid ? {
+                ...p,
+                ...(patch.title ? { title: patch.title } : {}),
+                ...(patch.price !== undefined ? { price: patch.price } : {}),
+                ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+              } : p)))
+            }
+          }}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : isBundleItem(editingSection, products) ? (
+        <BundleEditor
+          section={editingSection}
+          product={resolveSectionProduct(editingSection, products)}
+          creatorProfile={profile}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => {
+            updateSectionProps(editingSection.id, patch)
+            const targetPid = editingSection.props?.productId || resolveSectionProduct(editingSection, products)?.id
+            if (targetPid) {
+              const mode = patch.layout || patch.displayMode
+              setProducts((prev) => prev.map((p) => (p.id === targetPid ? {
+                ...p,
+                ...(patch.title ? { title: patch.title } : {}),
+                ...(patch.thumbnail !== undefined ? { thumbnail: patch.thumbnail } : {}),
+                ...(patch.price !== undefined ? { price: patch.price } : {}),
+                ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                ...(mode ? { displayMode: mode } : {}),
+              } : p)))
+            }
+          }}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : editingSection.type === 'gallery' ? (
+        <GalleryEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : (editingSection.type === 'collection' || editingSection.type === 'product_collection') ? (
+        <CollectionEditor
+          section={editingSection}
+          products={products}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateCollectionProps(editingSection.id, patch)}
+          onAddItem={(item) => addItemToCollection(editingSection.id, item)}
+          onRemoveItem={(itemId) => removeItemFromCollection(editingSection.id, itemId)}
+          onMoveItem={(fromIdx, dirOrTo) => {
+            const dir = (dirOrTo === -1 || dirOrTo === 1) ? dirOrTo : (dirOrTo > fromIdx ? 1 : -1)
+            moveItemInCollection(editingSection.id, fromIdx, dir)
+          }}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+          setAddContentModalOpen={setAddContentModalOpen}
+          setAddContentType={setAddContentType}
+        />
+      ) : (['social', 'instagram'].includes(editingSection.type) || Boolean(editingSection.props?.platform)) ? (
+        <SocialItemEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+          igAccount={igAccount}
+          onConnectInstagram={handleConnectInstagram}
+          onDisconnectInstagram={handleDisconnectInstagram}
+          isPro={canCreate}
+          onOpenPricing={() => setPricingModalOpen(true)}
+        />
+      ) : ['button', 'link', 'url'].includes(editingSection.type) ? (
+        <LinkEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : (editingSection.type === 'youtube' || editingSection.props?.mediaType === 'youtube' || editingSection.props?.embedType === 'youtube') ? (
+        <YouTubeEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : (['tiktok', 'vimeo', 'video'].includes(editingSection.type) ||
+          ['tiktok', 'vimeo', 'video'].includes(editingSection.props?.mediaType) ||
+          ['tiktok', 'vimeo'].includes(editingSection.props?.embedType)) ? (
+        <MediaContentEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : ['video', 'youtube', 'audio', 'pdf', 'media'].includes(editingSection.type) ? (
+        <MediaEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : editingSection.type === 'product' ? (
+        <ProductEditor
+          productId={resolveSectionProduct(editingSection, products)?.id}
+          initialProduct={resolveSectionProduct(editingSection, products)}
+          isStoreContext={true}
+          storeSlug={storeSlug || store?.username}
+          onBack={handleCloseEditor}
+          onProductUpdated={(updatedProd) => {
+            const formatted = toPreviewProduct(updatedProd)
+            setProducts((prev) => prev.map((prodItem) => (prodItem.id === formatted.id ? formatted : prodItem)))
+            if (updatedProd.displayMode) {
+              setStore((prev) => {
+                if (!prev || !Array.isArray(prev.sections)) return prev
+                const nextSections = prev.sections.map((sec) =>
+                  sec.props?.productId === updatedProd.id
+                    ? { ...sec, props: { ...sec.props, layout: updatedProd.displayMode, displayMode: updatedProd.displayMode } }
+                    : sec
+                )
+                storeRef.current = { ...(storeRef.current || {}), sections: nextSections }
+                return { ...prev, sections: nextSections }
+              })
+            }
+            refreshStoreData()
+          }}
+        />
+      ) : ['heading', 'heading_text'].includes(editingSection.type) ? (
+        <HeadingEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : ['text', 'text_block', 'paragraph_text'].includes(editingSection.type) ? (
+        <TextBlockEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : (
+        <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-4">
+          <div className="flex items-center justify-between pb-4 border-b border-[#E5E5E3]">
+            <h3 className="text-base font-bold text-[#1F1F1F]">Edit Section</h3>
+            <button
+              type="button"
+              onClick={handleCloseEditor}
+              className="text-xs text-[#6F6F6B] hover:text-[#1F1F1F] font-semibold cursor-pointer"
+            >
+              Back
+            </button>
+          </div>
+          <p className="text-sm text-[#6F6F6B]">
+            This section type ({editingSection.type}) does not have a dedicated editor.
+          </p>
+        </div>
+      )
+    }
+
+    return null
+  }
+
   return (
     <div className="text-content-primary selection:bg-brand selection:text-brand-fg w-full lg:h-full lg:min-h-0 flex flex-col py-2 lg:py-0">
       <DashboardPageTransition transitionKey={tab} className="flex-1 flex flex-col min-h-0 w-full">
@@ -2991,420 +3468,7 @@ export default function StoreBuilderPage() {
 
             {/* LEFT: ONE SINGLE LARGE WHITE EDITOR CARD CONTAINING EVERYTHING */}
             <div className="w-full max-w-[740px] mx-auto min-w-0 lg:h-full lg:min-h-0 flex flex-col">
-              {editingProductId ? (
-                products.find((p) => p.id === editingProductId)?.type === 'COACHING' ? (
-                  <BookingEditor
-                    product={products.find((p) => p.id === editingProductId)}
-                    creatorProfile={profile}
-                    currentPlan={me?.user?.plan || 'FREE'}
-                    onBack={() => {
-                      setEditingProductId(null)
-                      if (typeof window !== 'undefined') {
-                        const url = new URL(window.location.href)
-                        url.searchParams.delete('intent')
-                        url.searchParams.delete('productId')
-                        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
-                      }
-                    }}
-                    onUpdateProps={(patch) => {
-                      if (patch.title) {
-                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, title: patch.title } : p)))
-                      }
-                      if (patch.price !== undefined || patch.currency !== undefined) {
-                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? {
-                          ...p,
-                          ...(patch.price !== undefined ? { price: patch.price } : {}),
-                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
-                        } : p)))
-                      }
-                      if (patch.layout || patch.displayMode) {
-                        const mode = patch.layout || patch.displayMode
-                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, displayMode: mode } : p)))
-                        setStore((prev) => {
-                          if (!prev || !Array.isArray(prev.sections)) return prev
-                          const nextSecs = prev.sections.map((sec) =>
-                            sec.props?.productId === editingProductId
-                              ? { ...sec, props: { ...sec.props, layout: mode, displayMode: mode } }
-                              : sec
-                          )
-                          return { ...prev, sections: nextSecs }
-                        })
-                      }
-                    }}
-                    onDelete={() => {
-                      setEditingProductId(null)
-                      refreshStoreData()
-                    }}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : products.find((p) => p.id === editingProductId)?.type === 'BUNDLE' ? (
-                  <BundleEditor
-                    product={products.find((p) => p.id === editingProductId)}
-                    creatorProfile={profile}
-                    onBack={() => {
-                      setEditingProductId(null)
-                      if (typeof window !== 'undefined') {
-                        const url = new URL(window.location.href)
-                        url.searchParams.delete('intent')
-                        url.searchParams.delete('productId')
-                        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
-                      }
-                    }}
-                    onUpdateProps={(patch) => {
-                      if (patch.title) {
-                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, title: patch.title } : p)))
-                      }
-                      if (patch.thumbnail !== undefined) {
-                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, thumbnail: patch.thumbnail } : p)))
-                      }
-                      if (patch.price !== undefined || patch.currency !== undefined) {
-                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? {
-                          ...p,
-                          ...(patch.price !== undefined ? { price: patch.price } : {}),
-                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
-                        } : p)))
-                      }
-                      if (patch.layout || patch.displayMode) {
-                        const mode = patch.layout || patch.displayMode
-                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, displayMode: mode } : p)))
-                        setStore((prev) => {
-                          if (!prev || !Array.isArray(prev.sections)) return prev
-                          const nextSecs = prev.sections.map((sec) =>
-                            sec.props?.productId === editingProductId
-                              ? { ...sec, props: { ...sec.props, layout: mode, displayMode: mode } }
-                              : sec
-                          )
-                          return { ...prev, sections: nextSecs }
-                        })
-                      }
-                    }}
-                    onDelete={() => {
-                      setEditingProductId(null)
-                      refreshStoreData()
-                    }}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : (
-                <ProductEditor
-                  productId={editingProductId}
-                  initialProduct={products.find((p) => p.id === editingProductId)}
-                  isStoreContext={true}
-                  storeSlug={storeSlug || store?.username}
-                  onBack={() => {
-                    setEditingProductId(null)
-                    if (typeof window !== 'undefined') {
-                      const url = new URL(window.location.href)
-                      url.searchParams.delete('intent')
-                      url.searchParams.delete('productId')
-                      window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
-                    }
-                  }}
-                  onProductUpdated={(updatedProd) => {
-                    const formatted = toPreviewProduct(updatedProd)
-                    setProducts((prev) => prev.map((p) => (p.id === formatted.id ? formatted : p)))
-                    if (updatedProd.displayMode) {
-                      setStore((prev) => {
-                        if (!prev || !Array.isArray(prev.sections)) return prev
-                        const nextSections = prev.sections.map((sec) =>
-                          sec.props?.productId === updatedProd.id
-                            ? { ...sec, props: { ...sec.props, layout: updatedProd.displayMode, displayMode: updatedProd.displayMode } }
-                            : sec
-                        )
-                        storeRef.current = { ...(storeRef.current || {}), sections: nextSections }
-                        return { ...prev, sections: nextSections }
-                      })
-                    }
-                  }}
-                />
-              )
-              ) : editingSection ? (
-                isBookingItem(editingSection, products) ? (
-                  <BookingEditor
-                    section={editingSection}
-                    product={resolveSectionProduct(editingSection, products)}
-                    creatorProfile={profile}
-                    currentPlan={me?.user?.plan || 'FREE'}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => {
-                      updateSectionProps(editingSection.id, patch)
-                      const targetPid = editingSection.props?.productId || resolveSectionProduct(editingSection, products)?.id
-                      if (targetPid) {
-                        setProducts((prev) => prev.map((p) => (p.id === targetPid ? {
-                          ...p,
-                          ...(patch.title ? { title: patch.title } : {}),
-                          ...(patch.price !== undefined ? { price: patch.price } : {}),
-                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
-                        } : p)))
-                      }
-                    }}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : isBundleItem(editingSection, products) ? (
-                  <BundleEditor
-                    section={editingSection}
-                    product={resolveSectionProduct(editingSection, products)}
-                    creatorProfile={profile}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => {
-                      updateSectionProps(editingSection.id, patch)
-                      const targetPid = editingSection.props?.productId || resolveSectionProduct(editingSection, products)?.id
-                      if (targetPid) {
-                        const mode = patch.layout || patch.displayMode
-                        setProducts((prev) => prev.map((p) => (p.id === targetPid ? {
-                          ...p,
-                          ...(patch.title ? { title: patch.title } : {}),
-                          ...(patch.thumbnail !== undefined ? { thumbnail: patch.thumbnail } : {}),
-                          ...(patch.price !== undefined ? { price: patch.price } : {}),
-                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
-                          ...(mode ? { displayMode: mode } : {}),
-                        } : p)))
-                      }
-                    }}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : editingSection.type === 'gallery' ? (
-                  <GalleryEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : editingSection.type === 'collection' || editingSection.type === 'product_collection' ? (
-                  <CollectionEditor
-                    section={editingSection}
-                    products={products}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateCollectionProps(editingSection.id, patch)}
-                    onAddItem={(item) => addItemToCollection(editingSection.id, item)}
-                    onRemoveItem={(itemId) => removeItemFromCollection(editingSection.id, itemId)}
-                    onMoveItem={(fromIdx, dirOrTo) => {
-                      const dir = (dirOrTo === -1 || dirOrTo === 1) ? dirOrTo : (dirOrTo > fromIdx ? 1 : -1)
-                      moveItemInCollection(editingSection.id, fromIdx, dir)
-                    }}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                    setAddContentModalOpen={setAddContentModalOpen}
-                    setAddContentType={setAddContentType}
-                  />
-                ) : ['social', 'instagram'].includes(editingSection.type) || Boolean(editingSection.props?.platform) ? (
-                  <SocialItemEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                    igAccount={igAccount}
-                    onConnectInstagram={handleConnectInstagram}
-                    onDisconnectInstagram={handleDisconnectInstagram}
-                    isPro={canCreate}
-                    onOpenPricing={() => setPricingModalOpen(true)}
-                  />
-                ) : ['button', 'link', 'url'].includes(editingSection.type) ? (
-                  <LinkEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : editingSection.type === 'youtube' || editingSection.props?.mediaType === 'youtube' || editingSection.props?.embedType === 'youtube' ? (
-                  <YouTubeEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : ['tiktok', 'vimeo', 'video'].includes(editingSection.type) ||
-                    ['tiktok', 'vimeo', 'video'].includes(editingSection.props?.mediaType) ||
-                    ['tiktok', 'vimeo'].includes(editingSection.props?.embedType) ? (
-                  <MediaContentEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : ['audio', 'pdf', 'media'].includes(editingSection.type) ? (
-                  <MediaEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : editingSection.type === 'product' ? (
-                  <ProductEditor
-                    productId={resolveSectionProduct(editingSection, products)?.id}
-                    initialProduct={resolveSectionProduct(editingSection, products)}
-                    isStoreContext={true}
-                    storeSlug={storeSlug || store?.username}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onProductUpdated={(updatedProd) => {
-                      const formatted = toPreviewProduct(updatedProd)
-                      setProducts((prev) => prev.map((p) => (p.id === formatted.id ? formatted : p)))
-                      if (updatedProd.displayMode) {
-                        setStore((prev) => {
-                          if (!prev || !Array.isArray(prev.sections)) return prev
-                          const nextSections = prev.sections.map((sec) =>
-                            sec.props?.productId === updatedProd.id
-                              ? { ...sec, props: { ...sec.props, layout: updatedProd.displayMode, displayMode: updatedProd.displayMode } }
-                              : sec
-                          )
-                          storeRef.current = { ...(storeRef.current || {}), sections: nextSections }
-                          return { ...prev, sections: nextSections }
-                        })
-                      }
-                    }}
-                  />
-                ) : ['heading', 'heading_text'].includes(editingSection.type) ? (
-                  <HeadingEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : ['text', 'text_block', 'paragraph_text'].includes(editingSection.type) ? (
-                  <TextBlockEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : (
-                  /* Safe fallback for any unknown section type — NEVER MediaEditor */
-                  <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-4">
-                    <div className="flex items-center justify-between pb-4 border-b border-[#E5E5E3]">
-                      <h3 className="text-base font-bold text-[#1F1F1F]">Edit Section</h3>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingSectionId(null)
-                          setSelectedId(null)
-                        }}
-                        className="text-xs text-[#6F6F6B] hover:text-[#1F1F1F] font-semibold"
-                      >
-                        Back
-                      </button>
-                    </div>
-                    <p className="text-sm text-[#6F6F6B]">
-                      This section type ({editingSection.type}) does not have a dedicated editor.
-                    </p>
-                  </div>
-                )
-              ) : (
+              {renderActiveEditor() || (
                 <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-6 lg:h-full lg:min-h-0 lg:overflow-y-auto subtle-scrollbar">
 
                 {/* 1. COMPACT STOREFRONT STATUS ROW */}
@@ -3888,36 +3952,42 @@ export default function StoreBuilderPage() {
             </div>
           </div>
 
-            {/* MOBILE COMPACT DASHBOARD (lg:hidden) */}
+            {/* MOBILE COMPACT DASHBOARD & ITEM EDITOR (lg:hidden) */}
             <div className="block lg:hidden w-full flex-1 min-h-0">
-              <MobileStoreDashboard
-                store={store}
-                storeSlug={storeSlug}
-                profile={profile}
-                products={products}
-                contentSections={contentSections}
-                pages={pages}
-                activePageId={activePageId}
-                setActivePageId={setActivePageId}
-                igAccount={igAccount}
-                me={me}
-                onAddCollection={() => {
-                  setAddCollectionName('')
-                  setAddCollectionOpen(true)
-                }}
-                onOpenAddModal={(type, payload) => handleAddToStore(type, payload)}
-                onEditProduct={(pid) => setEditingProductId(pid)}
-                onEditSection={(sec) => setEditingSectionId(sec.id)}
-                onDeleteSection={(secId) => remove(secId)}
-                onDuplicateSection={(secId) => duplicate(secId)}
-                onToggleHidden={(secId) => toggleHidden(secId)}
-                onOpenShare={() => setShareOpen?.(true)}
-                onOpenAvatar={() => setAvatarModalOpen(true)}
-                onTabChange={handleTabChange}
-                refreshStoreData={refreshStoreData}
-                setProducts={setProducts}
-                setStore={setStore}
-              />
+              {renderActiveEditor() ? (
+                <div className="w-full flex-1 min-h-screen bg-[#FBFAF9] flex flex-col p-3 sm:p-4 pb-28">
+                  {renderActiveEditor()}
+                </div>
+              ) : (
+                <MobileStoreDashboard
+                  store={store}
+                  storeSlug={storeSlug}
+                  profile={profile}
+                  products={products}
+                  contentSections={contentSections}
+                  pages={pages}
+                  activePageId={activePageId}
+                  setActivePageId={setActivePageId}
+                  igAccount={igAccount}
+                  me={me}
+                  onAddCollection={() => {
+                    setAddCollectionName('')
+                    setAddCollectionOpen(true)
+                  }}
+                  onOpenAddModal={(type, payload) => handleAddToStore(type, payload)}
+                  onEditProduct={handleEditProductNav}
+                  onEditSection={handleEditSectionNav}
+                  onDeleteSection={(secId) => remove(secId)}
+                  onDuplicateSection={(secId) => duplicate(secId)}
+                  onToggleHidden={(secId) => toggleHidden(secId)}
+                  onOpenShare={() => setShareOpen?.(true)}
+                  onOpenAvatar={() => setAvatarModalOpen(true)}
+                  onTabChange={handleTabChange}
+                  refreshStoreData={refreshStoreData}
+                  setProducts={setProducts}
+                  setStore={setStore}
+                />
+              )}
             </div>
           </>
         )}

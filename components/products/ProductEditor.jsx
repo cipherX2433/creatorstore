@@ -208,6 +208,20 @@ export default function ProductEditor({
     }
   }, [productId, populateData, initialProduct])
 
+  const prevProductIdRef = useRef(productId)
+  useEffect(() => {
+    if (productId && productId !== prevProductIdRef.current) {
+      prevProductIdRef.current = productId
+      isDirtyRef.current = false
+      setSaveState('saved')
+      initialSeededRef.current = false
+      productLoadedRef.current = false
+      if (initialProduct) {
+        populateData(initialProduct)
+      }
+    }
+  }, [productId, initialProduct, populateData])
+
   useEffect(() => {
     if (initialProduct && !initialSeededRef.current) {
       initialSeededRef.current = true
@@ -216,6 +230,20 @@ export default function ProductEditor({
     }
     loadProduct()
   }, [productId])
+
+  const handleBack = () => {
+    if (isDirtyRef.current || saveState === 'dirty') {
+      const ok = typeof window !== 'undefined'
+        ? window.confirm('You have unsaved changes. Discard changes and leave?')
+        : true
+      if (!ok) return
+    }
+    if (onBack) {
+      onBack()
+    } else {
+      router.push('/dashboard/store')
+    }
+  }
 
   // Load Checkout Fields
   const loadCheckoutFields = useCallback(async () => {
@@ -591,7 +619,7 @@ export default function ProductEditor({
         <p className="text-xs text-[#6F6F6B] max-w-sm">{loadError}</p>
         <div className="flex gap-2 pt-2">
           {onBack && (
-            <Button variant="outline" size="sm" onClick={onBack} className="rounded-full text-xs">
+            <Button variant="outline" size="sm" onClick={handleBack} className="rounded-full text-xs">
               Back
             </Button>
           )}
@@ -618,7 +646,7 @@ export default function ProductEditor({
             {onBack && (
               <button
                 type="button"
-                onClick={onBack}
+                onClick={handleBack}
                 className="h-9 w-9 rounded-full border border-[#D9D9D9] bg-[#FFFFFF] hover:bg-[#F5F5F3] flex items-center justify-center text-[#1F1F1F] transition-colors cursor-pointer shrink-0"
                 title="Back to products"
                 aria-label="Back"
