@@ -3,7 +3,6 @@ import HeroSection from '@/components/landing/HeroSection'
 import CarouselVideoSection from '@/components/landing/CarouselVideoSection'
 import FeatureIntroSection from '@/components/landing/FeatureIntroSection'
 import EditorialFeatureShowcase from '@/components/landing/EditorialFeatureShowcase'
-import TestimonialsSection from '@/components/landing/TestimonialsSection'
 import SimplerSolutionSection from '@/components/landing/SimplerSolutionSection'
 import ComparePlatformsSection from '@/components/landing/ComparePlatformsSection'
 import FaqSection from '@/components/landing/FaqSection'
@@ -27,9 +26,6 @@ export default function LandingPage() {
 
         {/* 3.6. Editorial Feature Showcase Section */}
         <EditorialFeatureShowcase />
-
-        {/* 5. Real Creator Testimonials Tonal Marquee */}
-        <TestimonialsSection />
 
         {/* 7. Black Environment Transparent Pricing */}
         <SimplerSolutionSection />
