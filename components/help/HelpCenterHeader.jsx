@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/components/auth/AuthContext'
 import { Menu, X, ArrowRight, LayoutDashboard, LogIn, ExternalLink } from 'lucide-react'
 
 export default function HelpCenterHeader({ showSearch = false, onSearch }) {
+  const pathname = usePathname()
   const { isAuthenticated, user, profile } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
