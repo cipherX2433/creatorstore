@@ -42,6 +42,12 @@ export default function HelpCenterHeader({ showSearch = false, onSearch }) {
         {/* Desktop Navigation Links */}
         <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-[#202432]">
           <Link
+            href="/features"
+            className="hover:text-[#5B347C] transition-colors"
+          >
+            Features
+          </Link>
+          <Link
             href="/how-it-works"
             className="hover:text-[#5B347C] transition-colors"
           >
@@ -129,6 +135,13 @@ export default function HelpCenterHeader({ showSearch = false, onSearch }) {
               className="px-3 py-2 rounded-xl hover:bg-[#F3F3F0] transition-colors"
             >
               Help Center Home
+            </Link>
+            <Link
+              href="/features"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-xl hover:bg-[#F3F3F0] transition-colors"
+            >
+              Features
             </Link>
             <Link
               href="/how-it-works"

@@ -39,6 +39,7 @@ export default function Navbar() {
   const displayAvatar = profile?.avatar || user?.avatar
   const displayInitials = (displayName[0] || 'C').toUpperCase()
 
+  const isFeaturesActive = pathname === '/features'
   const isSafetyActive = pathname === '/safety'
   const isPricingActive = pathname === '/pricing'
   const isHowItWorksActive = pathname === '/how-it-works'
@@ -72,7 +73,7 @@ export default function Navbar() {
             <Link
               href="/"
               className={`transition-all duration-150 ${
-                isHomeActive && !isSafetyActive && !isPricingActive && !isHowItWorksActive
+                isHomeActive && !isSafetyActive && !isPricingActive && !isHowItWorksActive && !isFeaturesActive
                   ? 'bg-white text-black px-4 py-1.5 rounded-full font-semibold shadow-xs'
                   : 'text-white/85 hover:text-white px-3 py-1.5 rounded-full transition-colors'
               }`}
@@ -80,8 +81,12 @@ export default function Navbar() {
               Home
             </Link>
             <Link
-              href="/#features"
-              className="text-white/85 hover:text-white px-3 py-1.5 rounded-full transition-colors"
+              href="/features"
+              className={`transition-all duration-150 ${
+                isFeaturesActive
+                  ? 'bg-white text-black px-4 py-1.5 rounded-full font-semibold shadow-xs'
+                  : 'text-white/85 hover:text-white px-3 py-1.5 rounded-full transition-colors'
+              }`}
             >
               Features
             </Link>
@@ -238,7 +243,7 @@ export default function Navbar() {
               href="/"
               onClick={() => setMobileMenuOpen(false)}
               className={`py-2 px-3 rounded-xl transition-colors ${
-                isHomeActive && !isSafetyActive && !isPricingActive && !isHowItWorksActive
+                isHomeActive && !isSafetyActive && !isPricingActive && !isHowItWorksActive && !isFeaturesActive
                   ? 'bg-white text-black font-bold'
                   : 'text-white/90 hover:text-white'
               }`}
@@ -246,9 +251,11 @@ export default function Navbar() {
               Home
             </Link>
             <Link
-              href="/#features"
+              href="/features"
               onClick={() => setMobileMenuOpen(false)}
-              className="py-2 px-3 rounded-xl text-white/90 hover:text-white transition-colors"
+              className={`py-2 px-3 rounded-xl transition-colors ${
+                isFeaturesActive ? 'bg-white text-black font-bold' : 'text-white/90 hover:text-white'
+              }`}
             >
               Features
             </Link>

@@ -179,7 +179,7 @@ export default function Footer({ showCta = true }) {
               </h4>
               <ul className="space-y-2.5 font-medium text-[#A3A3A3]">
                 <li>
-                  <Link href="/#features" className="hover:text-[#FF4B1F] transition-colors">
+                  <Link href="/features" className="hover:text-[#FF4B1F] transition-colors">
                     Features
                   </Link>
                 </li>
