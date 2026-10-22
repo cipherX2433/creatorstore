@@ -15,6 +15,7 @@ import {
 import { api, formatMoney } from '@/lib/clientApi'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
 import { useDashboardHeader } from '@/components/dashboard/HeaderContext'
+import { useNotifications } from '@/context/NotificationContext'
 
 // Color Constants matching CreatorStore Light Neutral Design System
 const ACCENT_PRIMARY = '#1F1F1F'
@@ -78,6 +79,7 @@ export default function DashboardOverviewPage() {
   const router = useRouter()
   const { me } = useDashboard()
   const { setPricingModalOpen } = useDashboardHeader()
+  const { openNotificationCenter, unreadCount } = useNotifications()
 
   const sub = me?.subscription
   const isPaid = Boolean(sub?.status === 'ACTIVE' && !sub?.isTrial && sub?.planId !== 'UNSUBSCRIBED' && sub?.plan !== 'UNSUBSCRIBED')
@@ -258,13 +260,17 @@ export default function DashboardOverviewPage() {
             >
               <Share2 className="w-4 h-4" />
             </button>
-            <Link
-              href="/dashboard/notifications"
-              className="p-2 rounded-full hover:bg-[#F2F2F2] transition-colors"
-              aria-label="Notifications"
+            <button
+              type="button"
+              onClick={openNotificationCenter}
+              className="relative p-2 rounded-full hover:bg-[#F2F2F2] transition-colors cursor-pointer"
+              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
             >
               <Bell className="w-4 h-4" />
-            </Link>
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#8B5CF6] ring-2 ring-white" />
+              )}
+            </button>
             <Link
               href="/dashboard/support"
               className="p-2 rounded-full hover:bg-[#F2F2F2] transition-colors"

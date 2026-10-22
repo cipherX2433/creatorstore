@@ -54,6 +54,7 @@ model User {
   forms                 Form[]
   formSubmissions       FormSubmission[]
   newsletterSubscribers NewsletterSubscriber[]
+  notifications         Notification[]
 
   @@map("users")
 }
@@ -914,6 +915,32 @@ model NewsletterSubscriber {
   @@index([creatorId, status], map: "idx_newsletter_subscribers_creator_status")
   @@map("newsletter_subscribers")
 }
+
+// ------------------------------------------------------------------------------
+// 11. Notifications
+// ------------------------------------------------------------------------------
+
+model Notification {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  title     String
+  message   String?
+  category  String    @default("UPDATES") // ALL, UPDATES, OPPORTUNITIES, INSIGHTS
+  type      String    @default("SYSTEM")  // SYSTEM, ORDER, BOOKING, SUBMISSION, ANNOUNCEMENT
+  isRead    Boolean   @default(false) @map("is_read")
+  link      String?
+  metadata  Json?     @default("{}")
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead], map: "idx_notifications_user_read")
+  @@index([userId, category], map: "idx_notifications_user_category")
+  @@index([userId, createdAt], map: "idx_notifications_user_created")
+  @@map("notifications")
+}
+
 
 
 

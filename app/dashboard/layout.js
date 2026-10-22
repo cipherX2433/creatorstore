@@ -8,6 +8,8 @@ import { api, formatMoney } from '@/lib/clientApi'
 import { DashboardProvider, useDashboard } from '@/components/dashboard/DashboardContext'
 import { HeaderProvider, useDashboardHeader } from '@/components/dashboard/HeaderContext'
 import PricingModal from '@/components/dashboard/PricingModal'
+import NotificationCenter from '@/components/dashboard/NotificationCenter'
+import { NotificationProvider } from '@/context/NotificationContext'
 import SetupChecklist from '@/components/dashboard/setup/SetupChecklist'
 import SidebarProfileRow from '@/components/dashboard/SidebarProfileRow'
 import SidebarTaskProgress from '@/components/dashboard/SidebarTaskProgress'
@@ -447,6 +449,7 @@ function DashboardContent({ children }) {
       </div>
 
       <PricingModal isOpen={pricingModalOpen} onClose={() => setPricingModalOpen(false)} />
+      <NotificationCenter />
     </div>
   )
 }
@@ -571,9 +574,11 @@ export default function DashboardLayout({ children }) {
   return (
     <DashboardProvider>
       <HeaderProvider>
-        <Suspense fallback={<DashboardBootFallback />}>
-          <DashboardContent>{children}</DashboardContent>
-        </Suspense>
+        <NotificationProvider>
+          <Suspense fallback={<DashboardBootFallback />}>
+            <DashboardContent>{children}</DashboardContent>
+          </Suspense>
+        </NotificationProvider>
       </HeaderProvider>
     </DashboardProvider>
   )

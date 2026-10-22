@@ -17,6 +17,7 @@ import {
   instagramService, automationService, instagramMessagingService, httpError,
   emailService, businessCardService, supportService, bundlesService, formsService,
 } from '@/lib/services'
+import { notificationService } from '@/lib/notificationService'
 import { purchaseOtpService, PURCHASE_SESSION_COOKIE } from '@/lib/purchaseOtpService'
 import { getAppUrl } from '@/config/site'
 import {
@@ -2393,6 +2394,26 @@ async function processRoute(request, context = {}) {
     // ===== Everything below requires CREATOR role =====
     requireCreator(user)
     const creatorId = user.id
+
+    // Creator Notifications Center
+    if ((normalizedRoute === '/notifications' || normalizedRoute === '/creator/notifications') && method === 'GET') {
+      const category = url.searchParams.get('category') || 'All'
+      const limit = parseInt(url.searchParams.get('limit') || '50', 10)
+      return json(await notificationService.getNotifications(creatorId, { category, limit }))
+    }
+    if ((normalizedRoute === '/notifications/unread-count' || normalizedRoute === '/creator/notifications/unread-count') && method === 'GET') {
+      const count = await notificationService.getUnreadCount(creatorId)
+      return json({ unreadCount: count })
+    }
+    if ((normalizedRoute === '/notifications/mark-all-read' || normalizedRoute === '/notifications/mark-all-as-read' || normalizedRoute === '/creator/notifications/mark-all-read') && method === 'POST') {
+      const result = await notificationService.markAllAsRead(creatorId)
+      return json(result)
+    }
+    if (path[0] === 'notifications' && path[1] && (path[2] === 'read' || method === 'PATCH') && (method === 'PATCH' || method === 'POST')) {
+      const notifId = path[1]
+      const result = await notificationService.markAsRead(creatorId, notifId)
+      return json(result)
+    }
 
     // Creator Setup Checklist Status
     if ((route === '/creator/setup-status' || route === '/setup/status') && method === 'GET') {
