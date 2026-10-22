@@ -152,7 +152,7 @@ export function AddProductForm({
           placeholder="Search your products..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="bg-[var(--bg-surface-hover,#2A2A2A)] border-[var(--border-subtle,#303030)] text-[var(--text-heading,#F5F5F5)] text-xs focus:border-[var(--accent-primary)]"
+          className="bg-[#FAFAFA] border-[#E8E8E8] text-[#222222] text-xs focus:border-[#222222] focus:ring-1 focus:ring-[#222222]"
         />
       </div>
       <div className="max-h-64 overflow-y-auto space-y-2 no-scrollbar pr-0.5">
@@ -167,10 +167,10 @@ export function AddProductForm({
             return (
               <div
                 key={p.id}
-                className="flex items-center justify-between p-3 rounded-xl border border-[var(--border-subtle,#303030)] bg-[var(--bg-surface,#242424)] hover:bg-[var(--bg-surface-hover,#2A2A2A)] transition-colors"
+                className="flex items-center justify-between p-3 rounded-xl border border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1 pr-3">
-                  <div className="h-10 w-10 rounded-full border border-[var(--border-subtle,#303030)] bg-[var(--bg-surface-hover,#2A2A2A)] flex items-center justify-center shrink-0 overflow-hidden text-[var(--accent-primary)]">
+                  <div className="h-10 w-10 rounded-full border border-[#E8E8E8] bg-[#F2F2F2] flex items-center justify-center shrink-0 overflow-hidden text-[#222222]">
                     {p.thumbnail ? (
                       <img
                         src={p.thumbnail}
@@ -178,21 +178,21 @@ export function AddProductForm({
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <Package className="h-5 w-5 text-[var(--accent-primary)]" />
+                      <Package className="h-5 w-5 text-[#222222]" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-[var(--text-heading,#F5F5F5)] truncate">
+                    <p className="text-xs font-bold text-[#222222] truncate">
                       {p.title}
                     </p>
-                    <p className="text-[11px] font-semibold text-[var(--accent-primary)] mt-0.5">
+                    <p className="text-[11px] font-semibold text-[#777777] mt-0.5">
                       {priceDisplay}
                     </p>
                   </div>
                 </div>
 
                 {isAdded ? (
-                  <span className="font-semibold text-xs text-[var(--status-success,#22C55E)] bg-[var(--status-success,#22C55E)]/15 border border-[var(--status-success,#22C55E)]/30 px-3 py-1 rounded-full shrink-0 flex items-center gap-1">
+                  <span className="font-semibold text-xs text-[#16A34A] bg-[#16A34A]/10 border border-[#16A34A]/20 px-3 py-1 rounded-full shrink-0 flex items-center gap-1">
                     <Check className="h-3.5 w-3.5 text-[var(--status-success,#22C55E)]" />{' '}
                     Added
                   </span>
@@ -1270,7 +1270,7 @@ export default function AddToStoreModal({
         addModalType === 'coaching' || addModalType === 'course'
           ? 'sm:max-w-4xl max-w-4xl w-[95vw] sm:w-full max-h-[90vh] p-0 gap-0 overflow-hidden'
           : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)
-          ? 'sm:max-w-[780px] w-[95vw] sm:w-full h-[88vh] sm:h-[640px] max-h-[92vh] p-4 sm:p-7 rounded-[28px] bg-white border border-[#E5E5E3] shadow-[0_24px_70px_rgba(0,0,0,0.15)] gap-0 overflow-hidden flex flex-col'
+          ? 'sm:max-w-[780px] w-[95vw] sm:w-full h-[88vh] sm:h-[640px] max-h-[92vh] p-4 sm:p-7 rounded-[28px] bg-white border border-[#E8E8E8] shadow-[0_20px_60px_rgba(0,0,0,0.08)] gap-0 overflow-hidden flex flex-col'
           : 'sm:max-w-[700px]'
       }
       bodyClassName={

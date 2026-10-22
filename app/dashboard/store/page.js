@@ -414,8 +414,8 @@ function CollectionContentCard({
         isDropTarget
           ? 'border-[#3B82F6] bg-[#F0F7FF] ring-2 ring-[#3B82F6]/30 shadow-md'
           : selectedId === s.id
-            ? 'border-[#1F1F1F] bg-[#FFFFFF] shadow-sm'
-            : 'border-[#E5E5E3] bg-[#FFFFFF] hover:border-[#DADAD7] shadow-xs'
+            ? 'border-[#B5B5B2] ring-1 ring-[#E8E8E8] bg-[#FFFFFF] shadow-2xs'
+            : 'border-[#E8E8E8] bg-[#FFFFFF] hover:border-[#D0D0CE] hover:bg-[#F2F2F2] shadow-2xs'
       }`}
     >
       {/* TOP HEADER ROW */}
@@ -463,7 +463,7 @@ function CollectionContentCard({
                   }
                 }}
                 placeholder="Add collection title"
-                className="h-8.5 px-2.5 w-full rounded-lg border border-[#1F1F1F] bg-white text-sm font-bold text-[#1F1F1F] focus:outline-none focus:ring-1 focus:ring-[#1F1F1F]"
+                className="h-8.5 px-2.5 w-full rounded-lg border border-[#E8E8E8] bg-white text-sm font-bold text-[#222222] focus:outline-none focus:border-[#222222] focus:ring-1 focus:ring-[#222222]"
               />
               <button
                 type="button"
@@ -630,8 +630,8 @@ function CollectionContentCard({
                   }}
                   className={`py-2 px-1 sm:py-2.5 sm:px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer select-none ${
                     isSelected
-                      ? 'border-2 border-[#1F1F1F] bg-[#FFFFFF] text-[#1F1F1F] shadow-xs'
-                      : 'border border-[#E5E5E3] bg-[#FFFFFF] hover:bg-[#F5F5F3] hover:border-[#DADAD7] text-[#6F6F6B]'
+                      ? 'border border-[#222222] ring-1 ring-[#222222] bg-[#FFFFFF] text-[#222222] shadow-2xs'
+                      : 'border border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] text-[#777777]'
                   }`}
                   aria-pressed={isSelected}
                   title={`${opt.label} display layout`}
@@ -650,7 +650,7 @@ function CollectionContentCard({
             <div className={`py-6 px-4 rounded-xl border border-dashed text-center text-xs font-medium transition-colors ${
               isDropTarget
                 ? 'bg-[#DBEAFE]/40 border-[#3B82F6] text-[#1D4ED8]'
-                : 'bg-[#FBFBFB] border-[#E5E5E3] text-[#6F6F6B]'
+                : 'bg-[#F2F2F2] border-[#E8E8E8] text-[#777777]'
             }`}>
               {isDropTarget ? 'Drop product here to add' : 'Add or drag items into this collection'}
             </div>
@@ -664,10 +664,10 @@ function CollectionContentCard({
                 return (
                   <div
                     key={it.id || it.productId || idx}
-                    className="flex items-center justify-between gap-2.5 p-2 sm:p-2.5 rounded-xl border border-[#E5E5E3] bg-[#FBFBFB] hover:bg-[#F5F5F3] transition-colors"
+                    className="flex items-center justify-between gap-2.5 p-2 sm:p-2.5 rounded-xl border border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] transition-colors"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className="h-8 w-8 rounded-lg bg-white border border-[#E5E5E3] flex items-center justify-center shrink-0 overflow-hidden">
+                      <div className="h-8 w-8 rounded-lg bg-[#F2F2F2] border border-[#E8E8E8] flex items-center justify-center shrink-0 overflow-hidden">
                         {isProd ? (
                           p?.thumbnail ? <img src={p.thumbnail} alt="" className="h-full w-full object-cover" /> : <Package className="h-4 w-4 text-[#1F1F1F]" />
                         ) : (
@@ -968,8 +968,8 @@ function StoreContentCard({
       className={`group rounded-2xl border p-3.5 sm:p-4 transition-all w-full flex items-center justify-between gap-3 relative ${
         prod ? 'cursor-grab active:cursor-grabbing' : ''
       } ${selectedId === s.id
-        ? 'border-[#1F1F1F] bg-[#FFFFFF] shadow-xs'
-        : 'border-[#E5E5E3] bg-[#FFFFFF] hover:bg-[#F5F5F3] hover:border-[#1F1F1F] shadow-xs'
+        ? 'border-[#B5B5B2] ring-1 ring-[#E8E8E8] bg-[#FFFFFF] shadow-2xs'
+        : 'border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] shadow-2xs'
         }`}
     >
       {/* LEFT: DRAG HANDLE + THUMBNAIL + TITLE/SUBTITLE */}
@@ -1030,9 +1030,9 @@ function StoreContentCard({
           type="button"
           onClick={handleEdit}
           title="Edit item"
-          className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FFFFFF] hover:bg-[#F5F5F3] border border-[#E5E5E3] text-xs font-semibold text-[#1F1F1F] transition-colors cursor-pointer"
+          className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] border border-[#E8E8E8] text-xs font-semibold text-[#222222] transition-colors cursor-pointer"
         >
-          <Edit3 className="h-3 w-3 text-[#1F1F1F]" />
+          <Edit3 className="h-3 w-3 text-[#222222]" />
           <span>Edit</span>
         </button>
 
@@ -1052,7 +1052,7 @@ function StoreContentCard({
             onClick={() => toggleHidden(s.id)}
             title={s.hidden ? 'Show on store' : 'Hide from store'}
             className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors cursor-pointer ${s.hidden
-              ? 'bg-[#F5F5F3] text-[#6F6F6B] border border-[#E5E5E3]'
+              ? 'bg-[#F2F2F2] text-[#777777] border border-[#E8E8E8]'
               : 'bg-[#16A34A]/10 text-[#16A34A] border border-[#16A34A]/20'
               }`}
           >
@@ -1066,7 +1066,7 @@ function StoreContentCard({
           <button
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
-            className="p-1.5 rounded-full text-[#6F6F6B] hover:text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors cursor-pointer"
+            className="p-1.5 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] transition-colors cursor-pointer"
             title="More Options"
           >
             <MoreVertical className="h-4 w-4" />
@@ -1075,13 +1075,13 @@ function StoreContentCard({
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-8 z-30 w-44 rounded-xl border border-[#E5E5E3] bg-[#FFFFFF] py-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.08)] space-y-0.5 animate-in fade-in zoom-in-95">
+              <div className="absolute right-0 top-8 z-30 w-44 rounded-xl border border-[#E8E8E8] bg-[#FFFFFF] py-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.08)] space-y-0.5 animate-in fade-in zoom-in-95">
                 <button
                   type="button"
                   onClick={() => { setMenuOpen(false); handleEdit() }}
-                  className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#1F1F1F] hover:bg-[#F5F5F3] flex items-center gap-2 cursor-pointer"
+                  className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#222222] hover:bg-[#F2F2F2] flex items-center gap-2 cursor-pointer"
                 >
-                  <Edit3 className="h-3.5 w-3.5 text-[#1F1F1F]" />
+                  <Edit3 className="h-3.5 w-3.5 text-[#222222]" />
                   <span>Edit details</span>
                 </button>
 
@@ -3469,13 +3469,13 @@ export default function StoreBuilderPage() {
             {/* LEFT: ONE SINGLE LARGE WHITE EDITOR CARD CONTAINING EVERYTHING */}
             <div className="w-full max-w-[740px] mx-auto min-w-0 lg:h-full lg:min-h-0 flex flex-col">
               {renderActiveEditor() || (
-                <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-6 lg:h-full lg:min-h-0 lg:overflow-y-auto subtle-scrollbar">
+                <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-[24px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-6 sm:p-8 space-y-6 lg:h-full lg:min-h-0 lg:overflow-y-auto subtle-scrollbar">
 
                 {/* 0. BACK TO DASHBOARD NAVIGATION BAR (Desktop) */}
-                <div className="flex items-center justify-between pb-3 border-b border-[#E5E5E3]">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E8E8E8]">
                   <Link
                     href="/dashboard"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E5E5E3] bg-[#FFFFFF] hover:bg-[#F5F5F3] text-xs font-semibold text-[#1F1F1F] transition-all shadow-2xs cursor-pointer group"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] text-xs font-semibold text-[#222222] transition-all shadow-2xs cursor-pointer group"
                     aria-label="Back to dashboard"
                   >
                     <ArrowLeft className="h-3.5 w-3.5 stroke-[2.2] group-hover:-translate-x-0.5 transition-transform" />
@@ -3485,7 +3485,7 @@ export default function StoreBuilderPage() {
                 </div>
 
                 {/* 1. COMPACT STOREFRONT STATUS ROW */}
-                <div className="flex items-center justify-between gap-3 pb-4 border-b border-[#E5E5E3] text-xs">
+                <div className="flex items-center justify-between gap-3 pb-4 border-b border-[#E8E8E8] text-xs">
                   <div className="flex items-center gap-2 flex-wrap min-w-0">
                     {store?.published ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#16A34A]/10 text-[#16A34A] font-bold text-[11px] border border-[#16A34A]/20 shrink-0">
@@ -3493,7 +3493,7 @@ export default function StoreBuilderPage() {
                         LIVE
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F2F1EF] text-[#6F6F6B] font-bold text-[11px] border border-[#E5E5E3] shrink-0">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F2F2F2] text-[#777777] font-bold text-[11px] border border-[#E8E8E8] shrink-0">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#999995]" />
                         OFFLINE
                       </span>
@@ -3502,7 +3502,7 @@ export default function StoreBuilderPage() {
                       href={typeof window !== 'undefined' && storeSlug ? `${window.location.origin}/${storeSlug}` : `/${storeSlug || 'store'}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[#6F6F6B] hover:text-[#1F1F1F] font-medium transition-colors flex items-center gap-1 truncate"
+                      className="text-[#777777] hover:text-[#222222] font-medium transition-colors flex items-center gap-1 truncate"
                     >
                       <span className="truncate">creatorstore.store/{storeSlug || 'yourname'}</span>
                       <ExternalLink className="h-3 w-3 shrink-0" />
@@ -3514,7 +3514,7 @@ export default function StoreBuilderPage() {
                       href={typeof window !== 'undefined' && storeSlug ? `${window.location.origin}/${storeSlug}` : `/${storeSlug || 'store'}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-2.5 py-1 rounded-full border border-[#E5E5E3] bg-[#FFFFFF] hover:bg-[#F5F5F3] text-[#1F1F1F] font-semibold transition-colors hidden sm:inline-flex items-center gap-1 shadow-2xs"
+                      className="px-2.5 py-1 rounded-full border border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] text-[#222222] font-semibold transition-colors hidden sm:inline-flex items-center gap-1 shadow-2xs"
                     >
                       View Store
                     </a>
@@ -3666,18 +3666,18 @@ export default function StoreBuilderPage() {
                 </div>
 
                 {/* 3. CONTENT TYPE TABS ([ Store ]) */}
-                <div className="flex items-center justify-between border-b border-[#E5E4E2] gap-4 pt-1">
+                <div className="flex items-center justify-between border-b border-[#E8E8E8] gap-4 pt-1">
                   <div className="flex items-center gap-6 overflow-x-auto scrollbar-none pb-0 -mb-px">
                     <button
                       type="button"
                       onClick={() => setContentTypeTab('links')}
-                      className="pb-2.5 font-bold text-sm whitespace-nowrap cursor-pointer transition-all border-b-2 border-[#010619] text-[#010619]"
+                      className="pb-2.5 font-bold text-sm whitespace-nowrap cursor-pointer transition-all border-b-2 border-[#FF4D2E] text-[#222222]"
                     >
                       Store
                     </button>
                   </div>
 
-                  <div className="text-xs text-[#6B7399] pb-2 shrink-0 font-medium">
+                  <div className="text-xs text-[#777777] pb-2 shrink-0 font-medium">
                     {contentSections.length} {contentSections.length === 1 ? 'item' : 'items'}
                   </div>
                 </div>
@@ -3690,16 +3690,16 @@ export default function StoreBuilderPage() {
                       setAddCollectionName('')
                       setAddCollectionOpen(true)
                     }}
-                    className="inline-flex h-11 px-5 rounded-full bg-[#FFFFFF] hover:bg-[#F5F5F3] text-[#1F1F1F] border border-[#E5E5E3] text-xs sm:text-sm font-semibold items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs shrink-0"
+                    className="inline-flex h-11 px-5 rounded-full bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] text-[#222222] border border-[#E8E8E8] text-xs sm:text-sm font-semibold items-center justify-center gap-2 transition-colors cursor-pointer shadow-2xs shrink-0"
                   >
-                    <Folder className="h-4 w-4 text-[#1F1F1F]" />
+                    <Folder className="h-4 w-4 text-[#222222]" />
                     <span>+ Add Collection</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleAddToStore('suggested')}
-                    className="inline-flex h-11 px-6 rounded-full bg-[#1F1F1F] hover:bg-[#000000] active:bg-[#111111] text-white text-xs sm:text-sm font-bold items-center justify-center gap-2 transition-all cursor-pointer shadow-xs flex-1"
+                    className="inline-flex h-11 px-6 rounded-full bg-[#1F1F1F] hover:bg-[#2A2A2A] active:bg-[#111111] text-white text-xs sm:text-sm font-bold items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs flex-1"
                   >
                     <Plus className="h-4 w-4 stroke-[2.5]" />
                     <span>+ Add Product</span>
@@ -3720,8 +3720,8 @@ export default function StoreBuilderPage() {
                         <div
                           key={page.id}
                           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all ${isActive
-                            ? 'bg-[#1F1F1F] text-white shadow-xs'
-                            : 'bg-[#FFFFFF] text-[#6F6F6B] hover:text-[#1F1F1F] hover:bg-[#F5F5F3] border border-[#E5E5E3]'
+                            ? 'bg-[#1F1F1F] text-white shadow-2xs'
+                            : 'bg-[#FFFFFF] text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] border border-[#E8E8E8]'
                             }`}
                         >
                           <button

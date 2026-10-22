@@ -647,7 +647,7 @@ export default function ProductEditor({
               <button
                 type="button"
                 onClick={handleBack}
-                className="h-9 w-9 rounded-full border border-[#D9D9D9] bg-[#FFFFFF] hover:bg-[#F5F5F3] flex items-center justify-center text-[#1F1F1F] transition-colors cursor-pointer shrink-0"
+                className="h-9 w-9 rounded-full border border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] flex items-center justify-center text-[#222222] transition-colors cursor-pointer shrink-0"
                 title="Back to products"
                 aria-label="Back"
               >
@@ -670,7 +670,7 @@ export default function ProductEditor({
             <button
               type="button"
               onClick={() => setMobilePreviewOpen(true)}
-              className="xl:hidden inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#D9D9D9] bg-[#FFFFFF] hover:bg-[#F5F5F3] text-xs font-semibold text-[#1F1F1F] transition-colors cursor-pointer"
+              className="xl:hidden inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] text-xs font-semibold text-[#222222] transition-colors cursor-pointer shadow-2xs"
             >
               <Smartphone className="h-3.5 w-3.5" />
               <span>Preview</span>
@@ -681,7 +681,7 @@ export default function ProductEditor({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="h-8 w-8 rounded-full border border-[#D9D9D9] bg-[#FFFFFF] hover:bg-[#F5F5F3] flex items-center justify-center text-[#1F1F1F] transition-colors cursor-pointer"
+                  className="h-8 w-8 rounded-full border border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] flex items-center justify-center text-[#222222] transition-colors cursor-pointer"
                 >
                   <MoreVertical className="h-4 w-4" />
                 </button>
@@ -776,15 +776,15 @@ export default function ProductEditor({
                 {/* Thumbnail control box */}
                 <div
                   onClick={() => thumbInputRef.current?.click()}
-                  className="relative h-[68px] w-[68px] sm:h-20 sm:w-20 rounded-[14px] border border-[#D9D9D9] bg-[#F5F5F3] overflow-hidden flex items-center justify-center cursor-pointer group hover:border-[#1F1F1F] transition-all shrink-0"
+                  className="relative h-[68px] w-[68px] sm:h-20 sm:w-20 rounded-[14px] border border-[#E8E8E8] bg-[#F2F2F2] overflow-hidden flex items-center justify-center cursor-pointer group hover:border-[#D0D0CE] transition-all shrink-0"
                 >
                   {thumbnail ? (
                     <img src={thumbnail} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <div className="relative w-full h-full flex items-center justify-center text-[#999995] group-hover:text-[#1F1F1F]">
+                    <div className="relative w-full h-full flex items-center justify-center text-[#999995] group-hover:text-[#222222]">
                       <ImageIcon className="h-7 w-7 opacity-60" />
-                      <div className="absolute bottom-1.5 right-1.5 h-4 w-4 rounded-full bg-white border border-[#D9D9D9] flex items-center justify-center shadow-xs">
-                        <Plus className="h-2.5 w-2.5 text-[#1F1F1F]" />
+                      <div className="absolute bottom-1.5 right-1.5 h-4 w-4 rounded-full bg-white border border-[#E8E8E8] flex items-center justify-center shadow-xs">
+                        <Plus className="h-2.5 w-2.5 text-[#222222]" />
                       </div>
                     </div>
                   )}
@@ -1021,11 +1021,11 @@ export default function ProductEditor({
                     /* No file uploaded yet: upload control */
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-[#D9D9D9] hover:border-[#1F1F1F] rounded-[14px] p-6 text-center cursor-pointer transition-colors bg-[#FFFFFF] space-y-2"
+                      className="border border-dashed border-[#E8E8E8] hover:border-[#D0D0CE] rounded-[14px] p-6 text-center cursor-pointer transition-colors bg-[#FFFFFF] space-y-2"
                     >
-                      <Upload className="h-7 w-7 text-[#1F1F1F] mx-auto opacity-70" />
+                      <Upload className="h-7 w-7 text-[#222222] mx-auto opacity-70" />
                       <div>
-                        <p className="text-sm font-bold text-[#1F1F1F]">Upload file</p>
+                        <p className="text-sm font-bold text-[#222222]">Upload file</p>
                         <p className="text-xs text-[#6F6F6B] mt-0.5">
                           PDF, ZIP, MP4, EPUB, or audio (up to 50MB)
                         </p>
@@ -1063,13 +1063,13 @@ export default function ProductEditor({
                     onClick={() => handleSelectDisplayMode('classic')}
                     className={`rounded-[12px] p-4 transition-all cursor-pointer flex flex-col justify-between gap-3 ${
                       displayMode === 'classic'
-                        ? 'border-2 border-[#1F1F1F] bg-[#FFFFFF] shadow-sm'
-                        : 'border border-[#D9D9D9] bg-[#FFFFFF] hover:border-[#999995]'
+                        ? 'border border-[#222222] ring-1 ring-[#222222] bg-[#FFFFFF] shadow-2xs'
+                        : 'border border-[#E8E8E8] bg-[#FFFFFF] hover:border-[#D0D0CE]'
                     }`}
                   >
                     {/* Visual Diagram for Classic */}
-                    <div className="h-20 w-full rounded-lg bg-[#F5F5F3] border border-[#E5E5E3] flex items-center justify-center px-4">
-                      <div className="w-full h-9 rounded-lg bg-white border border-[#E5E5E3] px-2.5 flex items-center gap-2 shadow-xs">
+                    <div className="h-20 w-full rounded-lg bg-[#F2F2F2] border border-[#E8E8E8] flex items-center justify-center px-4">
+                      <div className="w-full h-9 rounded-lg bg-white border border-[#E8E8E8] px-2.5 flex items-center gap-2 shadow-xs">
                         <div className="h-5 w-5 rounded-md bg-[#1F1F1F]/15 shrink-0 overflow-hidden flex items-center justify-center">
                           {thumbnail ? (
                             <img src={thumbnail} alt="" className="h-full w-full object-cover" />
@@ -1084,14 +1084,14 @@ export default function ProductEditor({
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-bold text-[#1F1F1F]">Classic</p>
-                        <p className="text-xs text-[#6F6F6B]">Clean compact link pill</p>
+                        <p className="text-sm font-bold text-[#222222]">Classic</p>
+                        <p className="text-xs text-[#777777]">Clean compact link pill</p>
                       </div>
                       <div
                         className={`h-4 w-4 rounded-full border flex items-center justify-center ${
                           displayMode === 'classic'
-                            ? 'border-[#1F1F1F] bg-[#1F1F1F]'
-                            : 'border-[#999995]'
+                            ? 'border-[#222222] bg-[#222222]'
+                            : 'border-[#E8E8E8]'
                         }`}
                       >
                         {displayMode === 'classic' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
@@ -1104,12 +1104,12 @@ export default function ProductEditor({
                     onClick={() => handleSelectDisplayMode('featured')}
                     className={`rounded-[12px] p-4 transition-all cursor-pointer flex flex-col justify-between gap-3 ${
                       displayMode === 'featured'
-                        ? 'border-2 border-[#1F1F1F] bg-[#FFFFFF] shadow-sm'
-                        : 'border border-[#D9D9D9] bg-[#FFFFFF] hover:border-[#999995]'
+                        ? 'border border-[#222222] ring-1 ring-[#222222] bg-[#FFFFFF] shadow-2xs'
+                        : 'border border-[#E8E8E8] bg-[#FFFFFF] hover:border-[#D0D0CE]'
                     }`}
                   >
                     {/* Visual Diagram for Featured */}
-                    <div className="h-20 w-full rounded-lg bg-[#F5F5F3] border border-[#E5E5E3] flex flex-col overflow-hidden shadow-xs">
+                    <div className="h-20 w-full rounded-lg bg-[#F2F2F2] border border-[#E8E8E8] flex flex-col overflow-hidden shadow-xs">
                       <div className="h-11 w-full bg-[#1F1F1F]/15 overflow-hidden flex items-center justify-center">
                         {thumbnail ? (
                           <img src={thumbnail} alt="" className="h-full w-full object-cover" />

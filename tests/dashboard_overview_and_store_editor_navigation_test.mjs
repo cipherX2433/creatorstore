@@ -103,15 +103,20 @@ try {
   assert.ok(dashboardContent.includes('Your Store'), 'Desktop must have Your Store section heading')
   assert.ok(dashboardContent.includes('max-w-[340px]'), 'Desktop profile card must be compact (max-w-[340px])')
 
-  // 4. Performance section with date range selector and real analytics
-  assert.ok(dashboardContent.includes('performanceTitle') || dashboardContent.includes('In the last week'), 'Must display performance section heading')
+  // 4. Performance section: 4 metric cards preserved with date range selector
+  assert.ok(dashboardContent.includes('performanceTitle') || dashboardContent.includes('In the last 30 days'), 'Must display performance section heading')
+  assert.ok(dashboardContent.includes('7D') && dashboardContent.includes('30D') && dashboardContent.includes('90D'), 'Must preserve 7D, 30D, 90D date controls')
   assert.ok(dashboardContent.includes('Total Revenue'), 'Must display Total Revenue KPI card')
   assert.ok(dashboardContent.includes('Total Orders'), 'Must display Total Orders KPI card')
   assert.ok(dashboardContent.includes('Total Customers'), 'Must display Total Customers KPI card')
   assert.ok(dashboardContent.includes('Store Views'), 'Must display Store Views KPI card')
-  assert.ok(dashboardContent.includes('Revenue Overview'), 'Must display Revenue Overview bar chart')
-  assert.ok(dashboardContent.includes('Traffic Sources'), 'Must display Traffic Sources donut chart')
-  assert.ok(dashboardContent.includes('Recent Activity'), 'Must display Recent Activity')
+
+  // 5. Completely remove lower sections below the 4 metric cards
+  assert.ok(!dashboardContent.includes('Revenue Overview'), 'Revenue Overview must be completely removed from /dashboard')
+  assert.ok(!dashboardContent.includes('Quick Actions'), 'Quick Actions panel must be completely removed from /dashboard')
+  assert.ok(!dashboardContent.includes('Traffic Sources'), 'Traffic Sources must be completely removed from /dashboard')
+  assert.ok(!dashboardContent.includes('Top Products'), 'Top Products must be completely removed from /dashboard')
+  assert.ok(!dashboardContent.includes('Recent Activity'), 'Recent Activity must be completely removed from /dashboard')
 
   pass('Dashboard overview (/dashboard) implements complete mobile (Ref 1) and desktop (Ref 2) designs')
 } catch (err) {
