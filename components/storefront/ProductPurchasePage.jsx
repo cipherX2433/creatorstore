@@ -21,6 +21,7 @@ import ExternalLinkWidget from '@/components/external-link/ExternalLinkWidget'
 import BookingWidget from '@/components/booking/BookingWidget'
 import CreatorStoreBrand from '@/components/brand/CreatorStoreBrand'
 import ProductPurchaseModalFlow from '@/components/storefront/ProductPurchaseModalFlow'
+import PublicBookingModal from '@/components/storefront/PublicBookingModal'
 import {
   trackProductViewed,
   trackCheckoutStarted,
@@ -616,26 +617,46 @@ export default function ProductPurchasePage({ username, slug, productId }) {
         <p>© {new Date().getFullYear()} {creatorName}. Powered by CreatorStore.</p>
       </footer>
 
-      {/* Product Purchase Wizard Modal Flow */}
+      {/* Product Purchase Wizard Modal Flow / Dedicated Coaching Booking Modal */}
       {isWizardOpen && (
-        <ProductPurchaseModalFlow
-          product={product}
-          creator={{
-            name: creatorName,
-            username: creatorUsername,
-            avatarUrl: creator.avatarUrl || null,
-          }}
-          isOpen={isWizardOpen}
-          onClose={() => {
-            setIsWizardOpen(false)
-            if (creatorUsername) {
-              router.push(`/${creatorUsername}`)
-            } else {
-              router.push('/')
-            }
-          }}
-          initialStep={wizardStep}
-        />
+        product?.type === 'COACHING' ? (
+          <PublicBookingModal
+            product={product}
+            creator={{
+              name: creatorName,
+              username: creatorUsername,
+              avatarUrl: creator.avatarUrl || null,
+            }}
+            isOpen={isWizardOpen}
+            onClose={() => {
+              setIsWizardOpen(false)
+              if (creatorUsername) {
+                router.push(`/${creatorUsername}`)
+              } else {
+                router.push('/')
+              }
+            }}
+          />
+        ) : (
+          <ProductPurchaseModalFlow
+            product={product}
+            creator={{
+              name: creatorName,
+              username: creatorUsername,
+              avatarUrl: creator.avatarUrl || null,
+            }}
+            isOpen={isWizardOpen}
+            onClose={() => {
+              setIsWizardOpen(false)
+              if (creatorUsername) {
+                router.push(`/${creatorUsername}`)
+              } else {
+                router.push('/')
+              }
+            }}
+            initialStep={wizardStep}
+          />
+        )
       )}
     </div>
   )

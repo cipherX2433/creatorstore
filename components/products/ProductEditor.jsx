@@ -604,12 +604,12 @@ export default function ProductEditor({
   }
 
   return (
-    <div className={isStoreContext ? "w-full flex-1 flex flex-col min-h-0 relative bg-[#FFFFFF] rounded-[24px] border border-[#E5E5E3] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)]" : "w-full flex-1 flex flex-col xl:flex-row min-h-0 relative bg-[#FBFAF9]"}>
+    <div className={isStoreContext ? "w-full flex-1 flex flex-col min-h-0 relative bg-[#FFFFFF] rounded-[24px] border border-[#E5E5E3] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)] lg:h-full" : "w-full flex-1 flex flex-col xl:flex-row min-h-0 relative bg-[#FBFAF9]"}>
 
       {/* ========================================================================= */}
       {/* LEFT COLUMN: THE FOCUSED IN-DASHBOARD PRODUCT EDITOR                     */}
       {/* ========================================================================= */}
-      <div className={`flex-1 flex flex-col min-w-0 overflow-y-auto no-scrollbar bg-[#FFFFFF] ${isStoreContext ? '' : 'border-r border-[#E5E5E3]'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 overflow-y-auto subtle-scrollbar bg-[#FFFFFF] ${isStoreContext ? '' : 'border-r border-[#E5E5E3]'}`}>
         
         {/* TOP BAR / HEADER */}
         <div className="sticky top-0 z-20 bg-[#FFFFFF] px-6 sm:px-8 pt-6 pb-2 flex items-center justify-between gap-4">

@@ -14,6 +14,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { BaseModal, ModalFooterActions } from '@/components/ui/base-modal'
 import { TextInput } from '@/components/ui/text-input'
 import { SelectableCard, SelectableCardGrid } from '@/components/ui/selectable-card'
+import { Switch } from '@/components/ui/switch'
+import { CreatorStoreMark } from '@/components/brand/CreatorStoreBrand'
 import {
   Loader2, Plus, Trash2, Copy, Eye, EyeOff, GripVertical, Smartphone, Monitor,
   User, Type, AlignLeft, MousePointerClick, Image as ImageIcon, Package, Grid3x3,
@@ -21,7 +23,7 @@ import {
   ChevronDown, ChevronUp, ChevronRight, CheckCircle2, Layers, Camera, Instagram, Search, ArrowRight,
   ShoppingBag, Video, FileText, Link2, X, Upload, ArrowLeft, AlertCircle, Edit3, Folder, FolderPlus, MoveUp, MoveDown,
   Pencil, ClipboardList, Mail, Star, Send, HelpCircle, Play, Images, Headphones, Music, GraduationCap,
-  MoreVertical, Archive, SlidersHorizontal, Users, Wrench, Power, Globe, Youtube
+  MoreVertical, Archive, SlidersHorizontal, Users, Wrench, Power, Globe, Youtube, Zap, Calendar, Music2, PlayCircle
 } from 'lucide-react'
 import AddFormConfig, { FORM_TYPES } from '@/components/dashboard/AddFormConfig'
 import AddMediaConfig from '@/components/dashboard/AddMediaConfig'
@@ -57,6 +59,22 @@ import ThemeMatchModal from '@/components/dashboard/design/ThemeMatchModal'
 import { extractImagePalette } from '@/lib/imageContrast'
 import StorefrontStatusCard from '@/components/dashboard/StorefrontStatusCard'
 import ProductEditor from '@/components/products/ProductEditor'
+import GalleryEditor from '@/components/dashboard/editors/GalleryEditor'
+import LinkEditor from '@/components/dashboard/editors/LinkEditor'
+import CollectionEditor from '@/components/dashboard/editors/CollectionEditor'
+import MediaEditor from '@/components/dashboard/editors/MediaEditor'
+import BookingEditor from '@/components/dashboard/editors/BookingEditor'
+import HeadingEditor from '@/components/dashboard/editors/HeadingEditor'
+import TextBlockEditor from '@/components/dashboard/editors/TextBlockEditor'
+import YouTubeEditor from '@/components/dashboard/editors/YouTubeEditor'
+import MediaContentEditor from '@/components/dashboard/editors/MediaContentEditor'
+import AddYouTubeModalView from '@/components/dashboard/AddYouTubeModalView'
+import AddMediaModalView from '@/components/dashboard/AddMediaModalView'
+import SocialDisplaySelectModalView from '@/components/dashboard/SocialDisplaySelectModalView'
+import SocialItemEditor from '@/components/dashboard/editors/SocialItemEditor'
+import { getSocialPlatform } from '@/lib/socialPlatforms'
+import { isBookingItem, resolveSectionProduct } from '@/lib/bookingItemUtils'
+export { isBookingItem, resolveSectionProduct }
 import { IconBadge, ICON_BADGE_COLORS } from '@/components/ui/icon-badge'
 import { AddOptionRow, SettingsRow, SettingsValuePill } from '@/components/ui/settings-row'
 import CoachingBookingWizardModal, { CoachingBookingWizardContent } from '@/components/coaching/CoachingBookingWizardModal'
@@ -118,26 +136,79 @@ const COMPONENTS = [
   { type: 'gallery', label: 'Image Gallery', icon: Images },
   { type: 'audio', label: 'Audio', icon: Headphones },
   { type: 'pdf', label: 'PDF Display', icon: FileText },
+  { type: 'booking', label: 'Bookings', icon: Calendar },
 ]
 const ICONS = {
   ...Object.fromEntries(COMPONENTS.map((c) => [c.type, c.icon])),
   profile: User,
+  heading_text: Type,
+  text_block: AlignLeft,
+  paragraph_text: AlignLeft,
   product_collection: Layers,
+  booking: Calendar,
+  bookings: Calendar,
+  coaching: Calendar,
+  session: Calendar,
+  sessions: Calendar,
+  calendar: Calendar,
+  youtube: Youtube,
+  tiktok: Music2,
+  vimeo: PlayCircle,
+  video: Play,
 }
 const LABELS = {
   ...Object.fromEntries(COMPONENTS.map((c) => [c.type, c.label])),
   profile: 'Profile',
+  heading_text: 'Heading',
+  text: 'Text block',
+  text_block: 'Text block',
+  paragraph_text: 'Text block',
   product_collection: 'Collection',
+  booking: 'Bookings',
+  bookings: 'Bookings',
+  coaching: 'Bookings',
+  session: 'Bookings',
+  sessions: 'Bookings',
+  youtube: 'YouTube',
+  tiktok: 'TikTok Video',
+  vimeo: 'Vimeo',
+  video: 'Video',
+  social: 'Social Link',
+  instagram: 'Instagram',
 }
 
 function defaultProps(type, products = []) {
   switch (type) {
     case 'profile': return {}
-    case 'heading': return { text: 'Welcome to my store', align: 'center' }
-    case 'text': return { text: 'Explore my exclusive digital products and courses.', align: 'center' }
+    case 'heading':
+    case 'heading_text': return { text: 'Welcome to my store', align: 'center' }
+    case 'text':
+    case 'text_block':
+    case 'paragraph_text': return { text: 'Explore my exclusive digital products and courses.', content: 'Explore my exclusive digital products and courses.', align: 'left' }
     case 'button': return { label: 'Follow me', url: '', layout: 'classic' }
+    case 'social':
+    case 'instagram': return {
+      platform: 'instagram',
+      title: 'Instagram',
+      label: 'Instagram',
+      url: '',
+      layout: 'classic',
+      displayMode: 'classic',
+      thumbnail: null,
+      customThumbnail: null,
+    }
     case 'image': return { url: '', alt: '' }
     case 'product': return { productId: products[0]?.id, layout: 'classic' }
+    case 'booking':
+    case 'bookings':
+    case 'coaching':
+    case 'session':
+    case 'calendar': return {
+      productId: products.find((p) => String(p.type || '').toUpperCase() === 'COACHING')?.id || products[0]?.id || null,
+      title: 'Book a session',
+      layout: 'classic',
+      displayMode: 'classic',
+    }
     case 'product_grid': return { source: 'all' }
     case 'collection':
     case 'product_collection': return { title: 'New Collection', layout: 'list', displayMode: 'list', items: [] }
@@ -150,14 +221,50 @@ function defaultProps(type, products = []) {
       notificationEmail: '',
       successMessage: 'Thank you! Your message has been sent successfully.',
     }
-    case 'video':
     case 'youtube': return {
       url: '',
-      title: type === 'youtube' ? 'YouTube Video' : 'Featured Video',
+      title: 'YouTube Video',
+      caption: '',
+      embedType: 'youtube',
+      mediaType: 'youtube',
+      thumbnail: null,
+      customThumbnail: null,
+      layout: 'classic',
+      displayMode: 'classic',
+    }
+    case 'tiktok': return {
+      url: '',
+      title: 'TikTok Video',
+      caption: '',
+      embedType: 'tiktok',
+      mediaType: 'tiktok',
+      thumbnail: null,
+      customThumbnail: null,
+      layout: 'classic',
+      displayMode: 'classic',
+    }
+    case 'vimeo': return {
+      url: '',
+      title: 'Vimeo Video',
+      caption: '',
+      embedType: 'vimeo',
+      mediaType: 'vimeo',
+      thumbnail: null,
+      customThumbnail: null,
+      layout: 'classic',
+      displayMode: 'classic',
+    }
+    case 'video': return {
+      url: '',
+      title: 'Featured Video',
       caption: '',
       embedType: 'generic',
+      mediaType: 'video',
       embedUrl: null,
       thumbnail: null,
+      customThumbnail: null,
+      layout: 'classic',
+      displayMode: 'classic',
     }
     case 'gallery': return {
       title: 'Image Gallery',
@@ -200,6 +307,7 @@ function CollectionContentCard({
   movingUpId,
   isFirst,
   setEditingCollection,
+  setEditingSectionId,
   setAddContentModalOpen,
   setAddContentType,
   isDropTarget = false,
@@ -317,7 +425,11 @@ function CollectionContentCard({
           </div>
 
           {/* FOLDER ICON */}
-          <div className="h-9 w-9 rounded-xl bg-[#F5F5F3] text-[#1F1F1F] flex items-center justify-center shrink-0">
+          <div
+            onClick={() => setEditingSectionId?.(s.id)}
+            className="h-9 w-9 rounded-xl bg-[#F5F5F3] hover:bg-[#EBEBEA] text-[#1F1F1F] flex items-center justify-center shrink-0 cursor-pointer transition-colors"
+            title="Edit collection"
+          >
             <Folder className="h-4 w-4" />
           </div>
 
@@ -404,11 +516,23 @@ function CollectionContentCard({
                     type="button"
                     onClick={() => {
                       setMenuOpen(false)
-                      setIsEditingTitle(true)
+                      setEditingSectionId?.(s.id)
                     }}
                     className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#1F1F1F] hover:bg-[#F5F5F3] flex items-center gap-2 cursor-pointer"
                   >
                     <Edit3 className="h-3.5 w-3.5 text-[#1F1F1F]" />
+                    <span>Edit collection</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      setIsEditingTitle(true)
+                    }}
+                    className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#1F1F1F] hover:bg-[#F5F5F3] flex items-center gap-2 cursor-pointer"
+                  >
+                    <Pencil className="h-3.5 w-3.5 text-[#1F1F1F]" />
                     <span>Rename</span>
                   </button>
 
@@ -634,6 +758,7 @@ function StoreContentCard({
   setCourseWizardId,
   setCoachingWizardProductId,
   setEditingProductId,
+  setEditingSectionId,
   resumeDigitalProductDraft,
   inlineProdKey,
   setInlineProdKey,
@@ -670,6 +795,7 @@ function StoreContentCard({
         movingUpId={movingUpId}
         isFirst={isFirst}
         setEditingCollection={setEditingCollection}
+        setEditingSectionId={setEditingSectionId}
         setAddContentModalOpen={setAddContentModalOpen}
         setAddContentType={setAddContentType}
         isDropTarget={dropTargetCollectionId === s.id}
@@ -677,61 +803,93 @@ function StoreContentCard({
     )
   }
 
-  const Icon = ICONS[s.type] || (s.type === 'course' ? GraduationCap : Package)
-  const prod = (s.type === 'product' || s.type === 'course')
+  const isBooking = isBookingItem(s, products)
+  const Icon = ICONS[s.type] || (isBooking ? Calendar : (s.type === 'course' ? GraduationCap : Package))
+  const prod = resolveSectionProduct(s, products) || ((s.type === 'product' || s.type === 'course')
     ? (products.find((p) =>
       p.id === s.props?.productId ||
       p.courseId === s.props?.productId ||
       p.id === s.props?.courseId ||
       p.courseId === s.props?.courseId
     ) || (s.type === 'product' && !s.props?.productId && products.length > 0 ? products[0] : null))
-    : null
-  const title = prod ? prod.title : (s.props?.label || s.props?.text || LABELS[s.type])
+    : null)
+  const title = prod ? prod.title : (s.props?.label || s.props?.text || s.props?.title || s.props?.content || LABELS[s.type] || (isBooking ? 'Book a session' : 'Untitled'))
   const price = prod ? (Number(prod.price) === 0 ? 'Free' : formatMoney(prod.price, prod.currency)) : null
   const origPrice = prod?.originalPrice ? formatMoney(prod.originalPrice, prod.currency) : null
   const isDraftItem = Boolean(prod && prod.status === 'DRAFT')
 
   // Get specific icon and theme colors matching the reference
   const getBadgeStyle = () => {
+    if (s.type === 'heading' || s.type === 'heading_text') return { bg: 'bg-[#F3F4F6]', text: 'text-[#1F1F1F]', border: 'border-[#E5E7EB]', icon: Type, label: 'Heading' }
+    if (s.type === 'text' || s.type === 'text_block' || s.type === 'paragraph_text') return { bg: 'bg-[#F8FAFC]', text: 'text-[#475569]', border: 'border-[#E2E8F0]', icon: AlignLeft, label: 'Text block' }
     if (s.type === 'pdf') return { bg: 'bg-[#FFF7ED]', text: 'text-[#EA580C]', border: 'border-[#FFEDD5]', icon: FileText, label: 'PDF' }
-    if (s.type === 'video' || s.type === 'youtube') return { bg: 'bg-[#FEF2F2]', text: 'text-[#DC2626]', border: 'border-[#FEE2E2]', icon: Video, label: 'Video' }
+    if (s.type === 'youtube' || s.props?.mediaType === 'youtube' || s.props?.embedType === 'youtube') return { bg: 'bg-[#FEF2F2]', text: 'text-[#DC2626]', border: 'border-[#FEE2E2]', icon: Youtube, label: 'YouTube' }
+    if (s.type === 'tiktok' || s.props?.mediaType === 'tiktok' || s.props?.embedType === 'tiktok') return { bg: 'bg-[#F4F4F5]', text: 'text-[#18181B]', border: 'border-[#E4E4E7]', icon: Music2, label: 'TikTok' }
+    if (s.type === 'vimeo' || s.props?.mediaType === 'vimeo' || s.props?.embedType === 'vimeo') return { bg: 'bg-[#ECFEFF]', text: 'text-[#0891B2]', border: 'border-[#CFFAFE]', icon: PlayCircle, label: 'Vimeo' }
+    if (s.type === 'video' || s.props?.mediaType === 'video' || s.props?.embedType === 'video') return { bg: 'bg-[#F7FEE7]', text: 'text-[#65A30D]', border: 'border-[#ECFCCB]', icon: Video, label: 'Video' }
     if (s.type === 'gallery') return { bg: 'bg-[#FAF5FF]', text: 'text-[#9333EA]', border: 'border-[#F3E8FF]', icon: Images, label: 'Gallery' }
     if (s.type === 'audio') return { bg: 'bg-[#ECFEFF]', text: 'text-[#0891B2]', border: 'border-[#CFFAFE]', icon: Headphones, label: 'Audio' }
+    if (s.type === 'social' || s.type === 'instagram' || s.props?.platform) {
+      const p = getSocialPlatform(s.props?.platform || (s.type === 'instagram' ? 'instagram' : 'generic'))
+      return { bg: 'bg-[#F4F4F5]', text: 'text-[#18181B]', border: 'border-[#E4E4E7]', icon: p?.icon || Share2, label: p?.name || 'Social' }
+    }
     if (s.type === 'form') return { bg: 'bg-[#F0FDFA]', text: 'text-[#0D9488]', border: 'border-[#CCFBF1]', icon: ClipboardList, label: 'Form' }
     if (s.type === 'collection' || s.type === 'product_collection') return { bg: 'bg-[#EEF2FF]', text: 'text-[#4F46E5]', border: 'border-[#E0E7FF]', icon: Layers, label: 'Collection' }
     if (s.type === 'course' || prod?.type === 'COURSE') return { bg: 'bg-[#F5F5F3]', text: 'text-[#1F1F1F]', border: 'border-[#E5E5E3]', icon: GraduationCap, label: 'Course' }
-    if (prod?.type === 'COACHING') return { bg: 'bg-[#F5F5F3]', text: 'text-[#1F1F1F]', border: 'border-[#E5E5E3]', icon: Video, label: '1:1 Session' }
+    if (isBooking || prod?.type === 'COACHING') return { bg: 'bg-[#F5F5F3]', text: 'text-[#1F1F1F]', border: 'border-[#E5E5E3]', icon: Calendar, label: '1:1 Session' }
     return { bg: 'bg-[#F5F5F3]', text: 'text-[#1F1F1F]', border: 'border-[#E5E5E3]', icon: Package, label: 'Product' }
   }
 
   const badge = getBadgeStyle()
   const BadgeIcon = badge.icon
-  const thumbnailImg = prod?.thumbnail || s.props?.thumbnail || (s.type === 'gallery' && s.props?.images?.[0]?.url ? s.props.images[0].url : null)
+  const thumbnailImg = prod?.thumbnail || s.props?.customThumbnail || s.props?.thumbnail || (s.type === 'gallery' && s.props?.images?.[0]?.url ? s.props.images[0].url : null)
 
   const handleEdit = () => {
     if (s.type === 'collection' || s.type === 'product_collection') {
       setSelectedId(s.id)
-      setEditingCollection(s)
+      setEditingProductId?.(null)
+      setEditingCollection?.(s)
+      setEditingSectionId?.(s.id)
     } else if (s.type === 'form') {
       setSelectedFormType(s.props?.formType || 'contact')
       setEditingFormSection(s)
       setAddModalType('form_config')
       setAddModalOpen(true)
-    } else if (['video', 'youtube', 'gallery', 'audio', 'pdf'].includes(s.type)) {
-      setSelectedMediaType(s.type)
-      setEditingMediaSection(s)
-      setAddModalType('media_config')
-      setAddModalOpen(true)
+    } else if (isBooking || prod?.type === 'COACHING' || String(prod?.type || '').toUpperCase() === 'COACHING') {
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
+    } else if (s.type === 'gallery') {
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
+    } else if (['social', 'instagram'].includes(s.type) || s.props?.platform) {
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
+    } else if (['button', 'link', 'url'].includes(s.type)) {
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
+    } else if (['video', 'youtube', 'tiktok', 'vimeo', 'audio', 'pdf'].includes(s.type)) {
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
+    } else if (['heading', 'heading_text', 'text', 'text_block', 'paragraph_text'].includes(s.type)) {
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
     } else if (prod?.type === 'COURSE' || String(prod?.type).toLowerCase() === 'course') {
       setCourseWizardId(prod.courseId || prod.id)
       setAddModalType('course')
       setAddModalOpen(true)
-    } else if (prod?.type === 'COACHING') {
-      setCoachingWizardProductId(prod.id)
-      setAddModalType('coaching')
-      setAddModalOpen(true)
     } else if (prod) {
+      setEditingSectionId?.(null)
       setEditingProductId(prod.id)
+    } else {
+      setSelectedId(s.id)
+      setEditingProductId?.(null)
+      setEditingSectionId?.(s.id)
     }
   }
 
@@ -1046,8 +1204,15 @@ export default function StoreBuilderPage() {
   const [editingFormSection, setEditingFormSection] = useState(null)
   const [selectedMediaType, setSelectedMediaType] = useState('video')
   const [editingMediaSection, setEditingMediaSection] = useState(null)
+  const [selectedSocialPlatform, setSelectedSocialPlatform] = useState('instagram')
   const [wizardStep, setWizardStep] = useState(1)
   const [editingProductId, setEditingProductId] = useState(null)
+  const [editingSectionId, setEditingSectionId] = useState(null)
+
+  const editingSection = useMemo(() => {
+    if (!editingSectionId) return null
+    return (store?.sections || []).find((s) => s.id === editingSectionId) || null
+  }, [editingSectionId, store?.sections])
   const [coachingWizardOpen, setCoachingWizardOpen] = useState(false)
   const [coachingWizardProductId, setCoachingWizardProductId] = useState(null)
   const [courseWizardOpen, setCourseWizardOpen] = useState(false)
@@ -1287,6 +1452,62 @@ export default function StoreBuilderPage() {
   )
   const canCreate = isPaid || isTrialActive
 
+  const canRemoveFooterBranding = Boolean(
+    (isPaid || isTrialActive) &&
+    (sub?.planId === 'PRO' || sub?.plan === 'PRO' || sub?.entitlements?.removeBranding)
+  )
+
+  const previewStore = useMemo(() => {
+    if (!store) return {}
+    return {
+      ...store,
+      theme: {
+        ...(store.theme || {}),
+        showFooterBranding: canRemoveFooterBranding ? (store.theme?.showFooterBranding ?? true) : true,
+      },
+    }
+  }, [store, canRemoveFooterBranding])
+
+  const handleToggleFooterBranding = useCallback(async (newVal) => {
+    if (!newVal && !canRemoveFooterBranding) {
+      toast.error('A Pro subscription is required to hide the CreatorStore footer branding.')
+      setPricingModalOpen(true)
+      return
+    }
+
+    updateStore((prev) => ({
+      ...prev,
+      theme: {
+        ...(prev?.theme || {}),
+        showFooterBranding: newVal,
+      },
+    }))
+
+    try {
+      await api.patch('/creator/store/settings', {
+        theme: {
+          showFooterBranding: newVal,
+        },
+      })
+      toast.success(newVal ? 'Footer branding enabled' : 'Footer branding hidden')
+      if (refreshMe) await refreshMe()
+    } catch (err) {
+      updateStore((prev) => ({
+        ...prev,
+        theme: {
+          ...(prev?.theme || {}),
+          showFooterBranding: !newVal,
+        },
+      }))
+      if (err?.code === 'PLAN_UPGRADE_REQUIRED' || err?.status === 403) {
+        toast.error('A Pro subscription is required to hide the CreatorStore footer branding.')
+        setPricingModalOpen(true)
+      } else {
+        toast.error(err?.message || 'Failed to update footer branding.')
+      }
+    }
+  }, [canRemoveFooterBranding, updateStore, refreshMe, setPricingModalOpen])
+
   const handleToggleStoreLive = useCallback(async () => {
     const isLive = Boolean(store?.published)
     if (!isLive && !canCreate) {
@@ -1356,10 +1577,10 @@ export default function StoreBuilderPage() {
       setPricingModalOpen(true)
       return
     }
+    setAddModalOpen(false)
+    setAddModalType('menu')
     setCoachingWizardProductId(null)
-    setModalOrigin('menu')
-    setAddModalType('coaching')
-    setAddModalOpen(true)
+    setCoachingWizardOpen(true)
   }, [canCreate, setPricingModalOpen])
 
   const openCourseCreationFlow = useCallback(() => {
@@ -1626,7 +1847,7 @@ export default function StoreBuilderPage() {
 
   async function handleConnectInstagram() {
     try {
-      const res = await api.get('/integrations/instagram/oauth')
+      const res = await api.get('/integrations/instagram/oauth?returnUrl=/dashboard/store')
       if (res?.url) {
         window.location.href = res.url
       }
@@ -1644,6 +1865,9 @@ export default function StoreBuilderPage() {
       toast.error(err.message || 'Failed to disconnect Instagram')
     }
   }
+
+  const connectInstagram = handleConnectInstagram
+  const disconnectInstagram = handleDisconnectInstagram
 
   // --- Multi-page management -----------------------------------------------
   async function handleAddPage() {
@@ -2189,6 +2413,7 @@ export default function StoreBuilderPage() {
     } catch {
       scheduleSave({ ...(storeRef.current || {}), sections: nextSections })
     }
+    return section
   }
 
   function safeUrlValidate(urlStr) {
@@ -2468,6 +2693,53 @@ export default function StoreBuilderPage() {
   function updateSectionProps(id, patch) {
     updateStore((s) => { const sec = s.sections.find((x) => x.id === id); if (sec) sec.props = { ...sec.props, ...patch }; return s })
   }
+  const saveSectionProps = useCallback(async (id, patch) => {
+    let nextSections = []
+    let updatedSection = null
+    const current = storeRef.current || store || { sections: [], theme: {} }
+    const base = structuredClone(current)
+    if (!Array.isArray(base.sections)) base.sections = []
+
+    base.sections = base.sections.map((s) => {
+      if (s.id === id) {
+        updatedSection = { ...s, props: { ...s.props, ...patch } }
+        return updatedSection
+      }
+      return s
+    })
+    nextSections = base.sections
+    base.sections = nextSections
+
+    storeRef.current = base
+    setStore(base)
+    setSaveState('saving')
+
+    try {
+      const res = await api.patch('/store', {
+        theme: base.theme,
+        sections: base.sections,
+        avatarUrl: base.avatarUrl,
+        bio: base.bio,
+      })
+      if (res?.store) {
+        const canonicalSections = Array.isArray(res.store.sections) ? res.store.sections : nextSections
+        const merged = {
+          ...res.store,
+          sections: canonicalSections,
+        }
+        setStore((prev) => ({ ...(prev || {}), ...merged }))
+        storeRef.current = { ...(storeRef.current || {}), ...merged }
+      }
+      setSaveState('saved')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('creatorstore:setup-updated'))
+      }
+      return { success: true, section: updatedSection }
+    } catch (err) {
+      setSaveState('dirty')
+      throw err
+    }
+  }, [store])
   function toggleHidden(id) { updateStore((s) => { const sec = s.sections.find((x) => x.id === id); if (sec) sec.hidden = !sec.hidden; return s }) }
   function duplicate(id) {
     updateStore((s) => { const i = s.sections.findIndex((x) => x.id === id); if (i >= 0) s.sections.splice(i + 1, 0, { ...structuredClone(s.sections[i]), id: uuidv4() }); return s })
@@ -2605,7 +2877,7 @@ export default function StoreBuilderPage() {
             <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar w-full">
               <StorePreview
                 key={`${store?.theme?.presetId || 'preset'}-mobile-${tab}`}
-                store={store}
+                store={previewStore}
                 username={storeSlug}
                 profile={{ ...(profile || {}), username: storeSlug || profile?.username }}
                 products={products}
@@ -2641,7 +2913,7 @@ export default function StoreBuilderPage() {
               <div className="max-w-[1000px] mx-auto py-6 px-4 sm:px-8">
                 <StorePreview
                   key={`${store?.theme?.presetId || 'preset'}-desktop-${tab}`}
-                  store={store}
+                  store={previewStore}
                   username={storeSlug}
                   profile={{ ...(profile || {}), username: storeSlug || profile?.username }}
                   products={products}
@@ -2662,8 +2934,8 @@ export default function StoreBuilderPage() {
   )
 
   return (
-    <div className="space-y-6 text-content-primary selection:bg-brand selection:text-brand-fg w-full py-2">
-      <DashboardPageTransition transitionKey={tab}>
+    <div className="text-content-primary selection:bg-brand selection:text-brand-fg w-full lg:h-full lg:min-h-0 flex flex-col py-2 lg:py-0">
+      <DashboardPageTransition transitionKey={tab} className="flex-1 flex flex-col min-h-0 w-full">
         {tab === 'design' ? (
           <DesignStudioPage
             store={store}
@@ -2683,14 +2955,61 @@ export default function StoreBuilderPage() {
             setShareOpen={setShareOpen}
             onPersistAvatar={persistAvatarUrl}
             onBackToContent={() => handleTabChange('section')}
+            canRemoveFooterBranding={canRemoveFooterBranding}
           />
         ) : (
           /* 2-COLUMN WORKSPACE: LEFT SINGLE UNIFIED EDITOR CARD (60-65%) & RIGHT PREVIEW (35-40%) */
-          <div className="grid gap-8 xl:gap-12 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_430px] items-start pt-1 pb-12">
+          <div className="grid gap-8 xl:gap-12 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_430px] lg:items-stretch lg:h-full lg:min-h-0 items-start pt-1 pb-12 lg:pb-0 lg:pt-0 flex-1 min-h-0">
 
             {/* LEFT: ONE SINGLE LARGE WHITE EDITOR CARD CONTAINING EVERYTHING */}
-            <div className="w-full max-w-[740px] mx-auto min-w-0">
+            <div className="w-full max-w-[740px] mx-auto min-w-0 lg:h-full lg:min-h-0 flex flex-col">
               {editingProductId ? (
+                products.find((p) => p.id === editingProductId)?.type === 'COACHING' ? (
+                  <BookingEditor
+                    product={products.find((p) => p.id === editingProductId)}
+                    creatorProfile={profile}
+                    currentPlan={me?.user?.plan || 'FREE'}
+                    onBack={() => {
+                      setEditingProductId(null)
+                      if (typeof window !== 'undefined') {
+                        const url = new URL(window.location.href)
+                        url.searchParams.delete('intent')
+                        url.searchParams.delete('productId')
+                        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
+                      }
+                    }}
+                    onUpdateProps={(patch) => {
+                      if (patch.title) {
+                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, title: patch.title } : p)))
+                      }
+                      if (patch.price !== undefined || patch.currency !== undefined) {
+                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? {
+                          ...p,
+                          ...(patch.price !== undefined ? { price: patch.price } : {}),
+                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                        } : p)))
+                      }
+                      if (patch.layout || patch.displayMode) {
+                        const mode = patch.layout || patch.displayMode
+                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, displayMode: mode } : p)))
+                        setStore((prev) => {
+                          if (!prev || !Array.isArray(prev.sections)) return prev
+                          const nextSecs = prev.sections.map((sec) =>
+                            sec.props?.productId === editingProductId
+                              ? { ...sec, props: { ...sec.props, layout: mode, displayMode: mode } }
+                              : sec
+                          )
+                          return { ...prev, sections: nextSecs }
+                        })
+                      }
+                    }}
+                    onDelete={() => {
+                      setEditingProductId(null)
+                      refreshStoreData()
+                    }}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : (
                 <ProductEditor
                   productId={editingProductId}
                   initialProduct={products.find((p) => p.id === editingProductId)}
@@ -2713,7 +3032,7 @@ export default function StoreBuilderPage() {
                         if (!prev || !Array.isArray(prev.sections)) return prev
                         const nextSections = prev.sections.map((sec) =>
                           sec.props?.productId === updatedProd.id
-                            ? { ...sec, props: { ...sec.props, layout: updatedProd.displayMode } }
+                            ? { ...sec, props: { ...sec.props, layout: updatedProd.displayMode, displayMode: updatedProd.displayMode } }
                             : sec
                         )
                         storeRef.current = { ...(storeRef.current || {}), sections: nextSections }
@@ -2722,8 +3041,263 @@ export default function StoreBuilderPage() {
                     }
                   }}
                 />
+              )
+              ) : editingSection ? (
+                isBookingItem(editingSection, products) ? (
+                  <BookingEditor
+                    section={editingSection}
+                    product={resolveSectionProduct(editingSection, products)}
+                    creatorProfile={profile}
+                    currentPlan={me?.user?.plan || 'FREE'}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => {
+                      updateSectionProps(editingSection.id, patch)
+                      const targetPid = editingSection.props?.productId || resolveSectionProduct(editingSection, products)?.id
+                      if (targetPid) {
+                        setProducts((prev) => prev.map((p) => (p.id === targetPid ? {
+                          ...p,
+                          ...(patch.title ? { title: patch.title } : {}),
+                          ...(patch.price !== undefined ? { price: patch.price } : {}),
+                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                        } : p)))
+                      }
+                    }}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : editingSection.type === 'gallery' ? (
+                  <GalleryEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : editingSection.type === 'collection' || editingSection.type === 'product_collection' ? (
+                  <CollectionEditor
+                    section={editingSection}
+                    products={products}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateCollectionProps(editingSection.id, patch)}
+                    onAddItem={(item) => addItemToCollection(editingSection.id, item)}
+                    onRemoveItem={(itemId) => removeItemFromCollection(editingSection.id, itemId)}
+                    onMoveItem={(fromIdx, dirOrTo) => {
+                      const dir = (dirOrTo === -1 || dirOrTo === 1) ? dirOrTo : (dirOrTo > fromIdx ? 1 : -1)
+                      moveItemInCollection(editingSection.id, fromIdx, dir)
+                    }}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                    setAddContentModalOpen={setAddContentModalOpen}
+                    setAddContentType={setAddContentType}
+                  />
+                ) : ['social', 'instagram'].includes(editingSection.type) || Boolean(editingSection.props?.platform) ? (
+                  <SocialItemEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                    igAccount={igAccount}
+                    onConnectInstagram={handleConnectInstagram}
+                    onDisconnectInstagram={handleDisconnectInstagram}
+                    isPro={canCreate}
+                    onOpenPricing={() => setPricingModalOpen(true)}
+                  />
+                ) : ['button', 'link', 'url'].includes(editingSection.type) ? (
+                  <LinkEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : editingSection.type === 'youtube' || editingSection.props?.mediaType === 'youtube' || editingSection.props?.embedType === 'youtube' ? (
+                  <YouTubeEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : ['tiktok', 'vimeo', 'video'].includes(editingSection.type) ||
+                    ['tiktok', 'vimeo', 'video'].includes(editingSection.props?.mediaType) ||
+                    ['tiktok', 'vimeo'].includes(editingSection.props?.embedType) ? (
+                  <MediaContentEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : ['audio', 'pdf', 'media'].includes(editingSection.type) ? (
+                  <MediaEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : editingSection.type === 'product' ? (
+                  <ProductEditor
+                    productId={resolveSectionProduct(editingSection, products)?.id}
+                    initialProduct={resolveSectionProduct(editingSection, products)}
+                    isStoreContext={true}
+                    storeSlug={storeSlug || store?.username}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onProductUpdated={(updatedProd) => {
+                      const formatted = toPreviewProduct(updatedProd)
+                      setProducts((prev) => prev.map((p) => (p.id === formatted.id ? formatted : p)))
+                      if (updatedProd.displayMode) {
+                        setStore((prev) => {
+                          if (!prev || !Array.isArray(prev.sections)) return prev
+                          const nextSections = prev.sections.map((sec) =>
+                            sec.props?.productId === updatedProd.id
+                              ? { ...sec, props: { ...sec.props, layout: updatedProd.displayMode, displayMode: updatedProd.displayMode } }
+                              : sec
+                          )
+                          storeRef.current = { ...(storeRef.current || {}), sections: nextSections }
+                          return { ...prev, sections: nextSections }
+                        })
+                      }
+                    }}
+                  />
+                ) : ['heading', 'heading_text'].includes(editingSection.type) ? (
+                  <HeadingEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : ['text', 'text_block', 'paragraph_text'].includes(editingSection.type) ? (
+                  <TextBlockEditor
+                    section={editingSection}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : (
+                  /* Safe fallback for any unknown section type — NEVER MediaEditor */
+                  <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-4">
+                    <div className="flex items-center justify-between pb-4 border-b border-[#E5E5E3]">
+                      <h3 className="text-base font-bold text-[#1F1F1F]">Edit Section</h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingSectionId(null)
+                          setSelectedId(null)
+                        }}
+                        className="text-xs text-[#6F6F6B] hover:text-[#1F1F1F] font-semibold"
+                      >
+                        Back
+                      </button>
+                    </div>
+                    <p className="text-sm text-[#6F6F6B]">
+                      This section type ({editingSection.type}) does not have a dedicated editor.
+                    </p>
+                  </div>
+                )
               ) : (
-                <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-6">
+                <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-6 lg:h-full lg:min-h-0 lg:overflow-y-auto subtle-scrollbar">
 
                 {/* 1. COMPACT STOREFRONT STATUS ROW */}
                 <div className="flex items-center justify-between gap-3 pb-4 border-b border-[#E5E5E3] text-xs">
@@ -3072,6 +3646,7 @@ export default function StoreBuilderPage() {
                           setCourseWizardId={setCourseWizardId}
                           setCoachingWizardProductId={setCoachingWizardProductId}
                           setEditingProductId={setEditingProductId}
+                          setEditingSectionId={setEditingSectionId}
                           resumeDigitalProductDraft={resumeDigitalProductDraft}
                           inlineProdKey={inlineProdKey}
                           setInlineProdKey={setInlineProdKey}
@@ -3119,12 +3694,36 @@ export default function StoreBuilderPage() {
                   )}
                 </div>
 
+                {/* 7. CREATORSTORE BRANDED FOOTER CARD WITH PRO TOGGLE */}
+                <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] p-5 sm:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.02)] space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold text-[#1F1F1F]">
+                      CreatorStore footer
+                    </span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="h-6 w-6 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#71717A]" title="Pro Feature">
+                        <Zap className="h-3.5 w-3.5 fill-current text-[#71717A]" />
+                      </span>
+                      <Switch
+                        checked={store?.theme?.showFooterBranding !== false}
+                        onCheckedChange={(checked) => handleToggleFooterBranding(checked)}
+                        className="data-[state=checked]:bg-[#16A34A] data-[state=unchecked]:bg-[#E4E4E7]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center gap-1.5 text-base sm:text-lg font-bold text-[#111827] tracking-tight">
+                    <span>CreatorStore</span>
+                    <CreatorStoreMark size="sm" color="brand" className="h-4 w-4 inline-block" />
+                  </div>
+                </div>
+
               </div>
             )}
             </div>
 
             {/* RIGHT: STOREFRONT PREVIEW COLUMN */}
-            <div className="flex flex-col items-center w-full max-w-[420px] mx-auto lg:sticky lg:top-6">
+            <div className="flex flex-col items-center justify-center w-full max-w-[420px] mx-auto lg:h-full lg:min-h-0 shrink-0 lg:sticky lg:top-0">
 
               {/* PREVIEW CONTAINER WITH ATTACHED SIDE CONTROLS */}
               <div className="relative w-[min(360px,100%)] flex items-center justify-center">
@@ -3155,12 +3754,12 @@ export default function StoreBuilderPage() {
                 </div>
 
                 {/* LIVE STOREFRONT PHONE PREVIEW */}
-                <div className="w-full h-[720px] rounded-[28px] border border-[#E5E5E3] bg-[#FBFBFB] shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col relative">
+                <div className="w-full max-h-[calc(100vh-120px)] h-[720px] rounded-[28px] border border-[#E5E5E3] bg-[#FBFBFB] shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col relative shrink-0">
                   <div className="flex-1 overflow-y-auto no-scrollbar">
                     <StorePreview
                       device="mobile"
                       editor
-                      store={store || {}}
+                      store={previewStore}
                       username={storeSlug}
                       profile={{
                         ...(profile || {}),
@@ -3373,14 +3972,14 @@ export default function StoreBuilderPage() {
         className={
           addModalType === 'coaching' || addModalType === 'course'
             ? 'sm:max-w-4xl max-w-4xl w-[95vw] sm:w-full max-h-[90vh] p-0 gap-0 overflow-hidden'
-            : addModalType === 'menu'
+            : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)
             ? 'sm:max-w-[780px] w-[95vw] sm:w-full h-[88vh] sm:h-[640px] max-h-[92vh] p-4 sm:p-7 rounded-[28px] bg-white border border-[#E5E5E3] shadow-[0_24px_70px_rgba(0,0,0,0.15)] gap-0 overflow-hidden flex flex-col'
             : 'sm:max-w-[700px]'
         }
         bodyClassName={
           addModalType === 'coaching' || addModalType === 'course'
             ? 'p-0 min-h-[500px] flex flex-col flex-1'
-            : addModalType === 'menu'
+            : ['menu', 'add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)
             ? 'p-0 flex flex-col flex-1 min-h-0 overflow-hidden'
             : 'pt-5'
         }
@@ -3394,6 +3993,16 @@ export default function StoreBuilderPage() {
                 <span className="sr-only">Add to your store</span>
               </div>
             )
+            : addModalType === 'social_display_select'
+              ? `Add ${getSocialPlatform(selectedSocialPlatform)?.name || 'Social'}`
+            : addModalType === 'add_youtube'
+              ? 'Add YouTube'
+            : addModalType === 'add_tiktok'
+              ? 'Add TikTok Video'
+            : addModalType === 'add_vimeo'
+              ? 'Add Vimeo'
+            : addModalType === 'add_video'
+              ? 'Add Video'
             : addModalType === 'digital_product'
               ? 'Create digital product'
               : addModalType === 'edit_product'
@@ -3438,6 +4047,8 @@ export default function StoreBuilderPage() {
                   setAddModalType('menu')
                   setWizardStep(1)
                 }
+              } else if (['add_youtube', 'add_tiktok', 'add_vimeo', 'add_video', 'social_display_select'].includes(addModalType)) {
+                setAddModalType('menu')
               } else if (addModalType === 'form_config') {
                 if (editingFormSection) {
                   setAddModalOpen(false)
@@ -3516,11 +4127,12 @@ export default function StoreBuilderPage() {
                 addSectionWithProps('heading', { text: 'Featured Collection' })
                 setAddModalOpen(false)
               } else if (opt.type === 'instagram') {
-                if (igAccount?.connected) {
-                  disconnectInstagram()
-                } else {
-                  connectInstagram()
-                }
+                setSelectedSocialPlatform('instagram')
+                setAddModalType('social_display_select')
+                // Direct connect / reconnect actions in editor: handleDisconnectInstagram and handleConnectInstagram
+              } else if (opt.type === 'social') {
+                setSelectedSocialPlatform(opt.platform || 'generic')
+                setAddModalType('social_display_select')
               } else if (opt.type === 'forms_menu') {
                 setAddModalType('forms_menu')
               } else if (
@@ -3542,11 +4154,46 @@ export default function StoreBuilderPage() {
                 setSelectedFormType(fType)
                 setEditingFormSection(null)
                 setAddModalType('form_config')
+              } else if (opt.type === 'gallery') {
+                setAddModalOpen(false)
+                addSectionWithProps('gallery', {
+                  title: 'gallery',
+                  images: [],
+                  layout: 'classic',
+                  displayMode: 'classic',
+                }).then((newSec) => {
+                  if (newSec?.id) {
+                    setEditingProductId(null)
+                    setEditingSectionId(newSec.id)
+                  }
+                })
+              } else if (
+                opt.type === 'youtube' ||
+                opt.mediaType === 'youtube' ||
+                opt.id === 'youtube_media' ||
+                opt.id === 'youtube_suggested'
+              ) {
+                setAddModalType('add_youtube')
+              } else if (
+                opt.type === 'tiktok' ||
+                opt.mediaType === 'tiktok' ||
+                opt.id === 'tiktok_media'
+              ) {
+                setAddModalType('add_tiktok')
+              } else if (
+                opt.type === 'vimeo' ||
+                opt.mediaType === 'vimeo' ||
+                opt.id === 'vimeo_media'
+              ) {
+                setAddModalType('add_vimeo')
+              } else if (
+                opt.type === 'video' ||
+                opt.mediaType === 'video' ||
+                opt.id === 'video_media'
+              ) {
+                setAddModalType('add_video')
               } else if (
                 opt.type === 'media' ||
-                opt.type === 'youtube' ||
-                opt.type === 'video' ||
-                opt.type === 'gallery' ||
                 opt.type === 'audio' ||
                 opt.type === 'pdf'
               ) {
@@ -3816,6 +4463,11 @@ export default function StoreBuilderPage() {
                 mediaType={selectedMediaType}
                 initialProps={editingMediaSection?.props}
                 isEditing={Boolean(editingMediaSection)}
+                onChange={(liveProps) => {
+                  if (editingMediaSection) {
+                    updateSectionProps(editingMediaSection.id, liveProps)
+                  }
+                }}
                 onCancel={() => {
                   if (editingMediaSection) {
                     setAddModalOpen(false)
@@ -3839,6 +4491,102 @@ export default function StoreBuilderPage() {
                 }}
               />
             </div>
+          )}
+          {addModalType === 'add_youtube' && (
+            <AddYouTubeModalView
+              onSelectVideo={async (videoData) => {
+                setAddModalOpen(false)
+                setAddModalType('menu')
+                const newSec = await addSectionWithProps('youtube', {
+                  title: videoData.title || 'YouTube Video',
+                  url: videoData.canonicalUrl || videoData.url,
+                  videoId: videoData.videoId || null,
+                  thumbnail: videoData.thumbnailUrl || null,
+                  customThumbnail: null,
+                  layout: 'classic',
+                  displayMode: 'classic',
+                  mediaType: 'youtube',
+                  embedType: 'youtube',
+                })
+                if (newSec?.id) {
+                  setEditingProductId(null)
+                  setEditingSectionId(newSec.id)
+                  setSelectedId(newSec.id)
+                }
+              }}
+              onCancel={() => setAddModalType('menu')}
+            />
+          )}
+          {['add_tiktok', 'add_vimeo', 'add_video'].includes(addModalType) && (
+            <AddMediaModalView
+              mediaType={
+                addModalType === 'add_tiktok'
+                  ? 'tiktok'
+                  : addModalType === 'add_vimeo'
+                    ? 'vimeo'
+                    : 'video'
+              }
+              onSelectVideo={async (videoData) => {
+                setAddModalOpen(false)
+                setAddModalType('menu')
+                const blockType = videoData.mediaType || (addModalType === 'add_tiktok' ? 'tiktok' : addModalType === 'add_vimeo' ? 'vimeo' : 'video')
+                const newSec = await addSectionWithProps(blockType, {
+                  title: videoData.title || `${blockType.toUpperCase()} Video`,
+                  url: videoData.canonicalUrl || videoData.url,
+                  videoId: videoData.videoId || null,
+                  thumbnail: videoData.thumbnailUrl || null,
+                  customThumbnail: null,
+                  layout: 'classic',
+                  displayMode: 'classic',
+                  mediaType: blockType,
+                  embedType: blockType,
+                  isUpload: Boolean(videoData.isUpload),
+                  fileName: videoData.fileName || null,
+                  fileSize: videoData.fileSize || null,
+                })
+                if (newSec?.id) {
+                  setEditingProductId(null)
+                  setEditingSectionId(newSec.id)
+                  setSelectedId(newSec.id)
+                }
+              }}
+              onCancel={() => setAddModalType('menu')}
+            />
+          )}
+          {addModalType === 'social_display_select' && (
+            <SocialDisplaySelectModalView
+              platform={selectedSocialPlatform}
+              store={store}
+              theme={store?.theme || {}}
+              isPro={canCreate}
+              onOpenPricing={() => {
+                setPricingModalOpen(true)
+                setAddModalOpen(false)
+              }}
+              onSelectStyle={async (styleKey) => {
+                setAddModalOpen(false)
+                setAddModalType('menu')
+                const platformInfo = getSocialPlatform(selectedSocialPlatform)
+                const defaultTitle = platformInfo?.name || 'Social'
+                const newSec = await addSectionWithProps('social', {
+                  platform: selectedSocialPlatform,
+                  title: defaultTitle,
+                  label: defaultTitle,
+                  url: '',
+                  layout: styleKey,
+                  displayMode: styleKey,
+                  displayStyle: styleKey,
+                  thumbnail: null,
+                  customThumbnail: null,
+                })
+                if (newSec?.id) {
+                  setEditingProductId(null)
+                  setEditingSectionId(newSec.id)
+                  setSelectedId(newSec.id)
+                }
+              }}
+              onCancel={() => setAddModalType('menu')}
+            />
           )}
           </div>
         )}
@@ -4023,8 +4771,12 @@ export default function StoreBuilderPage() {
           if (createdProd?.id && !coachingWizardProductId) {
             addSectionWithProps('product', { productId: createdProd.id, layout: 'classic' })
           }
+          setCoachingWizardOpen(false)
+          setCoachingWizardProductId(null)
         }}
         editProductId={coachingWizardProductId}
+        creatorProfile={profile}
+        currentPlan={me?.user?.plan || 'FREE'}
       />
 
       <CourseWizardModal
@@ -4941,6 +5693,7 @@ function DesignStudioPage({
   setShareOpen,
   onPersistAvatar,
   onBackToContent,
+  canRemoveFooterBranding = false,
 }) {
   const [activeSection, setActiveSection] = useState(null) // null | 'theme' | 'header' | 'wallpaper' | 'buttons' | 'text' | 'colors' | 'footer'
   const [mobileViewMode, setMobileViewMode] = useState('customize') // 'customize' | 'preview'
@@ -4952,6 +5705,17 @@ function DesignStudioPage({
   const [suggestedPalette, setSuggestedPalette] = useState(null)
   const avatarFileRef = useRef(null)
   const { setHeaderConfig, setPricingModalOpen } = useDashboardHeader()
+
+  const previewStore = useMemo(() => {
+    if (!store) return {}
+    return {
+      ...store,
+      theme: {
+        ...(savedTheme || store.theme || {}),
+        showFooterBranding: canRemoveFooterBranding ? ((savedTheme || store.theme)?.showFooterBranding ?? true) : true,
+      },
+    }
+  }, [store, savedTheme, canRemoveFooterBranding])
 
   const handleSuggestThemeMatch = async (imgUrl) => {
     if (!imgUrl) return
@@ -5145,9 +5909,9 @@ function DesignStudioPage({
   }
 
   return (
-    <div className="space-y-6 text-[#010619] w-full">
+    <div className="space-y-6 text-[#010619] w-full lg:h-full lg:min-h-0 flex flex-col">
       {/* 1. TOP HEADER & MOBILE NAVIGATION */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[var(--border-subtle,#303030)] pb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[var(--border-subtle,#303030)] pb-4 shrink-0">
         {onBackToContent && (
           <button
             type="button"
@@ -5161,7 +5925,7 @@ function DesignStudioPage({
       </div>
 
       {/* MOBILE RESPONSIVE TOGGLE BAR (Visible on screens < lg) */}
-      <div className="lg:hidden flex items-center justify-center gap-1 rounded-full border border-[var(--border-subtle,#303030)] bg-[var(--bg-surface-hover,#2A2A2A)] p-1 w-full max-w-sm mx-auto">
+      <div className="lg:hidden flex items-center justify-center gap-1 rounded-full border border-[var(--border-subtle,#303030)] bg-[var(--bg-surface-hover,#2A2A2A)] p-1 w-full max-w-sm mx-auto shrink-0">
         <button
           type="button"
           onClick={() => setMobileViewMode('customize')}
@@ -5181,9 +5945,9 @@ function DesignStudioPage({
       </div>
 
       {/* 2-COLUMN STUDIO LAYOUT */}
-      <div className="grid gap-8 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_420px] items-start">
+      <div className="grid gap-8 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_420px] lg:items-stretch lg:h-full lg:min-h-0 items-start flex-1 min-h-0">
         {/* LEFT COLUMN: CUSTOMIZATION EDITOR */}
-        <div className={`w-full max-w-[660px] mx-auto space-y-5 min-w-0 ${mobileViewMode === 'preview' ? 'hidden lg:block' : 'block'}`}>
+        <div className={`w-full max-w-[660px] mx-auto space-y-5 min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto subtle-scrollbar ${mobileViewMode === 'preview' ? 'hidden lg:block' : 'block'}`}>
           {/* TOP APPEARANCE STATUS BAR */}
           <div className="p-4 rounded-[24px] border border-[#D8DFFA] bg-white shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
             <div className="flex items-center gap-3.5 min-w-0">
@@ -5462,9 +6226,16 @@ function DesignStudioPage({
                   </div>
 
                   <SwitchToggle
-                    label="Show CreatorStore Branding ('Join CreatorStore' button)"
+                    label="Show CreatorStore Branding ('CreatorStore' footer)"
                     checked={theme.showFooterBranding !== false}
-                    onChange={(val) => onChange({ showFooterBranding: val })}
+                    onChange={(val) => {
+                      if (!val && !canRemoveFooterBranding) {
+                        toast.error('A Pro subscription is required to hide the CreatorStore footer branding.')
+                        setPricingModalOpen(true)
+                        return
+                      }
+                      onChange({ showFooterBranding: val })
+                    }}
                   />
 
                   <SwitchToggle
@@ -5545,9 +6316,9 @@ function DesignStudioPage({
         </div>
 
         {/* RIGHT COLUMN: STICKY PHONE PREVIEW CANVAS */}
-        <div className={`flex-col items-center gap-4 w-full max-w-[420px] sticky top-6 ${mobileViewMode === 'customize' ? 'hidden lg:flex' : 'flex'}`}>
+        <div className={`flex-col items-center justify-center gap-4 w-full max-w-[420px] lg:h-full lg:min-h-0 shrink-0 sticky top-6 ${mobileViewMode === 'customize' ? 'hidden lg:flex' : 'flex'}`}>
           {/* TOP PREVIEW URL BAR */}
-          <div className="w-[min(390px,100%)] h-[44px] rounded-full border border-[#D8DFFA] bg-[#F2F5FE] px-4 flex items-center justify-between text-xs font-bold text-[#010619] shadow-sm">
+          <div className="w-[min(390px,100%)] h-[44px] rounded-full border border-[#D8DFFA] bg-[#F2F5FE] px-4 flex items-center justify-between text-xs font-bold text-[#010619] shadow-sm shrink-0">
             <span className="truncate text-[#666666]">
               creatorstore.store/<span className="text-[#010619] font-bold">{storeSlug || me?.store?.username || 'store'}</span>
             </span>
@@ -5565,13 +6336,13 @@ function DesignStudioPage({
           </div>
 
           {/* 390px x 844px MOBILE PHONE PREVIEW FRAME */}
-          <div className="w-[min(390px,calc(100%-16px))] h-[844px] rounded-[44px] border-[10px] border-[var(--border-subtle,#303030)] bg-[var(--bg-sidebar,#0D0D0D)] shadow-2xl overflow-hidden flex flex-col relative shrink-0">
+          <div className="w-[min(390px,calc(100%-16px))] max-h-[calc(100vh-180px)] h-[844px] rounded-[44px] border-[10px] border-[var(--border-subtle,#303030)] bg-[var(--bg-sidebar,#0D0D0D)] shadow-2xl overflow-hidden flex flex-col relative shrink-0">
             <div className="flex-1 overflow-y-auto no-scrollbar pt-1">
               <StorePreview
                 key={`${theme.headerLayout || 'classic'}-${theme.avatarUrl || store?.avatarUrl || profile?.avatarUrl || 'none'}`}
                 device="mobile"
                 editor
-                store={store || {}}
+                store={previewStore}
                 username={storeSlug}
                 profile={{
                   ...(profile || {}),

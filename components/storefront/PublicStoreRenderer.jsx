@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Instagram, Youtube, Twitter, Linkedin, Facebook, Globe, Music2,
   ArrowRight, Lock, Star, Sparkles, FileText, CheckCircle2, Package,
-  Link2, Layers, ExternalLink, User
+  Link2, Layers, ExternalLink, User, Video, Calendar
 } from 'lucide-react'
 import { formatMoney } from '@/lib/clientApi'
 import { getThemeTokens } from '@/lib/themePresets'
@@ -28,8 +28,11 @@ import {
   buttonRadiusCss,
   buttonFaceStyle,
 } from '@/lib/storefrontLayout'
-import { CreatorStoreLogoIcon } from '@/components/brand/CreatorStoreBrand'
+import { CreatorStoreMark, CreatorStoreLogoIcon } from '@/components/brand/CreatorStoreBrand'
 import ProductPurchaseModalFlow from '@/components/storefront/ProductPurchaseModalFlow'
+import PublicBookingModal from '@/components/storefront/PublicBookingModal'
+import GalleryWizardModal from '@/components/storefront/GalleryWizardModal'
+import { getSocialPlatform, resolveSocialStyle } from '@/lib/socialPlatforms'
 
 export const SOCIAL_ICONS = {
   instagram: Instagram,
@@ -117,9 +120,10 @@ export function WallpaperBackdrop({ wallpaper, colors }) {
 
 
 /* ---------------- Reusable Product Thumbnail Component with Fallback ---------------- */
-function ProductThumbnail({ thumbnail, title, aspect = 'aspect-[2.1/1]', className = '', price = null, hasDiscount = false, discountPct = 0, theme = 'default' }) {
+function ProductThumbnail({ thumbnail, title, type = 'DIGITAL', aspect = 'aspect-[2.1/1]', className = '', price = null, hasDiscount = false, discountPct = 0, theme = 'default' }) {
   const [imgError, setImgError] = useState(false)
   const showPlaceholder = !thumbnail || imgError
+  const isCoaching = type === 'COACHING'
 
   if (showPlaceholder) {
     return (
@@ -135,8 +139,17 @@ function ProductThumbnail({ thumbnail, title, aspect = 'aspect-[2.1/1]', classNa
                 : 'bg-slate-100 border border-white/10 text-[rgba(244,242,236,0.5)]'
           } ${className}`}
       >
-        <Package className="h-6 w-6 opacity-70 mb-0.5" />
-        <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-60">Digital Product</span>
+        {isCoaching ? (
+          <>
+            <Video className="h-6 w-6 opacity-70 mb-0.5" />
+            <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-60">1:1 Session</span>
+          </>
+        ) : (
+          <>
+            <Package className="h-6 w-6 opacity-70 mb-0.5" />
+            <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-60">Digital Product</span>
+          </>
+        )}
         {price !== null && Number(price) === 0 && (
           <span className="absolute top-2 left-2 bg-slate-900 text-white font-bold text-[10px] uppercase tracking-wider px-2 py-0.5 rounded shadow-xs z-10">
             FREE
@@ -167,25 +180,24 @@ function ProductThumbnail({ thumbnail, title, aspect = 'aspect-[2.1/1]', classNa
   )
 }
 
-/* ---------------- Storefront Footer with CTA & Utility Links ---------------- */
+/* ---------------- Storefront Footer with CreatorStore Branding ---------------- */
 export function StorefrontFooter({ editor = false, showBranding = true, tokens }) {
   if (showBranding === false) return null
 
   const isLight = tokens?.contrast?.isLight ?? false
   const textColor = tokens?.colors?.text || (isLight ? '#0F172A' : '#FFFFFF')
-  const mutedColor = tokens?.colors?.mutedText || (isLight ? '#475569' : '#94A3B8')
   const btnBg = isLight ? '#F4F4F4' : '#1A1A1A'
   const btnBorder = isLight ? '#E5E5E5' : '#2E2E2E'
 
   return (
-    <footer className="pt-8 pb-4 flex flex-col items-center gap-3 text-center shrink-0 w-full">
-      {/* Join CreatorStore CTA Button */}
+    <footer className="pt-8 pb-6 flex flex-col items-center justify-center gap-2 text-center shrink-0 w-full">
+      {/* CreatorStore Branded CTA Button */}
       <Link
         href="/signup"
         target={editor ? undefined : '_blank'}
         rel="noopener noreferrer"
         onClick={editor ? (e) => e.preventDefault() : undefined}
-        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full transition-all duration-200 shadow-sm text-xs font-semibold tracking-tight cursor-pointer group hover:scale-[1.02]"
+        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full transition-all duration-200 shadow-sm text-xs font-semibold tracking-tight cursor-pointer group hover:scale-[1.02] active:scale-[0.98]"
         style={{
           background: btnBg,
           borderColor: btnBorder,
@@ -194,34 +206,9 @@ export function StorefrontFooter({ editor = false, showBranding = true, tokens }
           color: textColor,
         }}
       >
-        <CreatorStoreLogoIcon size="xs" className="h-4 w-4" alt="" />
-        <span>Join CreatorStore</span>
+        <span>CreatorStore</span>
+        <CreatorStoreMark size="xs" color="brand" className="h-3.5 w-3.5" />
       </Link>
-
-      {/* Utility Links */}
-      <div className="flex items-center justify-center gap-3 text-[11px]" style={{ color: mutedColor }}>
-        <Link
-          href="/privacy"
-          target={editor ? undefined : '_blank'}
-          rel="noopener noreferrer"
-          onClick={editor ? (e) => e.preventDefault() : undefined}
-          className="hover:underline transition-colors cursor-pointer"
-          style={{ color: mutedColor }}
-        >
-          Privacy Policy
-        </Link>
-        <span style={{ opacity: 0.5 }}>•</span>
-        <Link
-          href="/terms"
-          target={editor ? undefined : '_blank'}
-          rel="noopener noreferrer"
-          onClick={editor ? (e) => e.preventDefault() : undefined}
-          className="hover:underline transition-colors cursor-pointer"
-          style={{ color: mutedColor }}
-        >
-          Terms of Service
-        </Link>
-      </div>
     </footer>
   )
 }
@@ -362,6 +349,9 @@ export default function PublicStoreRenderer({
   selectedId,
   onSelect,
   className = '',
+  initialProduct = null,
+  initialProductId = null,
+  initialProductSlug = null,
 }) {
   const resolvedUsername = username || store?.slug || store?.username || profile?.username
   const resolvedPages = pages.length > 0 ? pages : (Array.isArray(store?.pages) ? store.pages : [])
@@ -388,12 +378,47 @@ export default function PublicStoreRenderer({
   const profileSec = allSections.find((s) => s.type === 'profile')
 
   // Product Purchase & Download Modal Flow State
-  const [modalProduct, setModalProduct] = useState(null)
+  const [modalProduct, setModalProduct] = useState(() => {
+    if (initialProduct) return initialProduct
+    if (initialProductId && products?.length) {
+      return products.find((p) => String(p.id) === String(initialProductId)) || null
+    }
+    if (initialProductSlug && products?.length) {
+      return products.find((p) => p.slug === initialProductSlug) || null
+    }
+    return null
+  })
   const [modalStep, setModalStep] = useState('preview')
+
+  useEffect(() => {
+    if (initialProduct) {
+      setModalProduct(initialProduct)
+      setModalStep('preview')
+    } else if (initialProductId && products?.length) {
+      const match = products.find((p) => String(p.id) === String(initialProductId))
+      if (match) {
+        setModalProduct(match)
+        setModalStep('preview')
+      }
+    } else if (initialProductSlug && products?.length) {
+      const match = products.find((p) => p.slug === initialProductSlug)
+      if (match) {
+        setModalProduct(match)
+        setModalStep('preview')
+      }
+    }
+  }, [initialProduct, initialProductId, initialProductSlug, products])
 
   const handleProductClick = useCallback((clickedProduct) => {
     setModalProduct(clickedProduct)
     setModalStep('preview')
+  }, [])
+
+  // Dedicated Gallery Click-to-Open Image Wizard State (Reference Image 1)
+  const [modalGallery, setModalGallery] = useState(null)
+
+  const handleGalleryClick = useCallback((gallerySection) => {
+    setModalGallery(gallerySection)
   }, [])
 
   // Filter sections by active page for both live storefront and dashboard editor
@@ -583,6 +608,7 @@ export default function PublicStoreRenderer({
                           store={store}
                           collectionProductIds={collectionProductIds}
                           onProductClick={handleProductClick}
+                          onGalleryClick={handleGalleryClick}
                         />
                       </div>
                     </div>
@@ -683,6 +709,7 @@ export default function PublicStoreRenderer({
                           store={store}
                           collectionProductIds={collectionProductIds}
                           onProductClick={handleProductClick}
+                          onGalleryClick={handleGalleryClick}
                         />
                       </div>
                     </div>
@@ -701,8 +728,20 @@ export default function PublicStoreRenderer({
         )}
       </div>
 
-      {/* Complete Product Purchase & Download Modal Flow (Linktree-inspired) */}
-      {modalProduct && (
+      {/* Complete Product Purchase & Download Modal Flow / Dedicated Coaching Booking Modal (Linktree-inspired) */}
+      {modalProduct && modalProduct.type === 'COACHING' ? (
+        <PublicBookingModal
+          product={modalProduct}
+          creator={{
+            name: profile?.name || store?.storeName || 'Creator',
+            username: resolvedUsername,
+            avatarUrl: profile?.avatarUrl || store?.avatarUrl || null,
+          }}
+          isOpen={Boolean(modalProduct)}
+          onClose={() => setModalProduct(null)}
+          tokens={tokens}
+        />
+      ) : modalProduct ? (
         <ProductPurchaseModalFlow
           product={modalProduct}
           creator={{
@@ -714,13 +753,28 @@ export default function PublicStoreRenderer({
           onClose={() => setModalProduct(null)}
           initialStep={modalStep}
         />
+      ) : null}
+
+      {/* Dedicated Gallery Click-to-Open Image Wizard (Reference Image 1) */}
+      {modalGallery && (
+        <GalleryWizardModal
+          gallery={modalGallery}
+          creator={{
+            name: profile?.name || store?.storeName || 'Creator',
+            username: resolvedUsername,
+            avatarUrl: profile?.avatarUrl || store?.avatarUrl || null,
+          }}
+          isOpen={Boolean(modalGallery)}
+          onClose={() => setModalGallery(null)}
+          onProductClick={handleProductClick}
+        />
       )}
     </div>
   )
 }
 
 /* ---------------- HERO STOREFRONT LAYOUT ENGINE ---------------- */
-function HeroStorefrontLayout({ store, profile, products, sections, tokens, username, editor, device, selectedId, onSelect }) {
+function HeroStorefrontLayout({ store, profile, products, sections, tokens, username, editor, device, selectedId, onSelect, onProductClick, onGalleryClick }) {
   const { colors, typography, layout, cards, hero, layoutPreset } = tokens
   const name = profile?.name || 'Creator Name'
   const bio = profile?.bio || 'Digital Creator & Educator'
@@ -865,6 +919,7 @@ function HeroStorefrontLayout({ store, profile, products, sections, tokens, user
               device={device}
               selectedId={selectedId}
               onSelect={onSelect}
+              onProductClick={onProductClick}
             />
           </div>
         ) : layoutPreset === 'glass-creator' ? (
@@ -880,6 +935,7 @@ function HeroStorefrontLayout({ store, profile, products, sections, tokens, user
               device={device}
               selectedId={selectedId}
               onSelect={onSelect}
+              onProductClick={onProductClick}
             />
           </div>
         ) : (
@@ -895,6 +951,7 @@ function HeroStorefrontLayout({ store, profile, products, sections, tokens, user
               device={device}
               selectedId={selectedId}
               onSelect={onSelect}
+              onProductClick={onProductClick}
             />
           </div>
         )}
@@ -909,7 +966,7 @@ function HeroStorefrontLayout({ store, profile, products, sections, tokens, user
   )
 }
 
-function SectionsStack({ sections, tokens, profile, products, username, editor, device, selectedId, onSelect }) {
+function SectionsStack({ sections, tokens, profile, products, username, editor, device, selectedId, onSelect, onProductClick }) {
   if (!sections.length) {
     return (
       <div className="rounded-2xl border border-dashed border-white/15 bg-surface-raised/40 p-8 text-center space-y-1">
@@ -948,6 +1005,8 @@ function SectionsStack({ sections, tokens, profile, products, username, editor, 
               username={username}
               editor={editor}
               device={device}
+              onProductClick={onProductClick}
+              onGalleryClick={onGalleryClick}
             />
           </div>
         </div>
@@ -956,7 +1015,7 @@ function SectionsStack({ sections, tokens, profile, products, username, editor, 
   )
 }
 
-function SectionRenderer({ section, tokens, profile, products, username, editor, device, store, collectionProductIds, onProductClick }) {
+function SectionRenderer({ section, tokens, profile, products, username, editor, device, store, collectionProductIds, onProductClick, onGalleryClick }) {
   const { colors, typography, layout, cards, buttons, profile: profileTokens, social } = tokens
   const align = section.props?.align || 'center'
   const alignClass = align === 'left' ? 'text-left items-start' : align === 'right' ? 'text-right items-end' : 'text-center items-center'
@@ -966,24 +1025,42 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       return <ProfileHeader profile={profile} tokens={tokens} editor={editor} username={username} store={store} />
 
     case 'heading':
+    case 'heading_text': {
+      const headingText = section.props?.text ?? section.props?.title ?? 'Welcome to my store'
+      const subtitleText = section.props?.subtitle
       return (
-        <h2
-          className={`flex flex-col ${alignClass} text-2xl sm:text-3xl md:text-4xl ${typography.titleWeight}`}
-          style={{ fontFamily: typography.headingFont, color: colors.title || colors.text }}
-        >
-          {section.props?.text || 'Welcome to my store'}
-        </h2>
+        <div className={`flex flex-col ${alignClass} w-full`}>
+          <h2
+            className={`text-2xl sm:text-3xl md:text-4xl ${typography.titleWeight} w-full leading-tight`}
+            style={{ fontFamily: typography.headingFont, color: colors.title || colors.text }}
+          >
+            {headingText}
+          </h2>
+          {subtitleText ? (
+            <p
+              className="text-sm sm:text-base opacity-75 mt-1.5 w-full leading-relaxed"
+              style={{ color: colors.text }}
+            >
+              {subtitleText}
+            </p>
+          ) : null}
+        </div>
       )
+    }
 
     case 'text':
+    case 'text_block':
+    case 'paragraph_text': {
+      const textContent = section.props?.text ?? section.props?.content ?? 'Explore my exclusive digital products and courses.'
       return (
-        <p
-          className={`flex flex-col ${alignClass} text-sm sm:text-base md:text-lg leading-relaxed opacity-80 max-w-3xl mx-auto`}
+        <div
+          className={`w-full ${alignClass} text-sm sm:text-base md:text-lg leading-relaxed opacity-85 max-w-3xl mx-auto whitespace-pre-wrap break-words`}
           style={{ color: colors.text }}
         >
-          {section.props?.text || 'Explore my exclusive digital products and courses.'}
-        </p>
+          {textContent}
+        </div>
       )
+    }
 
     case 'button': {
       const label = section.props?.label || 'Click Here'
@@ -1035,6 +1112,275 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       )
     }
 
+    case 'social':
+    case 'instagram': {
+      const platformId = section.props?.platform || (section.type === 'instagram' ? 'instagram' : 'generic')
+      const platform = getSocialPlatform(platformId)
+      const PlatformIcon = platform.icon
+      const label = section.props?.title || section.props?.label || platform.name
+      const url = section.props?.url || '#'
+      const thumbnail = section.props?.thumbnail || section.props?.customThumbnail
+      const style = resolveSocialStyle(section.props?.layout || section.props?.displayMode || section.props?.displayStyle)
+
+      if (style === 'cards') {
+        const card = (
+          <div
+            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card space-y-2.5"
+            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+          >
+            <div className="aspect-[2.1/1] w-full overflow-hidden bg-slate-900 relative flex items-center justify-center">
+              {thumbnail ? (
+                <img src={thumbnail} alt={label} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${platform.color}25` }}>
+                  <PlatformIcon className="h-12 w-12" style={{ color: platform.color }} />
+                </div>
+              )}
+              <div
+                className="absolute bottom-2.5 right-2.5 h-7 w-7 rounded-full flex items-center justify-center shadow"
+                style={{ backgroundColor: platform.color, color: '#FFFFFF' }}
+              >
+                <PlatformIcon className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="px-4 pb-4 space-y-2.5">
+              <div className="space-y-0.5">
+                <h3 className="text-sm sm:text-base font-bold text-white">{label}</h3>
+                {url && url !== '#' && <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">{url}</p>}
+              </div>
+              <StyledButton label={`Follow on ${platform.name}`} tokens={tokens} fullWidth />
+            </div>
+          </div>
+        )
+        return (
+          <div className="w-full max-w-[420px] mx-auto">
+            {editor || !url || url === '#' ? card : (
+              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{card}</a>
+            )}
+          </div>
+        )
+      }
+
+      if (style === 'grid') {
+        const gridTiles = [
+          thumbnail ? { src: thumbnail } : { color: platform.color, icon: true },
+          { color: `${platform.color}45`, icon: false },
+          { color: `${platform.color}25`, icon: false },
+          { color: `${platform.color}35`, icon: false },
+        ]
+
+        const gridCard = (
+          <div
+            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card p-3.5 space-y-3"
+            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+          >
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className="h-7 w-7 rounded-full flex items-center justify-center shrink-0 shadow"
+                  style={{ backgroundColor: platform.color, color: '#FFFFFF' }}
+                >
+                  <PlatformIcon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-white truncate">{label}</h3>
+                  {url && url !== '#' && <p className="text-[11px] text-[rgba(244,242,236,0.5)] truncate">{url.replace(/^https?:\/\//, '')}</p>}
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {gridTiles.map((tile, i) => (
+                <div
+                  key={i}
+                  className="aspect-square rounded-lg overflow-hidden bg-slate-900/80 border border-white/10 relative flex items-center justify-center"
+                >
+                  {tile.src ? (
+                    <img src={tile.src} alt="" className="w-full h-full object-cover" />
+                  ) : tile.icon ? (
+                    <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${tile.color}25` }}>
+                      <PlatformIcon className="h-8 w-8" style={{ color: tile.color }} />
+                    </div>
+                  ) : (
+                    <div className="w-full h-full" style={{ backgroundColor: tile.color }} />
+                  )}
+                </div>
+              ))}
+            </div>
+            <StyledButton label={`Follow on ${platform.name}`} tokens={tokens} fullWidth />
+          </div>
+        )
+        return (
+          <div className="w-full max-w-[420px] mx-auto">
+            {editor || !url || url === '#' ? gridCard : (
+              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{gridCard}</a>
+            )}
+          </div>
+        )
+      }
+
+      if (style === 'carousel') {
+        const carouselSlides = [
+          thumbnail ? { src: thumbnail } : { color: platform.color, icon: true },
+          { color: `${platform.color}45`, icon: false },
+          { color: `${platform.color}25`, icon: false },
+        ]
+
+        const carouselCard = (
+          <div
+            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card p-3.5 space-y-3"
+            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+          >
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className="h-7 w-7 rounded-full flex items-center justify-center shrink-0 shadow"
+                  style={{ backgroundColor: platform.color, color: '#FFFFFF' }}
+                >
+                  <PlatformIcon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-white truncate">{label}</h3>
+                  {url && url !== '#' && <p className="text-[11px] text-[rgba(244,242,236,0.5)] truncate">{url.replace(/^https?:\/\//, '')}</p>}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
+              {carouselSlides.map((slide, i) => (
+                <div
+                  key={i}
+                  className="w-32 h-44 shrink-0 rounded-xl overflow-hidden bg-slate-900/80 border border-white/10 relative flex items-center justify-center"
+                >
+                  {slide.src ? (
+                    <img src={slide.src} alt="" className="w-full h-full object-cover" />
+                  ) : slide.icon ? (
+                    <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${slide.color}25` }}>
+                      <PlatformIcon className="h-10 w-10" style={{ color: slide.color }} />
+                    </div>
+                  ) : (
+                    <div className="w-full h-full" style={{ backgroundColor: slide.color }} />
+                  )}
+                </div>
+              ))}
+            </div>
+            <StyledButton label={`Follow on ${platform.name}`} tokens={tokens} fullWidth />
+          </div>
+        )
+        return (
+          <div className="w-full max-w-[420px] mx-auto">
+            {editor || !url || url === '#' ? carouselCard : (
+              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{carouselCard}</a>
+            )}
+          </div>
+        )
+      }
+
+      if (style === 'profile') {
+        const profileCard = (
+          <div
+            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card p-4 space-y-3.5 text-center"
+            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+          >
+            <div className="relative inline-block mx-auto">
+              <div className="h-16 w-16 rounded-full overflow-hidden bg-slate-900 border-2 border-white/20 mx-auto flex items-center justify-center">
+                {thumbnail ? (
+                  <img src={thumbnail} alt={label} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${platform.color}30` }}>
+                    <PlatformIcon className="h-8 w-8" style={{ color: platform.color }} />
+                  </div>
+                )}
+              </div>
+              <div
+                className="absolute bottom-0 right-0 h-6 w-6 rounded-full flex items-center justify-center shadow"
+                style={{ backgroundColor: platform.color, color: '#FFFFFF' }}
+              >
+                <PlatformIcon className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <div className="space-y-0.5">
+              <h3 className="text-base font-bold text-white truncate">{label}</h3>
+              {url && url !== '#' && <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">{url.replace(/^https?:\/\//, '')}</p>}
+            </div>
+            <div className="grid grid-cols-3 gap-2 py-2 border-y border-white/10">
+              <div className="text-center">
+                <div className="text-xs font-bold text-white">Posts</div>
+                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">Feed</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-bold text-white">Connect</div>
+                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">{platform.name}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs font-bold text-white">Share</div>
+                <div className="text-[11px] text-[rgba(244,242,236,0.5)]">Profile</div>
+              </div>
+            </div>
+            <StyledButton label={`Follow on ${platform.name}`} tokens={tokens} fullWidth />
+          </div>
+        )
+        return (
+          <div className="w-full max-w-[420px] mx-auto">
+            {editor || !url || url === '#' ? profileCard : (
+              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{profileCard}</a>
+            )}
+          </div>
+        )
+      }
+
+      if (style === 'single') {
+        const singleCard = (
+          <div
+            className="overflow-hidden border border-white/10 bg-[#000000] shadow-card space-y-2.5"
+            style={{ borderRadius: `${cards.radius}px`, border: cards.border }}
+          >
+            <div className="aspect-square w-full overflow-hidden bg-slate-900 relative flex items-center justify-center">
+              {thumbnail ? (
+                <img src={thumbnail} alt={label} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${platform.color}25` }}>
+                  <PlatformIcon className="h-16 w-16" style={{ color: platform.color }} />
+                </div>
+              )}
+              <div
+                className="absolute top-3 right-3 h-7 w-7 rounded-full flex items-center justify-center shadow"
+                style={{ backgroundColor: platform.color, color: '#FFFFFF' }}
+              >
+                <PlatformIcon className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="px-4 pb-4 space-y-2.5">
+              <div className="space-y-0.5">
+                <h3 className="text-sm sm:text-base font-bold text-white">{label}</h3>
+                {url && url !== '#' && <p className="text-xs text-[rgba(244,242,236,0.5)] truncate">{url}</p>}
+              </div>
+              <StyledButton label={`View on ${platform.name}`} tokens={tokens} fullWidth />
+            </div>
+          </div>
+        )
+        return (
+          <div className="w-full max-w-[420px] mx-auto">
+            {editor || !url || url === '#' ? singleCard : (
+              <a href={url} target="_blank" rel="noopener noreferrer" className="block group">{singleCard}</a>
+            )}
+          </div>
+        )
+      }
+
+      // Classic pill (default)
+      const media = thumbnail
+        ? { type: 'image', src: thumbnail }
+        : { type: 'icon', Icon: PlatformIcon, color: platform.color }
+
+      const pill = <ClassicLinkPill label={label} media={media} tokens={tokens} />
+      return (
+        <div className={`flex flex-col ${alignClass} w-full max-w-md mx-auto`}>
+          {editor || !url || url === '#' ? pill : (
+            <a href={url} target="_blank" rel="noopener noreferrer" className="block w-full">{pill}</a>
+          )}
+        </div>
+      )
+    }
+
     case 'image':
       return section.props?.url ? (
         <img
@@ -1079,22 +1425,24 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
         )
         return (
           <div className="w-full max-w-md mx-auto">
-            {editor ? (
-              <div onClick={() => onProductClick?.(p)} className="cursor-pointer">{pill}</div>
-            ) : (
-              <a
-                href={href}
-                onClick={(e) => {
-                  if (!e.metaKey && !e.ctrlKey && onProductClick) {
-                    e.preventDefault()
-                    onProductClick(p)
-                  }
-                }}
-                className="block cursor-pointer"
-              >
-                {pill}
-              </a>
-            )}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onProductClick?.(p)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  onProductClick?.(p)
+                }
+              }}
+              className="block cursor-pointer text-left"
+            >
+              {pill}
+            </div>
           </div>
         )
       }
@@ -1319,6 +1667,8 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
 
     case 'video':
     case 'youtube':
+    case 'tiktok':
+    case 'vimeo':
     case 'gallery':
     case 'audio':
     case 'pdf':
@@ -1328,6 +1678,9 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
           tokens={tokens}
           editor={editor}
           username={username}
+          products={products}
+          onProductClick={onProductClick}
+          onGalleryClick={onGalleryClick}
         />
       )
 
@@ -1506,21 +1859,32 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
         {children}
       </div>
     ) : (
-      <a
-        href={href}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={(e) => {
-          if (!e.metaKey && !e.ctrlKey && onProductClick) {
+          e.preventDefault()
+          e.stopPropagation()
+          onProductClick?.(product)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
-            onProductClick(product)
+            onProductClick?.(product)
           }
         }}
-        className="block group h-full min-w-0 cursor-pointer"
+        className="block group h-full min-w-0 cursor-pointer text-left"
       >
         {children}
-      </a>
+      </div>
     )
 
   const hasDiscount = product.originalPrice && Number(product.originalPrice) > Number(product.price)
+  const isCoaching = product.type === 'COACHING'
+  const defaultCta = isCoaching
+    ? (Number(product.price) === 0 ? 'Book Free' : (ctaOverride || 'Book Session'))
+    : (Number(product.price) === 0 ? 'Get it Free' : (ctaOverride || 'Get it'))
+
   const discountPct = hasDiscount
     ? Math.round(((Number(product.originalPrice) - Number(product.price)) / Number(product.originalPrice)) * 100)
     : 0
@@ -1547,6 +1911,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
           <ProductThumbnail
             thumbnail={product.thumbnail}
             title={product.title}
+            type={product.type}
             price={product.price}
             theme="minimal"
             aspect="aspect-[2.1/1]"
@@ -1562,7 +1927,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
               <span className="text-sm sm:text-base font-extrabold" style={{ color: cardTitleColor }}>{priceDisplay}</span>
               {origPriceDisplay && <span className="text-xs font-semibold line-through" style={{ color: cardMutedColor }}>{origPriceDisplay}</span>}
             </div>
-            <ProductCtaButton label={Number(product.price) === 0 ? 'Get it Free' : (ctaOverride || 'Get it')} cardBg={cardBg} tokens={tokens} fullWidth={false} />
+            <ProductCtaButton label={defaultCta} cardBg={cardBg} tokens={tokens} fullWidth={false} />
           </div>
         </div>
       </Wrapper>
@@ -1583,6 +1948,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
           <ProductThumbnail
             thumbnail={product.thumbnail}
             title={product.title}
+            type={product.type}
             price={product.price}
             hasDiscount={hasDiscount}
             discountPct={discountPct}
@@ -1603,7 +1969,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
               <span className="text-lg sm:text-xl font-bold text-[#D4AF37]">{priceDisplay}</span>
               {origPriceDisplay && <span className="text-xs text-[rgba(244,242,236,0.68)] line-through">{origPriceDisplay}</span>}
             </div>
-            <ProductCtaButton label={Number(product.price) === 0 ? 'Get it Free' : (ctaOverride || 'Get the Guide')} cardBg="#111827" tokens={tokens} fullWidth={false} />
+            <ProductCtaButton label={defaultCta} cardBg="#111827" tokens={tokens} fullWidth={false} />
           </div>
         </div>
       </Wrapper>
@@ -1625,6 +1991,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
             <ProductThumbnail
               thumbnail={product.thumbnail}
               title={product.title}
+              type={product.type}
               aspect="w-14 h-14"
               theme="dark"
             />
@@ -1647,7 +2014,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
           </div>
 
           <div className="mt-auto pt-0.5">
-            <ProductCtaButton label={Number(product.price) === 0 ? 'Get it Free' : (ctaOverride || 'Get it Now')} cardBg="#18181B" tokens={tokens} fullWidth />
+            <ProductCtaButton label={defaultCta} cardBg="#18181B" tokens={tokens} fullWidth />
           </div>
         </div>
       </Wrapper>
@@ -1668,6 +2035,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
             <ProductThumbnail
               thumbnail={product.thumbnail}
               title={product.title}
+              type={product.type}
               aspect="w-full sm:w-2/5 aspect-[16/10] sm:aspect-[4/4.5]"
               theme="editorial"
             />
@@ -1688,7 +2056,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
           </div>
 
           <div className="pt-2 border-t border-stone-100 mt-auto">
-            <ProductCtaButton label={Number(product.price) === 0 ? 'Get it Free' : (ctaOverride || 'Get the Guide')} cardBg="#FFFFFF" tokens={tokens} fullWidth />
+            <ProductCtaButton label={defaultCta} cardBg="#FFFFFF" tokens={tokens} fullWidth />
           </div>
         </div>
       </Wrapper>
@@ -1724,6 +2092,7 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
         <ProductThumbnail
           thumbnail={product.thumbnail}
           title={product.title}
+          type={product.type}
           aspect="aspect-[2.1/1]"
           price={product.price}
           hasDiscount={hasDiscount}
@@ -1783,6 +2152,10 @@ function ClassicLinkPill({ label, meta, media, tokens }) {
       >
         {media?.type === 'image' ? (
           <img src={media.src} alt="" className="h-full w-full object-cover" />
+        ) : media?.type === 'icon' && media.Icon ? (
+          <div className="h-full w-full flex items-center justify-center" style={{ backgroundColor: `${media.color || '#3B82F6'}20`, color: media.color || '#3B82F6' }}>
+            <media.Icon className="h-5 w-5" />
+          </div>
         ) : (
           <span className="text-xs font-black">{media?.letter || '?'}</span>
         )}

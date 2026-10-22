@@ -3,19 +3,25 @@
 import { useState, useMemo } from 'react'
 import {
   Play, Video, Images, Headphones, FileText, Download,
-  ExternalLink, Eye, ChevronLeft, ChevronRight, Music
+  ExternalLink, Eye, ChevronLeft, ChevronRight, Music,
+  X, Camera, MoreVertical, Youtube, Music2, PlayCircle
 } from 'lucide-react'
 import { getContrastColor, getResourceButtonStyles } from '@/lib/colorContrast'
 import { extractVideoEmbed, extractAudioEmbed } from '@/components/dashboard/AddMediaConfig'
+import GalleryWizardModal from '@/components/storefront/GalleryWizardModal'
 
 export default function StorefrontMediaCard({
   section,
   tokens = {},
   editor = false,
   username = '',
+  products = [],
+  onProductClick,
+  onGalleryClick,
 }) {
   const props = section.props || {}
-  const sectionType = section.type || props.mediaType || 'video'
+  const rawType = section.type || props.mediaType || 'video'
+  const sectionType = ['youtube', 'tiktok', 'vimeo', 'video'].includes(rawType) ? rawType : (props.mediaType || 'video')
   const title = props.title || ''
   const caption = props.caption || ''
   const url = props.url || ''
@@ -31,16 +37,225 @@ export default function StorefrontMediaCard({
     return getResourceButtonStyles(bgHex, rawBtnBg, surfaceTheme.cardBg)
   }, [bgHex, buttons.color, colors.buttonColor, colors.primaryColor, surfaceTheme.cardBg])
 
-  // Selected image index for gallery lightbox / modal preview
-  const [activeGalleryIndex, setActiveGalleryIndex] = useState(0)
+  // Selected image index for gallery lightbox / modal preview (null = closed)
+  const [activeGalleryIndex, setActiveGalleryIndex] = useState(null)
+  const [isGalleryWizardOpen, setIsGalleryWizardOpen] = useState(false)
 
   // Card container styles
   const cardRadius = cards.radius ? `${cards.radius}px` : '18px'
 
   /* ========================================================================= */
-  /* VIDEO & YOUTUBE RENDERER                                                  */
+  /* YOUTUBE MEDIA RENDERER & SOCIAL MEDIA RENDERER (Classic & Image layouts)  */
   /* ========================================================================= */
-  if (sectionType === 'video' || sectionType === 'youtube') {
+  const isCardMedia =
+    (sectionType === 'youtube' || props.mediaType === 'youtube' || props.embedType === 'youtube') ||
+    ['tiktok', 'vimeo'].includes(sectionType) ||
+    ['tiktok', 'vimeo'].includes(props.mediaType) ||
+    ['tiktok', 'vimeo'].includes(props.embedType) ||
+    ((sectionType === 'video' || props.mediaType === 'video') && (props.layout === 'classic' || props.layout === 'image' || props.displayMode === 'classic' || props.displayMode === 'featured' || props.isUpload))
+
+  if (isCardMedia) {
+    const isImage = props.layout === 'image' || props.layout === 'featured' || props.displayMode === 'image' || props.displayMode === 'featured'
+
+    // Determine platform
+    const platform =
+      sectionType === 'youtube' || props.mediaType === 'youtube' || props.embedType === 'youtube'
+        ? 'youtube'
+        : sectionType === 'tiktok' || props.mediaType === 'tiktok' || props.embedType === 'tiktok'
+          ? 'tiktok'
+          : sectionType === 'vimeo' || props.mediaType === 'vimeo' || props.embedType === 'vimeo'
+            ? 'vimeo'
+            : 'video'
+
+    // Platform-specific styling & icons
+    const PlatformIcon =
+      platform === 'youtube'
+        ? Youtube
+        : platform === 'tiktok'
+          ? Music2
+          : platform === 'vimeo'
+            ? PlayCircle
+            : Play
+
+    const platformColor =
+      platform === 'youtube'
+        ? '#EF4444'
+        : platform === 'tiktok'
+          ? '#18181B'
+          : platform === 'vimeo'
+            ? '#06B6D4'
+            : '#84CC16'
+
+    const platformLabel =
+      platform === 'youtube'
+        ? 'YouTube'
+        : platform === 'tiktok'
+          ? 'TikTok'
+          : platform === 'vimeo'
+            ? 'Vimeo'
+            : 'Video'
+
+    const ytId = platform === 'youtube'
+      ? (props.videoId || extractVideoEmbed(url)?.videoId || (url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/) || [])[1])
+      : null
+    const defaultYtThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null
+    const tiktokThumbFallback = null
+    const vimeoThumbFallback = null
+    const defaultVideoThumb = null
+    const fallbackThumb = defaultYtThumb || tiktokThumbFallback || vimeoThumbFallback || defaultVideoThumb
+    const activeThumbnail = props.customThumbnail || props.thumbnail || fallbackThumb
+    const safeUrl = url || (ytId ? `https://www.youtube.com/watch?v=${ytId}` : '#')
+
+    if (isImage) {
+      // IMAGE LAYOUT (Phase 4.B & Phase 6)
+      const card = (
+        <div
+          className="w-full max-w-md mx-auto overflow-hidden transition-all duration-200 group shadow-sm hover:shadow-md"
+          style={{
+            borderRadius: cardRadius,
+            backgroundColor: surfaceTheme.cardBg,
+            border: `1px solid ${surfaceTheme.cardBorder}`,
+          }}
+        >
+          <div className="relative w-full aspect-video bg-[#0A0A0A] overflow-hidden flex items-center justify-center">
+            {activeThumbnail ? (
+              <img
+                src={activeThumbnail}
+                alt={title || `${platformLabel} Video`}
+                onError={(e) => {
+                  if (defaultYtThumb && e.currentTarget.src !== defaultYtThumb) {
+                    e.currentTarget.src = defaultYtThumb
+                  }
+                }}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center p-6 text-center gap-2">
+                <PlatformIcon className="h-10 w-10" style={{ color: platformColor }} />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/20 transition-colors">
+              <div
+                className="h-12 w-12 rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform"
+                style={{ backgroundColor: platformColor }}
+              >
+                <Play className="h-6 w-6 text-white fill-current ml-0.5" />
+              </div>
+            </div>
+          </div>
+          <div className="p-4 flex items-center justify-between gap-3 text-left">
+            <div className="min-w-0 flex-1">
+              <h4
+                className="text-sm font-bold tracking-tight line-clamp-2 leading-snug"
+                style={{ color: surfaceTheme.heading || surfaceTheme.text }}
+              >
+                {title || `${platformLabel} Video`}
+              </h4>
+              <p
+                className="text-[11px] font-semibold mt-1 flex items-center gap-1.5"
+                style={{ color: platformColor }}
+              >
+                <PlatformIcon className="h-3.5 w-3.5" />
+                <span>{platformLabel}</span>
+              </p>
+            </div>
+            <div className="h-8 w-8 rounded-full border border-black/10 dark:border-white/10 flex items-center justify-center text-[#6F6F6B] group-hover:text-[#1F1F1F] dark:group-hover:text-white transition-colors shrink-0">
+              <ExternalLink className="h-4 w-4" />
+            </div>
+          </div>
+        </div>
+      )
+
+      return (
+        <div className="w-full max-w-md mx-auto">
+          {editor || !safeUrl || safeUrl === '#' ? (
+            card
+          ) : (
+            <a href={safeUrl} target="_blank" rel="noopener noreferrer" className="block w-full">
+              {card}
+            </a>
+          )}
+        </div>
+      )
+    }
+
+    // CLASSIC LAYOUT (Phase 4.A & Phase 6)
+    const classicCard = (
+      <div
+        className="w-full inline-flex items-center gap-3.5 px-3.5 py-3 min-h-[54px] transition-all hover:scale-[1.01] hover:opacity-95 shadow-sm group"
+        style={{
+          borderRadius: cardRadius,
+          backgroundColor: surfaceTheme.cardBg,
+          border: `1px solid ${surfaceTheme.cardBorder}`,
+        }}
+      >
+        <div className="relative h-10 w-10 shrink-0 rounded-[10px] overflow-hidden bg-black/10 flex items-center justify-center">
+          {activeThumbnail ? (
+            <img
+              src={activeThumbnail}
+              alt=""
+              onError={(e) => {
+                if (defaultYtThumb && e.currentTarget.src !== defaultYtThumb) {
+                  e.currentTarget.src = defaultYtThumb
+                }
+              }}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div
+              className="h-full w-full flex items-center justify-center"
+              style={{ backgroundColor: platformColor }}
+            >
+              <PlatformIcon className="h-5 w-5 text-white" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+            <div
+              className="h-4 w-4 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: platformColor }}
+            >
+              <Play className="h-2 w-2 text-white fill-current ml-0.5" />
+            </div>
+          </div>
+        </div>
+        <div className="min-w-0 flex-1 text-left">
+          <div
+            className="text-sm font-bold truncate leading-tight"
+            style={{ color: surfaceTheme.heading || surfaceTheme.text }}
+          >
+            {title || `${platformLabel} Video`}
+          </div>
+          <div
+            className="text-[11px] font-semibold mt-0.5 flex items-center gap-1"
+            style={{ color: platformColor }}
+          >
+            <PlatformIcon className="h-3 w-3" />
+            <span>{platformLabel}</span>
+          </div>
+        </div>
+        <div className="text-[#999995] group-hover:text-[#1F1F1F] dark:group-hover:text-white transition-colors shrink-0 pr-1">
+          <ExternalLink className="h-4 w-4" />
+        </div>
+      </div>
+    )
+
+    return (
+      <div className="w-full max-w-md mx-auto">
+        {editor || !safeUrl || safeUrl === '#' ? (
+          classicCard
+        ) : (
+          <a href={safeUrl} target="_blank" rel="noopener noreferrer" className="block w-full">
+            {classicCard}
+          </a>
+        )}
+      </div>
+    )
+  }
+
+  /* ========================================================================= */
+  /* GENERAL VIDEO RENDERER                                                    */
+  /* ========================================================================= */
+  if (sectionType === 'video') {
     const embedInfo = extractVideoEmbed(url)
 
     return (
@@ -133,6 +348,8 @@ export default function StorefrontMediaCard({
   /* ========================================================================= */
   if (sectionType === 'gallery') {
     const images = Array.isArray(props.images) ? props.images : []
+    const layout = props.layout || props.displayMode || 'classic'
+    const isClassic = layout === 'classic'
 
     if (!images.length) {
       return (
@@ -159,51 +376,155 @@ export default function StorefrontMediaCard({
           : 'grid-cols-2 sm:grid-cols-3'
 
     return (
-      <div
-        className="w-full max-w-md mx-auto p-4 space-y-3 overflow-hidden shadow-sm"
-        style={{
-          borderRadius: cardRadius,
-          backgroundColor: surfaceTheme.cardBg,
-          border: `1px solid ${surfaceTheme.cardBorder}`,
-        }}
-      >
-        {/* Gallery Title & Header */}
-        {title && (
-          <div className="text-left pb-1">
-            <h4 className="text-sm font-bold tracking-tight" style={{ color: surfaceTheme.heading || surfaceTheme.text }}>
-              {title}
-            </h4>
-            {caption && (
-              <p className="text-xs mt-0.5" style={{ color: surfaceTheme.muted || surfaceTheme.textMuted }}>
-                {caption}
-              </p>
+      <>
+        {/* CLASSIC STYLE: Compact Link-Style Gallery Pill */}
+        {isClassic ? (
+          <div
+            onClick={() => {
+              if (onGalleryClick) {
+                onGalleryClick(section)
+              } else {
+                setIsGalleryWizardOpen(true)
+              }
+              setActiveGalleryIndex(0)
+            }}
+            className="w-full max-w-md mx-auto p-3 sm:p-3.5 transition-all duration-200 cursor-pointer shadow-sm hover:scale-[1.01] active:scale-[0.99] group flex items-center justify-between gap-3 text-left"
+            style={{
+              borderRadius: cardRadius,
+              backgroundColor: surfaceTheme.cardBg,
+              border: `1px solid ${surfaceTheme.cardBorder}`,
+            }}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Thumbnail of first image */}
+              <div className="h-11 w-11 rounded-xl overflow-hidden bg-black/30 border border-white/10 shrink-0 shadow-xs flex items-center justify-center">
+                {images[0]?.url ? (
+                  <img
+                    src={images[0].url}
+                    alt={images[0].name || title || 'Gallery'}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                ) : (
+                  <Images className="h-5 w-5 opacity-60" style={{ color: surfaceTheme.text }} />
+                )}
+              </div>
+
+              {/* Title & Photo Count Subtitle */}
+              <div className="min-w-0">
+                <h4
+                  className="text-sm font-bold tracking-tight truncate group-hover:underline"
+                  style={{ color: surfaceTheme.heading || surfaceTheme.text }}
+                >
+                  {title || 'gallery'}
+                </h4>
+                <p
+                  className="text-xs truncate flex items-center gap-1.5 mt-0.5"
+                  style={{ color: surfaceTheme.muted || surfaceTheme.textMuted }}
+                >
+                  <Camera className="h-3 w-3 shrink-0 opacity-70" />
+                  <span>Gallery · {images.length} {images.length === 1 ? 'photo' : 'photos'}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Right More/Eye Icon */}
+            <div
+              className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 opacity-60 group-hover:opacity-100 transition-opacity"
+              style={{ color: surfaceTheme.text }}
+            >
+              <Eye className="h-4 w-4" />
+            </div>
+          </div>
+        ) : (
+          /* FEATURED STYLE: Prominent Visual Card Presentation */
+          <div
+            onClick={() => {
+              if (onGalleryClick) {
+                onGalleryClick(section)
+              } else {
+                setIsGalleryWizardOpen(true)
+              }
+              setActiveGalleryIndex(0)
+            }}
+            className="w-full max-w-md mx-auto p-4 space-y-3 overflow-hidden shadow-sm transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.99] group"
+            style={{
+              borderRadius: cardRadius,
+              backgroundColor: surfaceTheme.cardBg,
+              border: `1px solid ${surfaceTheme.cardBorder}`,
+            }}
+          >
+            {/* Gallery Title & Header */}
+            {title && (
+              <div className="text-left pb-1 flex items-center justify-between">
+                <div className="min-w-0">
+                  <h4 className="text-sm font-bold tracking-tight" style={{ color: surfaceTheme.heading || surfaceTheme.text }}>
+                    {title}
+                  </h4>
+                  {caption && (
+                    <p className="text-xs mt-0.5" style={{ color: surfaceTheme.muted || surfaceTheme.textMuted }}>
+                      {caption}
+                    </p>
+                  )}
+                </div>
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1"
+                  style={{
+                    backgroundColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)',
+                    color: surfaceTheme.text,
+                  }}
+                >
+                  <Camera className="h-3 w-3" />
+                  {images.length}
+                </span>
+              </div>
             )}
+
+            {/* Gallery Grid */}
+            <div className={`grid ${gridClass} gap-2`}>
+              {images.map((img, idx) => (
+                <div
+                  key={img.id || idx}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (onGalleryClick) {
+                      onGalleryClick(section)
+                    } else {
+                      setIsGalleryWizardOpen(true)
+                    }
+                    setActiveGalleryIndex(idx)
+                  }}
+                  className="relative aspect-square rounded-xl overflow-hidden group/item cursor-pointer bg-black/20 border border-white/5 shadow-xs"
+                >
+                  <img
+                    src={img.url}
+                    alt={img.name || `Gallery photo ${idx + 1}`}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover/item:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover/item:bg-black/25 transition-colors flex items-center justify-center opacity-0 group-hover/item:opacity-100">
+                    <div className="h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center shadow-md">
+                      <Eye className="h-4 w-4" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Gallery Grid */}
-        <div className={`grid ${gridClass} gap-2`}>
-          {images.map((img, idx) => (
-            <div
-              key={img.id || idx}
-              onClick={() => setActiveGalleryIndex(idx)}
-              className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer bg-black/20 border border-white/5 shadow-xs"
-            >
-              <img
-                src={img.url}
-                alt={img.name || `Gallery photo ${idx + 1}`}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                <div className="h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center">
-                  <Eye className="h-4 w-4" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+        {/* DEDICATED GALLERY WIZARD MODAL (Reference Image 1) */}
+        {!onGalleryClick && (
+          <GalleryWizardModal
+            gallery={section}
+            isOpen={isGalleryWizardOpen}
+            onClose={() => {
+              setIsGalleryWizardOpen(false)
+              setActiveGalleryIndex(null)
+            }}
+            onProductClick={onProductClick}
+          />
+        )}
+      </>
     )
   }
 
