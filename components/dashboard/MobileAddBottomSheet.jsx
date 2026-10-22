@@ -245,6 +245,7 @@ export default function MobileAddBottomSheet({
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Paste a link or search..."
               className="w-full bg-transparent border-none outline-none text-[#222222] placeholder:text-[#777777] text-[15px] font-medium"
+              autoComplete="off"
               autoCapitalize="off"
               autoCorrect="off"
               spellCheck="false"

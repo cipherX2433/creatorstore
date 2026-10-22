@@ -1218,6 +1218,8 @@ export default function StoreBuilderPage() {
   const [addModalCategory, setAddModalCategory] = useState('suggested')
   const [addModalSearch, setAddModalSearch] = useState('')
   const [selectedFormType, setSelectedFormType] = useState('contact')
+  const [linkDirectUrl, setLinkDirectUrl] = useState('')
+  const [linkDirectTitle, setLinkDirectTitle] = useState('')
   const [editingFormSection, setEditingFormSection] = useState(null)
   const [selectedMediaType, setSelectedMediaType] = useState('video')
   const [editingMediaSection, setEditingMediaSection] = useState(null)
@@ -1625,6 +1627,53 @@ export default function StoreBuilderPage() {
     setEditingBundle(null)
     setBundleModalOpen(true)
   }, [canCreate, setPricingModalOpen])
+
+  const handleMobileAddOption = useCallback((type, payload) => {
+    if (type === 'link') {
+      setLinkDirectUrl('')
+      setLinkDirectTitle('')
+      setAddModalType('link')
+      setAddModalOpen(true)
+    } else if (type === 'link_direct') {
+      setLinkDirectUrl(payload?.url || '')
+      setLinkDirectTitle(payload?.title || '')
+      setAddModalType('link')
+      setAddModalOpen(true)
+    } else if (type === 'coaching') {
+      openCoachingCreationFlow()
+    } else if (type === 'course') {
+      openCourseCreationFlow()
+    } else if (type === 'bundle') {
+      openBundleCreationFlow()
+    } else if (type === 'form' || type === 'forms_menu') {
+      setAddModalType('forms_menu')
+      setAddModalOpen(true)
+    } else if (type === 'form_contact') {
+      setSelectedFormType('contact')
+      setEditingFormSection(null)
+      setAddModalType('form_config')
+      setAddModalOpen(true)
+    } else if (type === 'form_newsletter') {
+      setSelectedFormType('newsletter')
+      setEditingFormSection(null)
+      setAddModalType('form_config')
+      setAddModalOpen(true)
+    } else if (type === 'instagram' || type === 'social') {
+      setAddModalType('social_display_select')
+      setAddModalOpen(true)
+    } else if (type === 'add_youtube' || type === 'youtube') {
+      setAddModalType('add_youtube')
+      setAddModalOpen(true)
+    } else if (type === 'add_tiktok' || type === 'tiktok') {
+      setAddModalType('add_tiktok')
+      setAddModalOpen(true)
+    } else if (type === 'audio' || type === 'spotify') {
+      setAddModalType('media_config')
+      setAddModalOpen(true)
+    } else {
+      handleAddToStore(type)
+    }
+  }, [openCoachingCreationFlow, openCourseCreationFlow, openBundleCreationFlow, handleAddToStore])
 
   const handleTabChange = useCallback((newTab) => {
     if (tab === 'design' && newTab !== 'design' && hasUnsavedThemeChanges) {
@@ -4018,7 +4067,7 @@ export default function StoreBuilderPage() {
                     setAddCollectionName('')
                     setAddCollectionOpen(true)
                   }}
-                  onOpenAddModal={(type, payload) => handleAddToStore(type, payload)}
+                  onOpenAddModal={(type, payload) => handleMobileAddOption(type, payload)}
                   onEditProduct={handleEditProductNav}
                   onEditSection={handleEditSectionNav}
                   onDeleteSection={(secId) => remove(secId)}
@@ -4534,22 +4583,28 @@ export default function StoreBuilderPage() {
             {/* ADD LINK FORM */}
           {addModalType === 'link' && (
             <div className="p-4 sm:p-6">
-              <AddLinkForm onSubmit={(title, url, layout, thumbnail) => {
-                if (!canCreate) {
-                  toast.error('Your Pro trial has ended. Upgrade your plan to add links and continue selling.')
-                  setPricingModalOpen(true)
+              <AddLinkForm
+                initialUrl={linkDirectUrl}
+                initialTitle={linkDirectTitle}
+                onSubmit={(title, url, layout, thumbnail) => {
+                  if (!canCreate) {
+                    toast.error('Your Pro trial has ended. Upgrade your plan to add links and continue selling.')
+                    setPricingModalOpen(true)
+                    setAddModalOpen(false)
+                    return
+                  }
+                  const validated = safeUrlValidate(url)
+                  if (!validated) {
+                    toast.error('Invalid URL scheme. Please enter a valid web link.')
+                    return
+                  }
+                  addSectionWithProps('button', { label: title || 'Follow me', url: validated, layout: layout || 'classic', thumbnail })
+                  setLinkDirectUrl('')
+                  setLinkDirectTitle('')
                   setAddModalOpen(false)
-                  return
-                }
-                const validated = safeUrlValidate(url)
-                if (!validated) {
-                  toast.error('Invalid URL scheme. Please enter a valid web link.')
-                  return
-                }
-                addSectionWithProps('button', { label: title || 'Follow me', url: validated, layout: layout || 'classic', thumbnail })
-                setAddModalOpen(false)
-                setAddModalType('menu')
-              }} />
+                  setAddModalType('menu')
+                }}
+              />
             </div>
           )}
 
@@ -5144,11 +5199,16 @@ export default function StoreBuilderPage() {
 
 /* ---------------- Helper Components & Forms ---------------- */
 
-function AddLinkForm({ onSubmit }) {
-  const [title, setTitle] = useState('')
-  const [url, setUrl] = useState('')
+function AddLinkForm({ onSubmit, initialUrl = '', initialTitle = '' }) {
+  const [title, setTitle] = useState(initialTitle)
+  const [url, setUrl] = useState(initialUrl)
   const [layout, setLayout] = useState('classic')
   const [thumbnail, setThumbnail] = useState('')
+
+  useEffect(() => {
+    if (initialUrl) setUrl(initialUrl)
+    if (initialTitle) setTitle(initialTitle)
+  }, [initialUrl, initialTitle])
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(title, url, layout, thumbnail) }} className="space-y-4">

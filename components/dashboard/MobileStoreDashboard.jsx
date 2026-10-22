@@ -112,14 +112,21 @@ export default function MobileStoreDashboard({
       setEditingProduct(null)
       setProductWizardOpen(true)
     } else if (type === 'link') {
-      onOpenAddModal?.('link')
+      if (payload?.presetUrl) {
+        onOpenAddModal?.('link_direct', { url: payload.presetUrl, title: payload.title })
+      } else {
+        onOpenAddModal?.('link')
+      }
+    } else if (type === 'coaching') {
+      onOpenAddModal?.('coaching')
+    } else if (type === 'course') {
+      onOpenAddModal?.('course')
+    } else if (type === 'bundle') {
+      onOpenAddModal?.('bundle')
     } else if (type === 'form' || type === 'form_contact' || type === 'form_newsletter') {
       onOpenAddModal?.(type)
     } else if (type === 'link_direct') {
       onOpenAddModal?.('link_direct', payload)
-    } else if (type === 'coaching') {
-      setEditingProduct(null)
-      setProductWizardOpen(true)
     } else {
       onOpenAddModal?.(type, payload)
     }
@@ -371,7 +378,12 @@ export default function MobileStoreDashboard({
       </div>
 
       {/* 5. CONTENT ITEMS LIST (Screenshot 2) */}
-      <div className="flex-1 min-h-0 px-4 pb-36 space-y-2.5">
+      <div
+        className="flex-1 min-h-0 px-4 space-y-2.5"
+        style={{
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 148px)',
+        }}
+      >
         {filteredSections.length > 0 ? (
           filteredSections.map((s) => {
             const isMenuOpen = activeCardMenuId === s.id
@@ -585,7 +597,12 @@ export default function MobileStoreDashboard({
       </div>
 
       {/* 6. FLOATING BOTTOM EDITOR ACTION PILL */}
-      <div className="fixed bottom-[68px] left-1/2 -translate-x-1/2 z-30 select-none">
+      <div
+        className="fixed left-1/2 -translate-x-1/2 z-30 select-none"
+        style={{
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)',
+        }}
+      >
         <div className="flex items-center gap-5 px-6 py-2.5 rounded-full bg-[#FFFFFF] border border-[#E8E8E8] shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
           <button
             type="button"
