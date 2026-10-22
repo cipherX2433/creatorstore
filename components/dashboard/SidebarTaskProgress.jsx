@@ -151,35 +151,35 @@ export default function SidebarTaskProgress({ collapsed = false, onNavClick, cla
   }
 
   return (
-    <div className={`shrink-0 px-3.5 pb-4 pt-4 mt-auto ${className}`.trim()}>
+    <div className={`shrink-0 px-2.5 pb-2 pt-1.5 mt-auto ${className}`.trim()}>
       <div ref={cardRef} className="relative">
         {/* Collapsed Sidebar view (72px rail width) */}
         {collapsed ? (
-          <div className="flex justify-center py-2">
+          <div className="flex justify-center py-1">
             <button
               type="button"
               onClick={handleCollapsedClick}
-              className="p-1.5 rounded-[16px] hover:bg-[#EAE9E6] transition-colors cursor-pointer flex items-center justify-center focus:outline-none"
+              className="p-1 rounded-[12px] hover:bg-[#EAE9E6] transition-colors cursor-pointer flex items-center justify-center focus:outline-none"
               title={`Setup checklist: ${percentage}% (${completed} of ${total} complete)`}
               aria-label={`Setup checklist: ${percentage}% complete`}
             >
-              <ProgressRing pct={percentage} size={38} isDone={false} />
+              <ProgressRing pct={percentage} size={34} isDone={false} />
             </button>
           </div>
         ) : (
           /* Expanded Sidebar view (compact card fitting neatly into sidebar) */
-          <div className="rounded-[22px] bg-[#FFFFFF] border border-[#E5E5E3] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)] select-none">
-            <ProgressRing pct={percentage} size={46} isDone={false} />
+          <div className="rounded-[18px] bg-[#FFFFFF] border border-[#E5E5E3] p-3 shadow-[0_2px_8px_rgba(0,0,0,0.03)] select-none">
+            <ProgressRing pct={percentage} size={40} isDone={false} />
 
-            <h4 className="text-[14.5px] font-bold text-[#1F1F1F] mt-2.5 tracking-tight">
+            <h4 className="text-[13.5px] font-bold text-[#1F1F1F] mt-2 tracking-tight">
               Your setup checklist
             </h4>
-            <p className="text-[12.5px] text-[#5F5F5F] mt-0.5 font-medium">
+            <p className="text-[11.5px] text-[#5F5F5F] mt-0.5 font-medium">
               {`${completed} of ${total} complete`}
             </p>
 
             {/* 3 Interactive Checkpoints directly inside the card */}
-            <div className="mt-3 pt-2.5 border-t border-[#F0F0EE] space-y-1" role="list">
+            <div className="mt-2.5 pt-2 border-t border-[#F0F0EE] space-y-0.5" role="list">
               {items.map((task) => {
                 const isDone = Boolean(task.completed)
                 return (
@@ -187,7 +187,7 @@ export default function SidebarTaskProgress({ collapsed = false, onNavClick, cla
                     key={task.id}
                     type="button"
                     onClick={() => handleTaskClick(task)}
-                    className={`w-full group flex items-center gap-2.5 px-2 py-1.5 rounded-[10px] text-left transition-colors cursor-pointer select-none ${
+                    className={`w-full group flex items-center gap-2 px-1.5 py-1 rounded-[8px] text-left transition-colors cursor-pointer select-none ${
                       isDone
                         ? 'hover:bg-[#F9F9F8] text-[#71717A]'
                         : 'hover:bg-[#F4F4F2] text-[#1F1F1F]'
@@ -197,20 +197,20 @@ export default function SidebarTaskProgress({ collapsed = false, onNavClick, cla
                   >
                     {isDone ? (
                       <span
-                        className="h-4 w-4 rounded-full bg-[#16A34A] text-[#FFFFFF] flex items-center justify-center shrink-0 shadow-2xs"
+                        className="h-3.5 w-3.5 rounded-full bg-[#16A34A] text-[#FFFFFF] flex items-center justify-center shrink-0 shadow-2xs"
                         aria-label="Completed"
                       >
-                        <Check className="h-2.5 w-2.5 stroke-[3]" />
+                        <Check className="h-2 w-2 stroke-[3]" />
                       </span>
                     ) : (
                       <span
-                        className="h-4 w-4 rounded-full border-[1.5px] border-[#D1D1CE] group-hover:border-[#1F1F1F] flex items-center justify-center shrink-0 transition-colors"
+                        className="h-3.5 w-3.5 rounded-full border-[1.5px] border-[#D1D1CE] group-hover:border-[#1F1F1F] flex items-center justify-center shrink-0 transition-colors"
                         aria-label="Incomplete"
                       />
                     )}
 
                     <span
-                      className={`text-[12px] leading-tight truncate flex-1 ${
+                      className={`text-[11.5px] leading-tight truncate flex-1 ${
                         isDone ? 'font-medium text-[#71717A] line-through' : 'font-semibold text-[#1F1F1F]'
                       }`}
                     >
@@ -218,7 +218,7 @@ export default function SidebarTaskProgress({ collapsed = false, onNavClick, cla
                     </span>
 
                     {!isDone && (
-                      <ChevronRight className="h-3.5 w-3.5 text-[#A1A1AA] group-hover:text-[#1F1F1F] shrink-0 transition-transform group-hover:translate-x-0.5" />
+                      <ChevronRight className="h-3 w-3 text-[#A1A1AA] group-hover:text-[#1F1F1F] shrink-0 transition-transform group-hover:translate-x-0.5" />
                     )}
                   </button>
                 )
@@ -229,7 +229,7 @@ export default function SidebarTaskProgress({ collapsed = false, onNavClick, cla
             <button
               type="button"
               onClick={handleFinishSetup}
-              className="mt-3 w-full h-9 rounded-full bg-[#1F1F1F] hover:bg-[#000000] text-[#FFFFFF] text-[12.5px] font-semibold flex items-center justify-center transition-colors cursor-pointer shadow-xs active:scale-[0.99]"
+              className="mt-2.5 w-full h-[32px] rounded-full bg-[#1F1F1F] hover:bg-[#000000] text-[#FFFFFF] text-[11.5px] font-semibold flex items-center justify-center transition-colors cursor-pointer shadow-xs active:scale-[0.99]"
             >
               Finish setup
             </button>
@@ -240,7 +240,7 @@ export default function SidebarTaskProgress({ collapsed = false, onNavClick, cla
   )
 }
 
-function ProgressRing({ pct, size = 46, isDone = false }) {
+function ProgressRing({ pct, size = 40, isDone = false }) {
   const strokeWidth = 3.5
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius

@@ -10,6 +10,7 @@ import {
   Plus,
   User,
   Zap,
+  Bell,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDashboardHeader } from '@/components/dashboard/HeaderContext'
@@ -87,12 +88,12 @@ export default function SidebarProfileRow({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center justify-center w-full py-1 rounded-[12px] bg-transparent hover:bg-[#EAE9E6] transition-colors cursor-pointer select-none outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20"
+          className="flex items-center justify-center w-full py-1.5 rounded-[10px] bg-transparent hover:bg-[#EAE9E6] transition-colors cursor-pointer select-none outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20"
           title={pureUsername}
           aria-expanded={open}
           aria-haspopup="menu"
         >
-          <div className="flex h-10 w-10 min-w-[40px] min-h-[40px] max-w-[40px] max-h-[40px] items-center justify-center overflow-hidden rounded-full bg-[#1F1F1F] text-sm font-semibold text-[#FFFFFF] shrink-0 ring-1 ring-[#E5E5E3]">
+          <div className="flex h-[34px] w-[34px] min-w-[34px] min-h-[34px] max-w-[34px] max-h-[34px] items-center justify-center overflow-hidden rounded-full bg-[#1F1F1F] text-xs font-semibold text-[#FFFFFF] shrink-0 ring-1 ring-[#E5E5E3]">
             {me?.profile?.avatarUrl ? (
               <img
                 src={me.profile.avatarUrl}
@@ -105,40 +106,53 @@ export default function SidebarProfileRow({
           </div>
         </button>
       ) : (
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="group flex items-center justify-between w-full h-[46px] px-2 rounded-[12px] bg-transparent hover:bg-[#EAE9E6] transition-colors duration-150 cursor-pointer select-none min-w-0 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20"
-          aria-expanded={open}
-          aria-haspopup="menu"
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            {/* Avatar 40-42px */}
-            <div className="flex h-10 w-10 min-w-[40px] min-h-[40px] max-w-[40px] max-h-[40px] items-center justify-center overflow-hidden rounded-full bg-[#1F1F1F] text-sm font-semibold text-[#FFFFFF] shrink-0 ring-1 ring-[#E5E5E3]">
-              {me?.profile?.avatarUrl ? (
-                <img
-                  src={me.profile.avatarUrl}
-                  alt=""
-                  className="h-full w-full object-cover rounded-full"
-                />
-              ) : (
-                initial
-              )}
+        <div className="flex items-center justify-between w-full h-[40px] gap-1">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="group flex items-center justify-between min-w-0 flex-1 h-[40px] px-1.5 rounded-[10px] bg-transparent hover:bg-[#EAE9E6] transition-colors duration-150 cursor-pointer select-none outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20"
+            aria-expanded={open}
+            aria-haspopup="menu"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              {/* Avatar 32px */}
+              <div className="flex h-[32px] w-[32px] min-w-[32px] min-h-[32px] max-w-[32px] max-h-[32px] items-center justify-center overflow-hidden rounded-full bg-[#1F1F1F] text-xs font-semibold text-[#FFFFFF] shrink-0 ring-1 ring-[#E5E5E3]">
+                {me?.profile?.avatarUrl ? (
+                  <img
+                    src={me.profile.avatarUrl}
+                    alt=""
+                    className="h-full w-full object-cover rounded-full"
+                  />
+                ) : (
+                  initial
+                )}
+              </div>
+
+              {/* Username */}
+              <span className="truncate text-[15px] font-semibold text-[#1F1F1F] group-hover:text-[#000000] tracking-[-0.01em] transition-colors">
+                {pureUsername}
+              </span>
             </div>
 
-            {/* Username */}
-            <span className="truncate text-[16px] font-[500] text-[#1F1F1F] group-hover:text-[#000000] tracking-[-0.01em] transition-colors">
-              {pureUsername}
-            </span>
-          </div>
+            {/* Chevron */}
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-[#8C8C88] group-hover:text-[#1F1F1F] transition-transform duration-200 ml-1 ${
+                open ? 'rotate-180 text-[#1F1F1F]' : ''
+              }`}
+            />
+          </button>
 
-          {/* Chevron */}
-          <ChevronDown
-            className={`h-4.5 w-4.5 shrink-0 text-[#999995] group-hover:text-[#1F1F1F] transition-transform duration-200 ${
-              open ? 'rotate-180 text-[#1F1F1F]' : ''
-            }`}
-          />
-        </button>
+          {/* Notification Bell */}
+          <button
+            type="button"
+            onClick={() => toast.info('No new notifications')}
+            className="h-7.5 w-7.5 flex items-center justify-center rounded-[8px] text-[#5F5F5F] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] transition-colors cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 shrink-0"
+            title="Notifications"
+            aria-label="Notifications"
+          >
+            <Bell className="h-[18px] w-[18px] stroke-[1.8]" />
+          </button>
+        </div>
       )}
 
       {/* Floating White Account Dropdown */}
@@ -230,7 +244,7 @@ export default function SidebarProfileRow({
           {/* Section 2: Support & Feedback */}
           <div className="space-y-0.5">
             <Link
-              href="/dashboard/success-center"
+              href="/dashboard/help"
               onClick={() => closeAnd()}
               className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-[10px] text-xs font-medium text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors duration-150"
             >

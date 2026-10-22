@@ -15,7 +15,7 @@ import {
   razorpayAccountService, payoutService, earningsService, courseService, publicCourseService, learningService, certificateService, coachingService, communityService, webinarService, membershipService, customService, externalLink, customerAccountService, creatorSubscriptionService, accountUpgradeService, checkoutFieldsService,
   leadService, couponService, marketingService, emailMarketingService, onboardingService, successCenterService,
   instagramService, automationService, instagramMessagingService, httpError,
-  emailService, businessCardService,
+  emailService, businessCardService, supportService, bundlesService, formsService,
 } from '@/lib/services'
 import { purchaseOtpService, PURCHASE_SESSION_COOKIE } from '@/lib/purchaseOtpService'
 import { getAppUrl } from '@/config/site'
@@ -428,6 +428,9 @@ async function processRoute(request, context = {}) {
       }
       return json({ ok: true })
     }
+    if (path[0] === 'bundles' && path[1] && path[2] === 'public' && method === 'GET') {
+      return json(await bundlesService.getPublic(path[1]))
+    }
     // ===== Coaching Public & Student Routes =====
     if (path[0] === 'coaching' && path[1] === 'public' && path[2] && method === 'GET') {
       const config = await coachingService.getConfig(null, path[2])
@@ -616,7 +619,14 @@ async function processRoute(request, context = {}) {
       try {
         const result = await instagramService.handleCallback(code, state)
         const target = result?.returnUrl || '/dashboard/settings/connected-accounts'
-        const redirectTarget = target.includes('?') ? `${target}&connected=1` : `${target}?connected=1`
+        let redirectTarget = target
+        if (result.status === 'SUBSCRIPTION_FAILED') {
+          const sep = redirectTarget.includes('?') ? '&' : '?'
+          redirectTarget = `${redirectTarget}${sep}warning=webhook_subscription_failed&message=${encodeURIComponent(result.subscriptionError || 'Webhook subscription pending')}`
+        } else {
+          const sep = redirectTarget.includes('?') ? '&' : '?'
+          redirectTarget = `${redirectTarget}${sep}connected=1`
+        }
         const safeTarget = redirectTarget.startsWith('/') ? redirectTarget : `/${redirectTarget}`
         return NextResponse.redirect(`${appUrl}${safeTarget}`)
       } catch (err) {
@@ -631,16 +641,38 @@ async function processRoute(request, context = {}) {
       return json(await instagramService.getStatus(user.id))
     }
 
+    if (route === '/integrations/instagram/subscribe' && method === 'POST') {
+      const user = await requireAuth(request)
+      requireCreator(user)
+      return json(await instagramService.retrySubscription(user.id))
+    }
+
     if (route === '/integrations/instagram/account' && method === 'DELETE') {
       const user = await requireAuth(request)
       requireCreator(user)
       return json(await instagramService.disconnectAccount(user.id))
     }
 
+    if (route === '/integrations/instagram/profile' && method === 'GET') {
+      const user = await requireAuth(request)
+      requireCreator(user)
+      const forceRefresh = url.searchParams.get('refresh') === '1'
+      return json(await instagramService.getProfile(user.id, { forceRefresh }))
+    }
+
+    if ((route === '/integrations/instagram/sync' || route === '/integrations/instagram/profile/refresh') && method === 'POST') {
+      const user = await requireAuth(request)
+      requireCreator(user)
+      const profile = await instagramService.getProfile(user.id, { forceRefresh: true })
+      const media = await instagramService.getMedia(user.id, { forceRefresh: true })
+      return json({ success: true, profile, media })
+    }
+
     if (route === '/integrations/instagram/media' && method === 'GET') {
       const user = await requireAuth(request)
       requireCreator(user)
-      return json(await instagramService.getMedia(user.id))
+      const forceRefresh = url.searchParams.get('refresh') === '1'
+      return json(await instagramService.getMedia(user.id, { forceRefresh }))
     }
 
     // ===== Automations =====
@@ -1990,6 +2022,27 @@ async function processRoute(request, context = {}) {
       const body = await request.json().catch(() => ({}))
       return json(await couponService.validate(body.creatorId, body.code, body.productId, body.basePrice))
     }
+    // ===== Public Form Submissions & Newsletter =====
+    if ((route === '/public/forms/submit' || route === '/forms/submit') && method === 'POST') {
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || '127.0.0.1'
+      const body = await request.json().catch(() => ({}))
+      const result = await formsService.submitPublicForm(body, ip)
+      return json(result)
+    }
+    if (path[0] === 'public' && path[1] === 'forms' && path[2] && path[3] === 'submit' && method === 'POST') {
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || '127.0.0.1'
+      const body = await request.json().catch(() => ({}))
+      const result = await formsService.submitPublicForm({ ...body, formId: path[2] }, ip)
+      return json(result)
+    }
+    if (path[0] === 'public' && path[1] === 'newsletter' && path[2] === 'unsubscribe' && method === 'POST') {
+      const body = await request.json().catch(() => ({}))
+      if (!body.creatorId || !body.email) {
+        throw httpError(400, 'creatorId and email required')
+      }
+      const result = await formsRepo.unsubscribeNewsletter(body.creatorId, body.email)
+      return json({ success: true, result })
+    }
 
     function requireCreator(user) {
       if (!user || user.role !== 'CREATOR') {
@@ -2060,6 +2113,40 @@ async function processRoute(request, context = {}) {
     if (path[0] === 'creator' && path[1] === 'success-center' && method === 'GET') {
       await requireCreatorUser(request)
       return json(await successCenterService.getResources())
+    }
+
+    if (path[0] === 'support') {
+      if (path[1] === 'categories' && method === 'GET') {
+        return json({ success: true, categories: await supportService.getCategories() })
+      }
+      if (path[1] === 'articles') {
+        if (!path[2] && method === 'GET') {
+          const category = url.searchParams.get('category')
+          const search = url.searchParams.get('search')
+          return json({ success: true, articles: await supportService.getArticles({ category, search }) })
+        }
+        if (path[2] && method === 'GET') {
+          const article = await supportService.getArticleBySlug(path[2])
+          if (!article) throw httpError(404, 'Help article not found')
+          return json({ success: true, article })
+        }
+      }
+      if (path[1] === 'tickets') {
+        const user = await requireCreatorUser(request)
+        if (!path[2] && method === 'GET') {
+          return json({ success: true, tickets: await supportService.listTickets(user.id) })
+        }
+        if (!path[2] && method === 'POST') {
+          const body = await request.json()
+          const ticket = await supportService.createTicket(user.id, body)
+          return json({ success: true, ticket }, 201)
+        }
+        if (path[2] && method === 'GET') {
+          const ticket = await supportService.getTicket(user.id, path[2])
+          if (!ticket) throw httpError(404, 'Support ticket not found')
+          return json({ success: true, ticket })
+        }
+      }
     }
 
     if (path[0] === 'business-card') {
@@ -2135,6 +2222,100 @@ async function processRoute(request, context = {}) {
       const user = await requireCreatorUser(request)
       const body = await request.json()
       return json(await emailMarketingService.sendTestEmail(user.id, body))
+    }
+
+    // ===== Creator Forms & Submissions Management =====
+    if (path[0] === 'forms') {
+      const user = await requireCreatorUser(request)
+
+      if (path.length === 1 && method === 'GET') {
+        const formType = url.searchParams.get('formType') || undefined
+        const status = url.searchParams.get('status') || undefined
+        const forms = await formsService.listForms(user.id, { formType, status })
+        return json({ forms })
+      }
+
+      if (path.length === 1 && method === 'POST') {
+        const body = await request.json().catch(() => ({}))
+        const form = await formsService.createForm(user.id, body)
+        return json({ form }, 201)
+      }
+
+      if (path[1] === 'unread-count' && method === 'GET') {
+        return json(await formsService.getUnreadCount(user.id))
+      }
+
+      if (path[1] === 'stats' && method === 'GET') {
+        return json({ stats: await formsService.getStats(user.id) })
+      }
+
+      if (path[1] === 'submissions') {
+        if (!path[2] && method === 'GET') {
+          const formId = url.searchParams.get('formId') || undefined
+          const formType = url.searchParams.get('formType') || undefined
+          const status = url.searchParams.get('status') || undefined
+          const isRead = url.searchParams.get('isRead') || undefined
+          const search = url.searchParams.get('search') || undefined
+          const page = url.searchParams.get('page') ? parseInt(url.searchParams.get('page'), 10) : 1
+          const limit = url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit'), 10) : 20
+          const result = await formsService.listSubmissions(user.id, { formId, formType, status, isRead, search, page, limit })
+          return json(result)
+        }
+        if (path[2] === 'mark-all-read' && method === 'POST') {
+          const body = await request.json().catch(() => ({}))
+          const result = await formsService.markAllRead(user.id, body)
+          return json({ success: true, ...result })
+        }
+        if (path[2] && method === 'GET') {
+          const submission = await formsService.getSubmission(path[2], user.id)
+          return json({ submission })
+        }
+        if (path[2] && (method === 'PATCH' || method === 'PUT')) {
+          const body = await request.json().catch(() => ({}))
+          if (body.isRead !== undefined && body.status === undefined) {
+            const result = await formsService.markSubmissionRead(path[2], user.id, body.isRead)
+            return json(result)
+          }
+          const updated = await formsService.updateSubmission(path[2], user.id, body)
+          return json({ submission: updated })
+        }
+        if (path[2] && method === 'DELETE') {
+          const result = await formsService.deleteSubmission(path[2], user.id)
+          return json({ success: true, ...result })
+        }
+      }
+
+      if (path[1] === 'subscribers') {
+        if (!path[2] && method === 'GET') {
+          const status = url.searchParams.get('status') || undefined
+          const search = url.searchParams.get('search') || undefined
+          const page = url.searchParams.get('page') ? parseInt(url.searchParams.get('page'), 10) : 1
+          const limit = url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit'), 10) : 20
+          const result = await formsService.listSubscribers(user.id, { status, search, page, limit })
+          return json(result)
+        }
+        if (path[2] && (method === 'PATCH' || method === 'PUT')) {
+          const body = await request.json().catch(() => ({}))
+          const updated = await formsService.updateSubscriber(path[2], user.id, body)
+          return json({ subscriber: updated })
+        }
+      }
+
+      if (path[1] && path.length === 2) {
+        if (method === 'GET') {
+          const form = await formsService.getForm(path[1], user.id)
+          return json({ form })
+        }
+        if (method === 'PATCH' || method === 'PUT') {
+          const body = await request.json().catch(() => ({}))
+          const form = await formsService.updateForm(path[1], user.id, body)
+          return json({ form })
+        }
+        if (method === 'DELETE') {
+          const result = await formsService.deleteForm(path[1], user.id)
+          return json({ success: true, ...result })
+        }
+      }
     }
 
     // ===== Customer Account Routes (authenticated customer/user) =====
@@ -2844,6 +3025,25 @@ async function processRoute(request, context = {}) {
         fileId, fileName: file.name || 'upload', fileSize: buffer.length, fileMime: file.type || 'application/octet-stream',
       })
       return json({ product })
+    }
+
+    // ===== Bundles (Creator) =====
+    if (route === '/bundles' && method === 'POST') {
+      const body = await request.json()
+      const bundle = await bundlesService.create(creatorId, body)
+      return json({ bundle }, 201)
+    }
+    if (path[0] === 'bundles' && path[1] && !path[2] && method === 'GET') {
+      const bundle = await bundlesService.get(creatorId, path[1])
+      return json({ bundle })
+    }
+    if (path[0] === 'bundles' && path[1] && !path[2] && (method === 'PATCH' || method === 'PUT')) {
+      const body = await request.json()
+      const bundle = await bundlesService.update(creatorId, path[1], body)
+      return json({ bundle })
+    }
+    if (path[0] === 'bundles' && path[1] && !path[2] && method === 'DELETE') {
+      return json(await bundlesService.remove(creatorId, path[1]))
     }
 
     // Custom Checkout Fields (Creator)

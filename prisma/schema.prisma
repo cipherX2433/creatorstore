@@ -50,6 +50,10 @@ model User {
   payoutAuditLogs     PayoutAuditLog[]
   subscriptionAuditLogs SubscriptionAuditLog[]
   subscriptionInvoices  SubscriptionInvoice[]
+  supportTickets        SupportTicket[]
+  forms                 Form[]
+  formSubmissions       FormSubmission[]
+  newsletterSubscribers NewsletterSubscriber[]
 
   @@map("users")
 }
@@ -238,10 +242,28 @@ model Product {
   automations      Automation[]
   automationEvents AutomationEvent[]
   coupons          Coupon[]
+  bundleItems      BundleItem[]      @relation("BundleToItems")
+  inBundles        BundleItem[]      @relation("ProductInBundles")
 
   @@unique([creatorId, slug])
   @@index([creatorId, slug], map: "idx_products_creator_slug")
   @@map("products")
+}
+
+model BundleItem {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bundleId  String    @map("bundle_id") @db.Uuid
+  productId String    @map("product_id") @db.Uuid
+  position  Int       @default(0)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  bundle  Product @relation("BundleToItems", fields: [bundleId], references: [id], onDelete: Cascade)
+  product Product @relation("ProductInBundles", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, productId], map: "idx_bundle_items_bundle_product_unique")
+  @@index([bundleId, position], map: "idx_bundle_items_bundle_position")
+  @@map("bundle_items")
 }
 
 model Coupon {
@@ -793,4 +815,105 @@ model OtpVerification {
   @@index([expiresAt], map: "idx_otp_expires_at")
   @@map("otp_verifications")
 }
+
+// ------------------------------------------------------------------------------
+// 9. Help & Support Tickets
+// ------------------------------------------------------------------------------
+
+model SupportTicket {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketNumber String    @unique @map("ticket_number")
+  creatorId    String    @map("creator_id") @db.Uuid
+  subject      String
+  category     String
+  description  String
+  relatedPage  String?   @map("related_page")
+  status       String    @default("OPEN")
+  priority     String    @default("NORMAL")
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId], map: "idx_support_tickets_creator_id")
+  @@index([status], map: "idx_support_tickets_status")
+  @@map("support_tickets")
+}
+
+// ------------------------------------------------------------------------------
+// 10. Forms, Submissions & Subscribers
+// ------------------------------------------------------------------------------
+
+model Form {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId         String    @map("creator_id") @db.Uuid
+  sectionId         String?   @map("section_id") @db.Uuid
+  formType          String    @default("contact") @map("form_type") // contact, feedback, newsletter, qa
+  title             String
+  description       String?
+  buttonText        String?   @map("button_text")
+  successMessage    String?   @map("success_message")
+  notificationEmail String?   @map("notification_email")
+  status            String    @default("PUBLISHED") // PUBLISHED, DRAFT, ARCHIVED
+  settings          Json?     @default("{}")
+  createdAt         DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  creator     User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  submissions FormSubmission[]
+
+  @@index([creatorId, status], map: "idx_forms_creator_status")
+  @@index([sectionId], map: "idx_forms_section_id")
+  @@map("forms")
+}
+
+model FormSubmission {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  formId      String?   @map("form_id") @db.Uuid
+  creatorId   String    @map("creator_id") @db.Uuid
+  formType    String    @default("contact") @map("form_type")
+  name        String?
+  email       String?
+  message     String?
+  rating      Int?
+  isRead      Boolean   @default(false) @map("is_read")
+  status      String    @default("ACTIVE") // ACTIVE, ARCHIVED, SPAM, APPROVED
+  answers     Json?     @default("{}")
+  metadata    Json?     @default("{}")
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  form    Form? @relation(fields: [formId], references: [id], onDelete: SetNull)
+  creator User  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId, isRead], map: "idx_form_submissions_creator_read")
+  @@index([formId, createdAt], map: "idx_form_submissions_form_date")
+  @@index([creatorId, formType], map: "idx_form_submissions_creator_type")
+  @@map("form_submissions")
+}
+
+model NewsletterSubscriber {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId        String    @map("creator_id") @db.Uuid
+  formId           String?   @map("form_id") @db.Uuid
+  email            String
+  name             String?
+  status           String    @default("SUBSCRIBED") // SUBSCRIBED, UNSUBSCRIBED
+  consentGiven     Boolean   @default(true) @map("consent_given")
+  consentText      String?   @map("consent_text")
+  consentTimestamp DateTime? @default(now()) @map("consent_timestamp") @db.Timestamptz
+  source           String?   @default("storefront_form")
+  metadata         Json?     @default("{}")
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([creatorId, email], map: "idx_newsletter_subscribers_creator_email")
+  @@index([creatorId, status], map: "idx_newsletter_subscribers_creator_status")
+  @@map("newsletter_subscribers")
+}
+
+
 
