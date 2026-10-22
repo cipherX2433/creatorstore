@@ -3,20 +3,18 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { motion } from 'framer-motion'
 import { MOBILE_BOTTOM_NAV_ITEMS } from '@/lib/navigationConfig'
+import { BRAND_COLOR } from '@/components/brand/CreatorStoreBrand'
 
 /**
- * MobileBottomNavigation — Floating Active-Pill Bottom Navigation for CreatorStore.
+ * MobileBottomNavigation — Compact fixed bottom dock matching Linktree reference screenshots.
  * 
  * Features:
- * - Floating rounded pill container (solid #0D0D0D opaque surface, subtle border & shadow)
- * - 5 primary destinations: Store, Products, Earn, Insights, More
- * - Inactive destinations show icon only (~44px touch target)
- * - Active destination expands into an active pill with [ icon  Label ]
- * - Smooth layoutId animation moving the active pill between destinations
- * - Solid CreatorStore tokens: #0D0D0D outer surface, #202534 active pill with #194DF5 primary accent
- * - Safe area inset bottom support + zero horizontal overflow across 320px–440px
+ * - Fixed full-width bottom bar (solid white #FFFFFF, subtle top border #E5E5E3)
+ * - 5 equal destinations: My Store, Earn, Audience, Insights, More
+ * - Icon on top, compact label underneath
+ * - Active state highlighted in CreatorStore's signature orange accent (#FF4B1F)
+ * - Respects safe area bottom on mobile devices
  */
 export default function MobileBottomNavigation({ onOpenMore, isMoreOpen = false }) {
   const pathname = usePathname()
@@ -25,17 +23,19 @@ export default function MobileBottomNavigation({ onOpenMore, isMoreOpen = false 
   return (
     <nav
       aria-label="Mobile Bottom Navigation"
-      className="fixed left-0 right-0 z-40 md:hidden flex justify-center pointer-events-none select-none px-3"
+      className="fixed left-0 right-0 bottom-0 z-40 md:hidden bg-[#FFFFFF] border-t border-[#E5E5E3] select-none shadow-[0_-4px_16px_rgba(0,0,0,0.03)]"
       style={{
-        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
     >
-      <div className="pointer-events-auto flex items-center justify-between gap-1 p-1 rounded-full bg-[#FFFFFF] border border-[#E5E5E3] shadow-[0_8px_30px_rgba(0,0,0,0.08)] w-full max-w-[390px]">
+      <div className="grid grid-cols-5 h-[56px] w-full max-w-md mx-auto items-stretch">
         {MOBILE_BOTTOM_NAV_ITEMS.map((item) => {
           const Icon = item.icon
           const isActive = item.isAction
             ? isMoreOpen || item.matches(pathname, searchParams)
             : !isMoreOpen && item.matches(pathname, searchParams)
+
+          const activeColor = BRAND_COLOR // '#FF4B1F'
 
           if (item.isAction) {
             return (
@@ -43,38 +43,26 @@ export default function MobileBottomNavigation({ onOpenMore, isMoreOpen = false 
                 key={item.id}
                 type="button"
                 onClick={onOpenMore}
-                className={`relative flex items-center justify-center min-h-[44px] h-[44px] transition-colors cursor-pointer group shrink-0 ${isActive
-                    ? 'px-3.5 sm:px-4 text-[#FFFFFF]'
-                    : 'w-[44px] min-w-[44px] text-[#6F6F6B] hover:text-[#1F1F1F]'
-                  }`}
+                className="flex flex-col items-center justify-center min-h-[48px] py-1 transition-all cursor-pointer group select-none outline-none focus:outline-none"
                 aria-label="More tools and settings"
                 aria-expanded={isMoreOpen}
               >
-                {isActive && (
-                  <motion.div
-                    layoutId="activeBottomNavPill"
-                    className="absolute inset-0 rounded-full bg-[#1F1F1F] shadow-xs z-0"
-                    transition={{
-                      type: 'spring',
-                      stiffness: 450,
-                      damping: 35,
-                      mass: 0.8,
-                    }}
-                  />
-                )}
-                <div className="relative z-10 flex items-center gap-1.5 sm:gap-2">
+                <div className="relative flex items-center justify-center">
                   <Icon
-                    className={`h-[18px] w-[18px] transition-transform group-active:scale-95 shrink-0 ${isActive
-                        ? 'text-[#FFFFFF] stroke-[2.25]'
-                        : 'stroke-[1.8]'
-                      }`}
+                    className={`h-[20px] w-[20px] transition-transform group-active:scale-95 shrink-0 ${
+                      isActive ? 'stroke-[2.2]' : 'stroke-[1.8] text-[#71717A] group-hover:text-[#1F1F1F]'
+                    }`}
+                    style={isActive ? { color: activeColor } : undefined}
                   />
-                  {isActive && (
-                    <span className="text-xs font-bold tracking-tight text-[#FFFFFF] whitespace-nowrap">
-                      {item.label}
-                    </span>
-                  )}
                 </div>
+                <span
+                  className={`text-[10px] tracking-tight mt-0.5 truncate max-w-[70px] ${
+                    isActive ? 'font-bold' : 'font-medium text-[#71717A] group-hover:text-[#1F1F1F]'
+                  }`}
+                  style={isActive ? { color: activeColor } : undefined}
+                >
+                  {item.label}
+                </span>
               </button>
             )
           }
@@ -83,38 +71,26 @@ export default function MobileBottomNavigation({ onOpenMore, isMoreOpen = false 
             <Link
               key={item.id}
               href={item.href}
-              className={`relative flex items-center justify-center min-h-[44px] h-[44px] transition-colors group shrink-0 ${isActive
-                  ? 'px-3.5 sm:px-4 text-[#FFFFFF]'
-                  : 'w-[44px] min-w-[44px] text-[#6F6F6B] hover:text-[#1F1F1F]'
-                }`}
+              className="flex flex-col items-center justify-center min-h-[48px] py-1 transition-all group select-none outline-none focus:outline-none"
               aria-current={isActive ? 'page' : undefined}
               aria-label={item.label}
             >
-              {isActive && (
-                <motion.div
-                  layoutId="activeBottomNavPill"
-                  className="absolute inset-0 rounded-full bg-[#1F1F1F] shadow-xs z-0"
-                  transition={{
-                    type: 'spring',
-                    stiffness: 450,
-                    damping: 35,
-                    mass: 0.8,
-                  }}
-                />
-              )}
-              <div className="relative z-10 flex items-center gap-1.5 sm:gap-2">
+              <div className="relative flex items-center justify-center">
                 <Icon
-                  className={`h-[18px] w-[18px] transition-transform group-active:scale-95 shrink-0 ${isActive
-                      ? 'text-[#FFFFFF] stroke-[2.25]'
-                      : 'stroke-[1.8]'
-                    }`}
+                  className={`h-[20px] w-[20px] transition-transform group-active:scale-95 shrink-0 ${
+                    isActive ? 'stroke-[2.2]' : 'stroke-[1.8] text-[#71717A] group-hover:text-[#1F1F1F]'
+                  }`}
+                  style={isActive ? { color: activeColor } : undefined}
                 />
-                {isActive && (
-                  <span className="text-xs font-bold tracking-tight text-[#FFFFFF] whitespace-nowrap">
-                    {item.label}
-                  </span>
-                )}
               </div>
+              <span
+                className={`text-[10px] tracking-tight mt-0.5 truncate max-w-[70px] ${
+                  isActive ? 'font-bold' : 'font-medium text-[#71717A] group-hover:text-[#1F1F1F]'
+                }`}
+                style={isActive ? { color: activeColor } : undefined}
+              >
+                {item.label}
+              </span>
             </Link>
           )
         })}

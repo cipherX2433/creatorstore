@@ -166,7 +166,7 @@ export const WIZARD_OPTIONS = [
     description: 'Sell multiple products together as a package',
     icon: Layers,
     color: '#4F46E5',
-    type: 'digital_product',
+    type: 'bundle',
     keywords: 'bundle package multi products collection discount',
   },
   {

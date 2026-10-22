@@ -32,7 +32,8 @@ def run_tests():
         "email": email_a,
         "password": pwd,
         "name": "Creator Alpha",
-        "accountType": "CREATOR"
+        "accountType": "CREATOR",
+        "country": "IN"
     })
     assert res_a.status_code == 200, f"Signup A failed: {res_a.text}"
     user_a = res_a.json()["user"]
@@ -42,7 +43,8 @@ def run_tests():
         "email": email_b,
         "password": pwd,
         "name": "Creator Beta",
-        "accountType": "CREATOR"
+        "accountType": "CREATOR",
+        "country": "IN"
     })
     assert res_b.status_code == 200, f"Signup B failed: {res_b.text}"
     user_b = res_b.json()["user"]

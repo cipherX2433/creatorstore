@@ -18,12 +18,15 @@ import {
   AlertCircle,
   CheckCircle2,
   Tag,
+  Calendar,
+  Layers,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import PurchaseAccessVerification from '@/components/storefront/PurchaseAccessVerification'
 import CountrySelect from '@/components/ui/CountrySelect'
 import { isValidCountryCode } from '@/lib/countries'
 import { openRazorpayProductCheckout } from '@/lib/razorpayClient'
+import { isLightColor, getAccessibleTextColor } from '@/lib/colorContrast'
 import {
   trackProductViewed,
   trackCheckoutStarted,
@@ -45,12 +48,46 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }
 
+function resolveFiles(product, bundleProducts, rawFileName, ext) {
+  if (product?.type === 'BUNDLE' && Array.isArray(bundleProducts) && bundleProducts.length > 0) {
+    const files = []
+    for (const bp of bundleProducts) {
+      if (bp.files && Array.isArray(bp.files) && bp.files.length > 0) {
+        files.push(...bp.files.map(f => ({ ...f, downloadUrl: `/api/download?productId=${bp.id}` })))
+      } else if (bp.fileId) {
+        const fn = bp.fileName || `${bp.slug || 'file'}.pdf`
+        files.push({
+          id: bp.fileId,
+          fileName: fn,
+          fileExtension: (fn.split('.').pop() || 'PDF').toUpperCase(),
+          fileSize: bp.fileSize || 20480,
+          downloadUrl: `/api/download?productId=${bp.id}`,
+        })
+      }
+    }
+    if (files.length > 0) return files
+  }
+  return Array.isArray(product?.files) && product.files.length > 0
+    ? product.files
+    : [
+        {
+          id: product?.fileId || `file_${product?.id}`,
+          fileName: rawFileName,
+          fileExtension: ext,
+          fileSize: product?.fileSize || 18472,
+          fileMime: product?.fileMime || 'image/jpeg',
+          downloadUrl: `/api/download?productId=${product?.id}`,
+        }
+      ]
+}
+
 export default function ProductPurchaseModalFlow({
   product,
   creator,
   isOpen,
   onClose,
   initialStep = 'preview', // 'preview' | 'customer_info' | 'purchase_detail' | 'payment_result'
+  tokens = {},
 }) {
   const router = useRouter()
   const [step, setStep] = useState(initialStep) // 'preview' | 'customer_info' | 'purchase_detail' | 'payment_result'
@@ -89,6 +126,25 @@ export default function ProductPurchaseModalFlow({
       if (savedCountry && !country && isValidCountryCode(savedCountry)) setCountry(savedCountry)
     }
   }, [])
+
+  const [bundleProducts, setBundleProducts] = useState(product?.bundleProducts || [])
+
+  useEffect(() => {
+    if (product?.type === 'BUNDLE' && product?.id) {
+      if (Array.isArray(product.bundleProducts) && product.bundleProducts.length > 0) {
+        setBundleProducts(product.bundleProducts)
+      } else {
+        fetch(`/api/bundles/${product.id}/public`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (Array.isArray(data?.products)) {
+              setBundleProducts(data.products)
+            }
+          })
+          .catch(() => {})
+      }
+    }
+  }, [product?.id, product?.type])
 
   // Sync initial step when product changes or modal opens
   useEffect(() => {
@@ -178,18 +234,24 @@ export default function ProductPurchaseModalFlow({
   // Resolve files list
   const rawFileName = product.fileName || `${product.slug || 'asset'}.jpg`
   const ext = (rawFileName.split('.').pop() || 'JPG').toUpperCase()
-  const resolvedFiles = Array.isArray(product.files) && product.files.length > 0
-    ? product.files
-    : [
-        {
-          id: product.fileId || `file_${product.id}`,
-          fileName: rawFileName,
-          fileExtension: ext,
-          fileSize: product.fileSize || 18472,
-          fileMime: product.fileMime || 'image/jpeg',
-          downloadUrl: `/api/download?productId=${product.id}`,
-        }
-      ]
+  const resolvedFiles = resolveFiles(product, bundleProducts, rawFileName, ext)
+
+  // Derive theme styling from tokens if provided
+  const surfaceBg = tokens?.cards?.bg || tokens?.colors?.surface || tokens?.colors?.cardBg || '#FFFFFF'
+  const isDarkSurface = !isLightColor(surfaceBg)
+  const textPrimary = tokens?.colors?.text || (isDarkSurface ? '#F4F4F5' : '#18181B')
+  const textSecondary = tokens?.colors?.mutedText || (isDarkSurface ? '#A1A1AA' : '#71717A')
+  const borderColor = tokens?.cards?.border || tokens?.colors?.border || (isDarkSurface ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)')
+
+  const innerBg = isDarkSurface ? 'rgba(255, 255, 255, 0.06)' : '#F4F4F5'
+  const innerItemBg = isDarkSurface ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF'
+  const innerBorderColor = isDarkSurface ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'
+
+  const buttonBg = tokens?.buttons?.color || tokens?.colors?.buttonColor || tokens?.colors?.primaryColor || (isDarkSurface ? '#FFFFFF' : '#000000')
+  const buttonTextColor = tokens?.buttons?.textColor || tokens?.colors?.buttonText || (isDarkSurface ? '#000000' : '#FFFFFF')
+  const buttonRadius = tokens?.buttons?.radius !== undefined ? `${tokens.buttons.radius}px` : '9999px'
+  const cardRadius = tokens?.cards?.radius !== undefined ? `${Math.min(32, Math.max(16, tokens.cards.radius))}px` : '28px'
+  const fontStyle = tokens?.typography?.fontFamily ? { fontFamily: tokens.typography.fontFamily } : {}
 
   // Copy share link
   const handleShare = async () => {
@@ -560,124 +622,275 @@ export default function ProductPurchaseModalFlow({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose?.()
       }}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="modal-bundle-title"
     >
       <div
         ref={modalRef}
-        className="relative w-full max-w-[430px] bg-white text-zinc-900 rounded-[32px] p-6 sm:p-7 shadow-2xl flex flex-col items-center overflow-y-auto max-h-[92vh] animate-in zoom-in-95 duration-200 border border-zinc-100/90 font-sans"
+        style={{
+          backgroundColor: surfaceBg,
+          borderColor: borderColor,
+          color: textPrimary,
+          borderRadius: cardRadius,
+          ...fontStyle,
+        }}
+        className="relative w-full max-w-[480px] sm:max-w-[500px] max-h-[calc(100dvh-32px)] flex flex-col shadow-2xl overflow-hidden border transition-all animate-in zoom-in-95 duration-200 font-sans"
       >
         {/* ============================================================ */}
-        {/* STEP 1: PRODUCT PREVIEW MODAL (Screenshot 2)                 */}
+        {/* STEP 1: PRODUCT / BUNDLE PREVIEW MODAL                       */}
         {/* ============================================================ */}
         {step === 'preview' && (
-          <div className="w-full flex flex-col items-center animate-in fade-in duration-200">
-            {/* Top Product Title */}
-            <h2 className="text-sm font-semibold text-zinc-800 mb-4 truncate max-w-[280px] text-center">
-              {productTitle}
-            </h2>
-
-            {/* Large Product Image Preview */}
-            <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-200/50 shadow-xs relative">
-              {productThumbnail ? (
-                <img
-                  src={productThumbnail}
-                  alt={productTitle}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-tr from-zinc-100 to-zinc-200 text-zinc-400">
-                  <FileText className="h-12 w-12 stroke-[1.5]" />
-                </div>
-              )}
-            </div>
-
-            {/* Product Title Below Image */}
-            <h3 className="text-xl font-bold text-zinc-950 text-center mt-4 leading-tight">
-              {productTitle}
-            </h3>
-
-            {/* Creator Row */}
-            <div className="flex items-center justify-center gap-1.5 mt-1.5 text-xs text-zinc-600 font-medium">
-              {creatorAvatar ? (
-                <img
-                  src={creatorAvatar}
-                  alt={creatorUsername}
-                  className="h-4 w-4 rounded-full object-cover border border-zinc-200"
-                />
-              ) : (
-                <div className="h-4 w-4 rounded-full bg-zinc-200 text-zinc-700 font-bold text-[9px] flex items-center justify-center">
-                  {creatorUsername.slice(0, 1).toUpperCase()}
-                </div>
-              )}
-              <span>by {creatorUsername.startsWith('@') ? creatorUsername : `@${creatorUsername}`}</span>
-            </div>
-
-            {/* Price Display */}
-            <div className="mt-2 text-center">
-              <span className={`text-base font-bold ${isFree ? 'text-zinc-600' : 'text-zinc-950'}`}>
-                {isFree ? 'Free' : formattedPrice}
-              </span>
-            </div>
-
-            {/* Primary CTA */}
-            <button
-              type="button"
-              onClick={handlePreviewDownloadClick}
-              className="w-full bg-black text-white hover:bg-zinc-800 rounded-full py-3.5 px-6 font-semibold text-sm flex items-center justify-center gap-2 mt-4 transition-all shadow-md active:scale-[0.99] cursor-pointer"
+          <div className="w-full flex flex-col h-full min-h-0 animate-in fade-in duration-200">
+            {/* 1. Top Header Bar: Title/Header & Action Controls */}
+            <div
+              className="shrink-0 px-5 sm:px-6 py-3.5 sm:py-4 border-b flex items-center justify-between"
+              style={{ borderColor: innerBorderColor }}
             >
-              {isFree ? (
-                <>
-                  <Download className="h-4 w-4 stroke-[2.5]" />
-                  <span>Download</span>
-                </>
-              ) : (
-                <span>Buy now</span>
-              )}
-            </button>
-
-            {/* Product Description */}
-            <p className="text-xs text-zinc-500 leading-relaxed text-left sm:text-center mt-4 px-1">
-              {productDescription}
-            </p>
-
-            {/* Already downloaded? See all past downloads */}
-            <div className="mt-4 text-center">
-              <span className="text-xs text-zinc-500">Already downloaded? </span>
-              <button
-                type="button"
-                onClick={handleSeeAllPastDownloads}
-                className="text-xs text-zinc-900 underline underline-offset-2 hover:text-black font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 rounded-xs cursor-pointer inline-flex items-center gap-1.5"
+              <div
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+                style={{ backgroundColor: innerBg, color: textSecondary }}
               >
-                <span>See all past downloads</span>
-              </button>
+                {product?.type === 'BUNDLE' ? (
+                  <>
+                    <Layers className="h-3.5 w-3.5 shrink-0" />
+                    <span>Product Bundle</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-3.5 w-3.5 shrink-0" />
+                    <span>Digital Product</span>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  aria-label="Share product"
+                  title={isCopied ? 'Link copied!' : 'Share link'}
+                  className="h-9 w-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs"
+                  style={{
+                    backgroundColor: innerItemBg,
+                    borderColor: innerBorderColor,
+                    borderWidth: '1px',
+                    borderStyle: 'solid',
+                    color: isCopied ? '#10B981' : textSecondary,
+                  }}
+                >
+                  {isCopied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close modal"
+                  title="Close"
+                  className="h-9 w-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs"
+                  style={{
+                    backgroundColor: innerItemBg,
+                    borderColor: innerBorderColor,
+                    borderWidth: '1px',
+                    borderStyle: 'solid',
+                    color: textSecondary,
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
-            {/* Bottom Right Floating Action Controls (Share + Close) */}
-            <div className="w-full flex items-center justify-end gap-2.5 mt-6 pt-2">
-              <button
-                type="button"
-                onClick={handleShare}
-                aria-label="Share product"
-                title="Share link"
-                className="h-10 w-10 rounded-full bg-white border border-zinc-200/90 flex items-center justify-center text-zinc-600 hover:text-black hover:bg-zinc-50 shadow-sm transition-all cursor-pointer"
-              >
-                {isCopied ? <Check className="h-4 w-4 text-emerald-600" /> : <Share2 className="h-4 w-4" />}
-              </button>
+            {/* Independently Scrollable Main Content */}
+            <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-4 sm:py-5 min-h-0">
+              <div className="w-full flex flex-col items-center">
+                {/* 2. Bundle thumbnail or product preview */}
+                <div
+                  className="w-full aspect-[16/10] sm:aspect-[16/10] rounded-2xl overflow-hidden relative shadow-xs shrink-0"
+                  style={{
+                    backgroundColor: innerBg,
+                    borderColor: innerBorderColor,
+                    borderWidth: '1px',
+                    borderStyle: 'solid',
+                  }}
+                >
+                  {productThumbnail ? (
+                    <img
+                      src={productThumbnail}
+                      alt={productTitle}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-full flex flex-col items-center justify-center"
+                      style={{ color: textSecondary }}
+                    >
+                      {product?.type === 'BUNDLE' ? (
+                        <Layers className="h-12 w-12 stroke-[1.5]" />
+                      ) : (
+                        <FileText className="h-12 w-12 stroke-[1.5]" />
+                      )}
+                    </div>
+                  )}
+                </div>
 
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close modal"
-                title="Close"
-                className="h-10 w-10 rounded-full bg-white border border-zinc-200/90 flex items-center justify-center text-zinc-600 hover:text-black hover:bg-zinc-50 shadow-sm transition-all cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
+                {/* 3. Bundle title and creator attribution */}
+                <h1
+                  id="modal-bundle-title"
+                  className="text-xl sm:text-2xl font-bold text-center mt-4 leading-tight tracking-tight break-words px-1"
+                  style={{ color: textPrimary }}
+                >
+                  {productTitle}
+                </h1>
+
+                <div
+                  className="flex items-center justify-center gap-1.5 mt-1.5 text-xs font-medium"
+                  style={{ color: textSecondary }}
+                >
+                  {creatorAvatar ? (
+                    <img
+                      src={creatorAvatar}
+                      alt=""
+                      className="h-4 w-4 rounded-full object-cover border"
+                      style={{ borderColor: innerBorderColor }}
+                    />
+                  ) : (
+                    <div
+                      className="h-4 w-4 rounded-full font-bold text-[9px] flex items-center justify-center"
+                      style={{ backgroundColor: innerBg, color: textPrimary }}
+                    >
+                      {creatorUsername.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <span>by {creatorUsername.startsWith('@') ? creatorUsername : `@${creatorUsername}`}</span>
+                </div>
+
+                {/* 4. Price */}
+                <div className="mt-2 text-center">
+                  <span
+                    className="text-lg sm:text-xl font-bold tracking-tight"
+                    style={{ color: textPrimary }}
+                  >
+                    {isFree ? 'Free' : formattedPrice}
+                  </span>
+                </div>
+
+                {/* 5. Primary “Buy now” button */}
+                <button
+                  type="button"
+                  onClick={handlePreviewDownloadClick}
+                  style={{
+                    backgroundColor: buttonBg,
+                    color: buttonTextColor,
+                    borderRadius: buttonRadius,
+                  }}
+                  className="w-full h-12 font-semibold text-sm sm:text-base flex items-center justify-center gap-2 mt-4 transition-all shadow-md active:scale-[0.99] cursor-pointer hover:opacity-95"
+                >
+                  {isFree ? (
+                    <>
+                      <Download className="h-4 w-4 stroke-[2.5]" />
+                      <span>Download</span>
+                    </>
+                  ) : (
+                    <span>Buy now</span>
+                  )}
+                </button>
+
+                {/* 6. Bundle description */}
+                <p
+                  className="w-full text-xs sm:text-sm leading-relaxed text-center sm:text-left mt-4 px-1 break-words"
+                  style={{ color: textSecondary }}
+                >
+                  {productDescription}
+                </p>
+
+                {/* 7. Included products section */}
+                {product?.type === 'BUNDLE' && bundleProducts.length > 0 && (
+                  <div
+                    className="w-full mt-4 p-3.5 sm:p-4 rounded-2xl text-left space-y-2.5"
+                    style={{
+                      backgroundColor: innerBg,
+                      borderColor: innerBorderColor,
+                      borderWidth: '1px',
+                      borderStyle: 'solid',
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p
+                        className="text-[11px] font-bold uppercase tracking-wider"
+                        style={{ color: textSecondary }}
+                      >
+                        Includes {bundleProducts.length} {bundleProducts.length === 1 ? 'product' : 'products'}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      {bundleProducts.map((bp) => (
+                        <div
+                          key={bp.id}
+                          className="flex items-center gap-3 p-2.5 sm:p-3 rounded-xl transition-colors"
+                          style={{
+                            backgroundColor: innerItemBg,
+                            borderColor: innerBorderColor,
+                            borderWidth: '1px',
+                            borderStyle: 'solid',
+                          }}
+                        >
+                          <div
+                            className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
+                            style={{ backgroundColor: innerBg }}
+                          >
+                            {bp.type === 'COACHING' ? (
+                              <Calendar className="h-4 w-4" style={{ color: textPrimary }} />
+                            ) : (
+                              <Download className="h-4 w-4" style={{ color: textPrimary }} />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className="truncate font-medium text-xs sm:text-sm leading-snug"
+                              style={{ color: textPrimary }}
+                            >
+                              {bp.title}
+                            </p>
+                            <p
+                              className="text-[11px] font-normal leading-tight mt-0.5"
+                              style={{ color: textSecondary }}
+                            >
+                              {bp.type === 'COACHING' ? '1:1 Session' : (bp.type === 'BUNDLE' ? 'Bundle' : 'Digital download')}
+                            </p>
+                          </div>
+                          <span
+                            className="text-[11px] font-semibold shrink-0 px-2 py-0.5 rounded-md"
+                            style={{ backgroundColor: innerBg, color: textSecondary }}
+                          >
+                            Included
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 8. Existing download-related links */}
+                <div className="mt-4 pt-1 pb-1 text-center">
+                  <span className="text-xs" style={{ color: textSecondary }}>
+                    Already downloaded?{' '}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleSeeAllPastDownloads}
+                    className="text-xs font-semibold underline underline-offset-2 hover:opacity-80 transition-opacity cursor-pointer inline-flex items-center gap-1"
+                    style={{ color: textPrimary }}
+                  >
+                    <span>See all past downloads</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -686,68 +899,112 @@ export default function ProductPurchaseModalFlow({
         {/* STEP: EXISTING PURCHASE FOUND (Linktree Reference)           */}
         {/* ============================================================ */}
         {step === 'existing_purchase' && (
-          <div className="w-full flex flex-col items-center text-center animate-in fade-in duration-200">
-            {/* Small Product Thumbnail */}
-            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-200/60 shadow-xs relative mb-3">
-              {productThumbnail ? (
-                <img
-                  src={productThumbnail}
-                  alt={productTitle}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-zinc-100 text-zinc-400">
-                  <FileText className="h-7 w-7" />
-                </div>
-              )}
+          <div className="w-full flex flex-col h-full min-h-0 animate-in fade-in duration-200">
+            {/* Top Navigation Bar */}
+            <div
+              className="shrink-0 px-5 sm:px-6 py-3.5 sm:py-4 border-b flex items-center justify-between"
+              style={{ borderColor: innerBorderColor }}
+            >
+              <div />
+              <h2
+                className="text-xs sm:text-sm font-semibold truncate max-w-[220px] text-center"
+                style={{ color: textPrimary }}
+              >
+                {productTitle}
+              </h2>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close modal"
+                className="h-9 w-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs"
+                style={{
+                  backgroundColor: innerItemBg,
+                  borderColor: innerBorderColor,
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
+                  color: textSecondary,
+                }}
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
-            {/* Product Title */}
-            <h3 className="text-base font-bold text-zinc-950 text-center leading-tight">
-              {productTitle}
-            </h3>
-
-            {/* Success Check Icon */}
-            <div className="mt-4 flex items-center justify-center">
-              <div className="h-10 w-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-xs">
-                <CheckCircle2 className="h-5 w-5" />
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-6 min-h-0 flex flex-col items-center text-center">
+              {/* Small Product Thumbnail */}
+              <div
+                className="w-16 h-16 rounded-2xl overflow-hidden shadow-xs relative mb-3 border shrink-0"
+                style={{
+                  backgroundColor: innerBg,
+                  borderColor: innerBorderColor,
+                }}
+              >
+                {productThumbnail ? (
+                  <img
+                    src={productThumbnail}
+                    alt={productTitle}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center" style={{ color: textSecondary }}>
+                    <FileText className="h-7 w-7" />
+                  </div>
+                )}
               </div>
+
+              {/* Product Title */}
+              <h3 className="text-base font-bold text-center leading-tight" style={{ color: textPrimary }}>
+                {productTitle}
+              </h3>
+
+              {/* Success Check Icon */}
+              <div className="mt-4 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shadow-xs">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+              </div>
+
+              {/* Notice Heading */}
+              <h4 className="text-base font-extrabold mt-3 leading-snug" style={{ color: textPrimary }}>
+                An existing purchase was found with this email address
+              </h4>
+
+              {/* Notice Subtitle */}
+              <p className="text-xs mt-1 max-w-[320px] leading-relaxed" style={{ color: textSecondary }}>
+                Your previous purchase is available. You already have access to this product.
+              </p>
+
+              {/* View download button */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/notifications') && !window.location.pathname.startsWith('/purchases')) {
+                    onClose?.()
+                    router.push(`/notifications/settings?listingId=${product.id || product.productId}&openPurchase=true`)
+                  } else {
+                    setStep('purchase_detail')
+                  }
+                }}
+                style={{
+                  backgroundColor: buttonBg,
+                  color: buttonTextColor,
+                  borderRadius: buttonRadius,
+                }}
+                className="w-full h-12 font-bold text-sm flex items-center justify-center gap-2 mt-6 transition-all shadow-md active:scale-[0.99] cursor-pointer hover:opacity-95"
+              >
+                <span>View download</span>
+              </button>
+
+              {/* Close button */}
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-4 text-xs font-semibold hover:opacity-80 transition-opacity cursor-pointer"
+                style={{ color: textSecondary }}
+              >
+                Close
+              </button>
             </div>
-
-            {/* Notice Heading */}
-            <h4 className="text-base font-extrabold text-zinc-950 mt-3 leading-snug">
-              An existing purchase was found with this email address
-            </h4>
-
-            {/* Notice Subtitle */}
-            <p className="text-xs text-zinc-600 mt-1 max-w-[320px] leading-relaxed">
-              Your previous purchase is available. You already have access to this product.
-            </p>
-
-            {/* View download button */}
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/notifications') && !window.location.pathname.startsWith('/purchases')) {
-                  onClose?.()
-                  router.push(`/notifications/settings?listingId=${product.id || product.productId}&openPurchase=true`)
-                } else {
-                  setStep('purchase_detail')
-                }
-              }}
-              className="w-full bg-black text-white hover:bg-zinc-800 rounded-full py-3.5 px-6 font-bold text-sm flex items-center justify-center gap-2 mt-6 transition-all shadow-md active:scale-[0.99] cursor-pointer"
-            >
-              <span>View download</span>
-            </button>
-
-            {/* Close button */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="mt-4 text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors cursor-pointer"
-            >
-              Close
-            </button>
           </div>
         )}
 
@@ -755,33 +1012,50 @@ export default function ProductPurchaseModalFlow({
         {/* STEP: ACCESS RECOVERY (EMAIL & OTP)                          */}
         {/* ============================================================ */}
         {step === 'verify_access' && (
-          <PurchaseAccessVerification
-            initialEmail={email}
-            initialName={name}
-            variant="modal"
-            onSuccess={handleVerificationSuccess}
-            onCancel={() => setStep('preview')}
-          />
+          <div className="w-full flex flex-col h-full min-h-0 animate-in fade-in duration-200">
+            <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-4 sm:py-5 min-h-0">
+              <PurchaseAccessVerification
+                initialEmail={email}
+                initialName={name}
+                variant="modal"
+                onSuccess={handleVerificationSuccess}
+                onCancel={() => setStep('preview')}
+              />
+            </div>
+          </div>
         )}
 
         {/* ============================================================ */}
         {/* STEP 2: CUSTOMER INFORMATION FORM (Screenshot 3)             */}
         {/* ============================================================ */}
         {step === 'customer_info' && (
-          <div className="w-full flex flex-col items-center animate-in fade-in duration-200">
+          <div className="w-full flex flex-col h-full min-h-0 animate-in fade-in duration-200">
             {/* Top Navigation Bar: Back | Title | Close */}
-            <div className="w-full flex items-center justify-between border-b border-zinc-100 pb-2.5 mb-3">
+            <div
+              className="shrink-0 px-5 sm:px-6 py-3.5 sm:py-4 border-b flex items-center justify-between"
+              style={{ borderColor: innerBorderColor }}
+            >
               <button
                 type="button"
                 onClick={() => setStep('preview')}
                 aria-label="Back to overview"
                 title="Back"
-                className="p-1 rounded-full text-zinc-500 hover:text-black hover:bg-zinc-100 transition-colors cursor-pointer"
+                className="h-9 w-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs"
+                style={{
+                  backgroundColor: innerItemBg,
+                  borderColor: innerBorderColor,
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
+                  color: textSecondary,
+                }}
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
 
-              <h2 className="text-xs font-semibold text-zinc-600 truncate max-w-[220px] text-center">
+              <h2
+                className="text-xs sm:text-sm font-semibold truncate max-w-[220px] text-center"
+                style={{ color: textPrimary }}
+              >
                 {productTitle}
               </h2>
 
@@ -790,286 +1064,312 @@ export default function ProductPurchaseModalFlow({
                 onClick={onClose}
                 aria-label="Close modal"
                 title="Close"
-                className="p-1 rounded-full text-zinc-500 hover:text-black hover:bg-zinc-100 transition-colors cursor-pointer"
+                className="h-9 w-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs"
+                style={{
+                  backgroundColor: innerItemBg,
+                  borderColor: innerBorderColor,
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
+                  color: textSecondary,
+                }}
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Small Product Thumbnail */}
-            <div className="w-14 h-14 rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-200/60 shadow-xs relative">
-              {productThumbnail ? (
-                <img
-                  src={productThumbnail}
-                  alt={productTitle}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-zinc-100 text-zinc-400">
-                  <FileText className="h-6 w-6" />
-                </div>
-              )}
-            </div>
-
-            {/* Product Title */}
-            <h3 className="text-base font-bold text-zinc-950 text-center mt-2.5 leading-tight">
-              {productTitle}
-            </h3>
-
-            {/* Creator Row */}
-            <div className="flex items-center justify-center gap-1.5 mt-0.5 text-xs text-zinc-500 font-medium">
-              {creatorAvatar ? (
-                <img
-                  src={creatorAvatar}
-                  alt={creatorUsername}
-                  className="h-3.5 w-3.5 rounded-full object-cover border border-zinc-200"
-                />
-              ) : (
-                <div className="h-3.5 w-3.5 rounded-full bg-zinc-200 text-zinc-700 font-bold text-[8px] flex items-center justify-center">
-                  {creatorUsername.slice(0, 1).toUpperCase()}
-                </div>
-              )}
-              <span>{creatorUsername.startsWith('@') ? creatorUsername : `@${creatorUsername}`}</span>
-            </div>
-
-            {/* Price & Currency Badge */}
-            <div className="mt-2 text-center flex flex-col items-center gap-1">
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                <span className={`text-sm font-bold ${isFree ? 'text-zinc-600' : 'text-zinc-950'}`}>
-                  {isFree ? 'Free' : (currencyPreview ? `${currencyPreview.symbol}${currencyPreview.convertedAmount} ${currencyPreview.targetCurrency}` : formattedPrice)}
-                </span>
-                {!isFree && (
-                  <select
-                    value={selectedCurrency}
-                    onChange={(e) => setSelectedCurrency(e.target.value)}
-                    className="text-xs font-semibold bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded-lg px-2 py-0.5 outline-none cursor-pointer transition-colors"
-                  >
-                    {['USD', 'INR', 'EUR', 'GBP', 'CAD', 'AUD', 'AED', 'SGD', 'JPY'].map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              {!isFree && currencyPreview && currencyPreview.targetCurrency !== currencyPreview.originalCurrency && (
-                <div className="text-[11px] text-zinc-500 font-medium">
-                  {currencyPreview.isEstimated ? 'Estimated from ' : 'Original: '}
-                  {currency === 'INR' ? '₹' : (currency === 'USD' ? '$' : '')}{currencyPreview.originalPrice} {currencyPreview.originalCurrency}
-                </div>
-              )}
-              {currencyPreview && !currencyPreview.isValidMinimum && (
-                <div className="text-xs text-red-600 font-medium mt-1">
-                  {currencyPreview.minErrorMessage}
-                </div>
-              )}
-            </div>
-
-            {/* Form Section */}
-            <form onSubmit={handleSubmitCustomerInfo} className="w-full mt-5 text-left">
-              <h4 className="text-sm font-bold text-zinc-900 mb-3">Your information</h4>
-
-              {/* Name Field */}
-              <div className="space-y-1 mb-3">
-                <label className="block text-xs font-semibold text-zinc-700">
-                  Name (required)
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value)
-                    if (errors.name) setErrors(prev => ({ ...prev, name: null }))
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-4 sm:py-5 min-h-0">
+              <div className="w-full flex flex-col items-center">
+                {/* Small Product Thumbnail */}
+                <div
+                  className="w-14 h-14 rounded-2xl overflow-hidden shadow-xs relative border shrink-0"
+                  style={{
+                    backgroundColor: innerBg,
+                    borderColor: innerBorderColor,
                   }}
-                  placeholder=""
-                  className={`w-full bg-[#F4F4F5] hover:bg-[#ECECED] focus:bg-white text-zinc-900 border ${
-                    errors.name ? 'border-red-400 focus:border-red-500' : 'border-transparent focus:border-zinc-300'
-                  } rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all`}
-                  disabled={isSubmitting}
-                />
-                {errors.name && (
-                  <p className="text-[11px] font-medium text-red-500">{errors.name}</p>
-                )}
-              </div>
-
-              {/* Email Field */}
-              <div className="space-y-1 mb-3">
-                <label className="block text-xs font-semibold text-zinc-700">
-                  Email (required)
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value)
-                    if (errors.email) setErrors(prev => ({ ...prev, email: null }))
-                  }}
-                  placeholder=""
-                  className={`w-full bg-[#F4F4F5] hover:bg-[#ECECED] focus:bg-white text-zinc-900 border ${
-                    errors.email ? 'border-red-400 focus:border-red-500' : 'border-transparent focus:border-zinc-300'
-                  } rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all`}
-                  disabled={isSubmitting}
-                />
-                {errors.email && (
-                  <p className="text-[11px] font-medium text-red-500">{errors.email}</p>
-                )}
-              </div>
-
-              {/* Country Field */}
-              <div className="space-y-1 mb-3.5">
-                <CountrySelect
-                  id="checkout-country-select"
-                  value={country}
-                  onChange={(c) => {
-                    setCountry(c)
-                    if (errors.country) setErrors(prev => ({ ...prev, country: null }))
-                  }}
-                  error={errors.country}
-                  disabled={isSubmitting}
-                  required={true}
-                  theme="light"
-                  label="Country (required)"
-                  placeholder="Select your country..."
-                />
-              </div>
-
-              {/* Mailing list opt-in checkbox */}
-              <label className="flex items-start gap-2.5 mt-3.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={mailingListOptIn}
-                  onChange={(e) => setMailingListOptIn(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-black focus:ring-black accent-black cursor-pointer"
-                />
-                <span className="text-xs text-zinc-600 leading-snug">
-                  Join {creatorUsername.replace('@', '')}&apos;s mailing list
-                </span>
-              </label>
-
-              {/* Required Terms & Updates Consent */}
-              <label className="flex items-start gap-2.5 mt-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={consentAccepted}
-                  onChange={(e) => {
-                    setConsentAccepted(e.target.checked)
-                    if (errors.consent) setErrors(prev => ({ ...prev, consent: null }))
-                  }}
-                  className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-black focus:ring-black accent-black cursor-pointer"
-                />
-                <span className="text-xs text-zinc-600 leading-snug">
-                  I agree to receive email updates from CreatorStore. Unsubscribe anytime.{' '}
-                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline font-medium text-zinc-800 hover:text-black">
-                    Terms & Privacy
-                  </a>.
-                </span>
-              </label>
-              {errors.consent && (
-                <p className="text-[11px] font-medium text-red-500 mt-1">{errors.consent}</p>
-              )}
-
-              {/* Have a Coupon Code Section */}
-              {!isFree && (
-                <div className="pt-2.5 border-t border-zinc-100 space-y-2 mt-3 select-none">
-                  {appliedCoupon ? (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <Tag className="h-4 w-4 text-emerald-600 shrink-0" />
-                        <div>
-                          <span className="font-mono font-bold text-emerald-800 tracking-wider">
-                            {appliedCoupon.couponCode}
-                          </span>
-                          <span className="ml-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1 py-0.5 rounded">
-                            {appliedCoupon.discountType === 'PERCENTAGE'
-                              ? `${appliedCoupon.discountValue}% OFF`
-                              : `₹${appliedCoupon.discountValue} OFF`}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRemoveCoupon}
-                        className="text-emerald-800 hover:text-red-600 p-1 rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer"
-                        title="Remove Coupon"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ) : showCouponInput ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="COUPON CODE"
-                        value={couponCodeInput}
-                        onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
-                        className="h-9 px-3 text-xs uppercase font-mono font-bold rounded-xl border border-zinc-200 text-zinc-900 bg-zinc-50 flex-1 outline-none focus:bg-white focus:border-zinc-300"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleApplyCoupon}
-                        disabled={validatingCoupon || !couponCodeInput.trim()}
-                        className="h-9 px-3.5 text-xs font-bold rounded-xl bg-black text-white hover:bg-zinc-800 shrink-0 cursor-pointer disabled:opacity-50 transition-colors"
-                      >
-                        {validatingCoupon ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Apply'}
-                      </button>
-                    </div>
+                >
+                  {productThumbnail ? (
+                    <img
+                      src={productThumbnail}
+                      alt={productTitle}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setShowCouponInput(true)}
-                      className="text-xs font-bold text-zinc-600 hover:text-zinc-900 flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Tag className="h-3.5 w-3.5" /> Have a coupon code?
-                    </button>
+                    <div className="w-full h-full flex items-center justify-center" style={{ color: textSecondary }}>
+                      <FileText className="h-6 w-6" />
+                    </div>
                   )}
                 </div>
-              )}
 
-              {/* General Form Error */}
-              {errors.form && (
-                <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl p-2.5 mt-3 text-center">
-                  {errors.form}
-                </p>
-              )}
+                {/* Product Title */}
+                <h3 className="text-base font-bold text-center mt-2.5 leading-tight" style={{ color: textPrimary }}>
+                  {productTitle}
+                </h3>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-black text-white hover:bg-zinc-800 disabled:opacity-60 rounded-full py-3.5 px-6 font-semibold text-sm flex items-center justify-center gap-2 mt-5 transition-all shadow-md active:scale-[0.99] cursor-pointer"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Checking your purchase...</span>
-                  </>
-                ) : errors.form ? (
-                  <span>Try again</span>
-                ) : (
-                  <span>Continue</span>
-                )}
-              </button>
-            </form>
+                {/* Creator Row */}
+                <div className="flex items-center justify-center gap-1.5 mt-0.5 text-xs font-medium" style={{ color: textSecondary }}>
+                  {creatorAvatar ? (
+                    <img
+                      src={creatorAvatar}
+                      alt={creatorUsername}
+                      className="h-3.5 w-3.5 rounded-full object-cover border"
+                      style={{ borderColor: innerBorderColor }}
+                    />
+                  ) : (
+                    <div
+                      className="h-3.5 w-3.5 rounded-full font-bold text-[8px] flex items-center justify-center"
+                      style={{ backgroundColor: innerBg, color: textPrimary }}
+                    >
+                      {creatorUsername.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <span>by {creatorUsername.startsWith('@') ? creatorUsername : `@${creatorUsername}`}</span>
+                </div>
 
-            {/* Bottom Right Floating Action Controls (Share + Close) */}
-            <div className="w-full flex items-center justify-end gap-2.5 mt-5 pt-1">
-              <button
-                type="button"
-                onClick={handleShare}
-                aria-label="Share product"
-                title="Share link"
-                className="h-10 w-10 rounded-full bg-white border border-zinc-200/90 flex items-center justify-center text-zinc-600 hover:text-black hover:bg-zinc-50 shadow-sm transition-all cursor-pointer"
-              >
-                {isCopied ? <Check className="h-4 w-4 text-emerald-600" /> : <Share2 className="h-4 w-4" />}
-              </button>
+                {/* Price & Currency Badge */}
+                <div className="mt-2 text-center flex flex-col items-center gap-1">
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    <span className="text-sm font-bold" style={{ color: textPrimary }}>
+                      {isFree ? 'Free' : (currencyPreview ? `${currencyPreview.symbol}${currencyPreview.convertedAmount} ${currencyPreview.targetCurrency}` : formattedPrice)}
+                    </span>
+                    {!isFree && (
+                      <select
+                        value={selectedCurrency}
+                        onChange={(e) => setSelectedCurrency(e.target.value)}
+                        className="text-xs font-semibold rounded-lg px-2 py-0.5 outline-none cursor-pointer transition-colors border"
+                        style={{
+                          backgroundColor: innerItemBg,
+                          borderColor: innerBorderColor,
+                          color: textPrimary,
+                        }}
+                      >
+                        {['USD', 'INR', 'EUR', 'GBP', 'CAD', 'AUD', 'AED', 'SGD', 'JPY'].map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  {!isFree && currencyPreview && currencyPreview.targetCurrency !== currencyPreview.originalCurrency && (
+                    <div className="text-[11px] font-medium" style={{ color: textSecondary }}>
+                      {currencyPreview.isEstimated ? 'Estimated from ' : 'Original: '}
+                      {currency === 'INR' ? '₹' : (currency === 'USD' ? '$' : '')}{currencyPreview.originalPrice} {currencyPreview.originalCurrency}
+                    </div>
+                  )}
+                  {currencyPreview && !currencyPreview.isValidMinimum && (
+                    <div className="text-xs text-red-600 font-medium mt-1">
+                      {currencyPreview.minErrorMessage}
+                    </div>
+                  )}
+                </div>
 
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close modal"
-                title="Close"
-                className="h-10 w-10 rounded-full bg-white border border-zinc-200/90 flex items-center justify-center text-zinc-600 hover:text-black hover:bg-zinc-50 shadow-sm transition-all cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
+                {/* Form Section */}
+                <form onSubmit={handleSubmitCustomerInfo} className="w-full mt-5 text-left">
+                  <h4 className="text-sm font-bold mb-3" style={{ color: textPrimary }}>Your information</h4>
+
+                  {/* Name Field */}
+                  <div className="space-y-1 mb-3">
+                    <label className="block text-xs font-semibold" style={{ color: textPrimary }}>
+                      Name (required)
+                    </label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value)
+                        if (errors.name) setErrors(prev => ({ ...prev, name: null }))
+                      }}
+                      placeholder=""
+                      style={{
+                        backgroundColor: innerBg,
+                        color: textPrimary,
+                        borderColor: errors.name ? '#EF4444' : innerBorderColor,
+                      }}
+                      className="w-full border rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all focus:border-zinc-400"
+                      disabled={isSubmitting}
+                    />
+                    {errors.name && (
+                      <p className="text-[11px] font-medium text-red-500">{errors.name}</p>
+                    )}
+                  </div>
+
+                  {/* Email Field */}
+                  <div className="space-y-1 mb-3">
+                    <label className="block text-xs font-semibold" style={{ color: textPrimary }}>
+                      Email (required)
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value)
+                        if (errors.email) setErrors(prev => ({ ...prev, email: null }))
+                      }}
+                      placeholder=""
+                      style={{
+                        backgroundColor: innerBg,
+                        color: textPrimary,
+                        borderColor: errors.email ? '#EF4444' : innerBorderColor,
+                      }}
+                      className="w-full border rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all focus:border-zinc-400"
+                      disabled={isSubmitting}
+                    />
+                    {errors.email && (
+                      <p className="text-[11px] font-medium text-red-500">{errors.email}</p>
+                    )}
+                  </div>
+
+                  {/* Country Field */}
+                  <div className="space-y-1 mb-3.5">
+                    <CountrySelect
+                      id="checkout-country-select"
+                      value={country}
+                      onChange={(c) => {
+                        setCountry(c)
+                        if (errors.country) setErrors(prev => ({ ...prev, country: null }))
+                      }}
+                      error={errors.country}
+                      disabled={isSubmitting}
+                      required={true}
+                      theme="light"
+                      label="Country (required)"
+                      placeholder="Select your country..."
+                    />
+                  </div>
+
+                  {/* Mailing list opt-in checkbox */}
+                  <label className="flex items-start gap-2.5 mt-3.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={mailingListOptIn}
+                      onChange={(e) => setMailingListOptIn(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-black focus:ring-black accent-black cursor-pointer"
+                    />
+                    <span className="text-xs leading-snug" style={{ color: textSecondary }}>
+                      Join {creatorUsername.replace('@', '')}&apos;s mailing list
+                    </span>
+                  </label>
+
+                  {/* Required Terms & Updates Consent */}
+                  <label className="flex items-start gap-2.5 mt-3 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={consentAccepted}
+                      onChange={(e) => {
+                        setConsentAccepted(e.target.checked)
+                        if (errors.consent) setErrors(prev => ({ ...prev, consent: null }))
+                      }}
+                      className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-black focus:ring-black accent-black cursor-pointer"
+                    />
+                    <span className="text-xs leading-snug" style={{ color: textSecondary }}>
+                      I agree to receive email updates from CreatorStore. Unsubscribe anytime.{' '}
+                      <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:opacity-80" style={{ color: textPrimary }}>
+                        Terms & Privacy
+                      </a>.
+                    </span>
+                  </label>
+                  {errors.consent && (
+                    <p className="text-[11px] font-medium text-red-500 mt-1">{errors.consent}</p>
+                  )}
+
+                  {/* Have a Coupon Code Section */}
+                  {!isFree && (
+                    <div className="pt-2.5 border-t space-y-2 mt-3 select-none" style={{ borderColor: innerBorderColor }}>
+                      {appliedCoupon ? (
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-2.5 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <Tag className="h-4 w-4 text-emerald-600 shrink-0" />
+                            <div>
+                              <span className="font-mono font-bold text-emerald-800 tracking-wider">
+                                {appliedCoupon.couponCode}
+                              </span>
+                              <span className="ml-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1 py-0.5 rounded">
+                                {appliedCoupon.discountType === 'PERCENTAGE'
+                                  ? `${appliedCoupon.discountValue}% OFF`
+                                  : `₹${appliedCoupon.discountValue} OFF`}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleRemoveCoupon}
+                            className="text-emerald-800 hover:text-red-600 p-1 rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer"
+                            title="Remove Coupon"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : showCouponInput ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="COUPON CODE"
+                            value={couponCodeInput}
+                            onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
+                            style={{
+                              backgroundColor: innerBg,
+                              color: textPrimary,
+                              borderColor: innerBorderColor,
+                            }}
+                            className="h-9 px-3 text-xs uppercase font-mono font-bold rounded-xl border flex-1 outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleApplyCoupon}
+                            disabled={validatingCoupon || !couponCodeInput.trim()}
+                            style={{
+                              backgroundColor: buttonBg,
+                              color: buttonTextColor,
+                              borderRadius: buttonRadius,
+                            }}
+                            className="h-9 px-3.5 text-xs font-bold rounded-xl shrink-0 cursor-pointer disabled:opacity-50 transition-colors"
+                          >
+                            {validatingCoupon ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Apply'}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowCouponInput(true)}
+                          className="text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+                          style={{ color: textSecondary }}
+                        >
+                          <Tag className="h-3.5 w-3.5" /> Have a coupon code?
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* General Form Error */}
+                  {errors.form && (
+                    <p className="text-xs font-semibold text-red-600 bg-red-500/10 border border-red-500/20 rounded-xl p-2.5 mt-3 text-center">
+                      {errors.form}
+                    </p>
+                  )}
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    style={{
+                      backgroundColor: buttonBg,
+                      color: buttonTextColor,
+                      borderRadius: buttonRadius,
+                    }}
+                    className="w-full h-12 font-semibold text-sm sm:text-base flex items-center justify-center gap-2 mt-5 transition-all shadow-md active:scale-[0.99] cursor-pointer hover:opacity-95 disabled:opacity-60"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Checking your purchase...</span>
+                      </>
+                    ) : errors.form ? (
+                      <span>Try again</span>
+                    ) : (
+                      <span>Continue</span>
+                    )}
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         )}
@@ -1078,116 +1378,133 @@ export default function ProductPurchaseModalFlow({
         {/* STEP: PAYMENT RESULT / STATUS MODAL                          */}
         {/* ============================================================ */}
         {step === 'payment_result' && (
-          <div className="w-full flex flex-col items-center animate-in fade-in duration-200">
-            {paymentState === 'verifying' && (
-              <div className="w-full flex flex-col items-center py-8 text-center space-y-3">
-                <Loader2 className="h-10 w-10 animate-spin text-zinc-800" />
-                <h3 className="text-base font-bold text-zinc-900">Verifying payment...</h3>
-                <p className="text-xs text-zinc-500 max-w-[260px]">
-                  Please wait while we confirm your transaction with the payment gateway.
-                </p>
-              </div>
-            )}
-
-            {paymentState === 'success' && (
-              <div className="w-full flex flex-col items-center py-4 text-center">
-                <div className="h-14 w-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-3 shadow-xs">
-                  <Check className="h-7 w-7 stroke-[2.5]" />
-                </div>
-                <h3 className="text-lg font-bold text-zinc-950">Payment successful ✓</h3>
-                <p className="text-sm font-semibold text-zinc-800 mt-2 truncate max-w-[280px]">
-                  {productTitle}
-                </p>
-                <div className="mt-1">
-                  <span className="text-xs font-bold text-zinc-600">{formattedPrice}</span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/notifications') && !window.location.pathname.startsWith('/purchases')) {
-                      onClose?.()
-                      router.push(`/notifications/settings?listingId=${product.id || product.productId}&openPurchase=true`)
-                    } else {
-                      setStep('purchase_detail')
-                      handleDownloadAll()
-                    }
-                  }}
-                  className="w-full bg-black text-white hover:bg-zinc-800 rounded-full py-3.5 px-6 font-semibold text-sm flex items-center justify-center gap-2 mt-6 transition-all shadow-md active:scale-[0.99] cursor-pointer"
-                >
-                  <Download className="h-4 w-4 stroke-[2.5]" />
-                  <span>Download</span>
-                </button>
-              </div>
-            )}
-
-            {paymentState === 'cancelled' && (
-              <div className="w-full flex flex-col items-center py-4 text-center">
-                <div className="h-14 w-14 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 mb-3 shadow-xs">
-                  <AlertCircle className="h-7 w-7 stroke-[2]" />
-                </div>
-                <h3 className="text-lg font-bold text-zinc-950">Payment cancelled</h3>
-                <p className="text-xs text-zinc-500 mt-2 max-w-[260px]">
-                  Your payment was cancelled. No charge was completed.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPaymentState('idle')
-                    setStep('customer_info')
-                  }}
-                  className="w-full bg-black text-white hover:bg-zinc-800 rounded-full py-3.5 px-6 font-semibold text-sm flex items-center justify-center gap-2 mt-6 transition-all shadow-md active:scale-[0.99] cursor-pointer"
-                >
-                  <span>Try again</span>
-                </button>
-              </div>
-            )}
-
-            {paymentState === 'failed' && (
-              <div className="w-full flex flex-col items-center py-4 text-center">
-                <div className="h-14 w-14 rounded-full bg-red-50 border border-red-200 flex items-center justify-center text-red-600 mb-3 shadow-xs">
-                  <AlertCircle className="h-7 w-7 stroke-[2]" />
-                </div>
-                <h3 className="text-lg font-bold text-zinc-950">Payment failed</h3>
-                <p className="text-xs text-zinc-500 mt-2 max-w-[260px]">
-                  {paymentError || "Your payment wasn't completed."}
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPaymentState('idle')
-                    setStep('customer_info')
-                  }}
-                  className="w-full bg-black text-white hover:bg-zinc-800 rounded-full py-3.5 px-6 font-semibold text-sm flex items-center justify-center gap-2 mt-6 transition-all shadow-md active:scale-[0.99] cursor-pointer"
-                >
-                  <span>Try again</span>
-                </button>
-              </div>
-            )}
-
-            {/* Bottom Right Floating Action Controls (Share + Close) */}
-            <div className="w-full flex items-center justify-end gap-2.5 mt-5 pt-1">
-              <button
-                type="button"
-                onClick={handleShare}
-                aria-label="Share product"
-                title="Share link"
-                className="h-10 w-10 rounded-full bg-white border border-zinc-200/90 flex items-center justify-center text-zinc-600 hover:text-black hover:bg-zinc-50 shadow-sm transition-all cursor-pointer"
-              >
-                {isCopied ? <Check className="h-4 w-4 text-emerald-600" /> : <Share2 className="h-4 w-4" />}
-              </button>
-
+          <div className="w-full flex flex-col h-full min-h-0 animate-in fade-in duration-200">
+            {/* Top Navigation Bar with Close */}
+            <div
+              className="shrink-0 px-5 sm:px-6 py-3.5 sm:py-4 border-b flex items-center justify-end"
+              style={{ borderColor: innerBorderColor }}
+            >
               <button
                 type="button"
                 onClick={onClose}
                 aria-label="Close modal"
-                title="Close"
-                className="h-10 w-10 rounded-full bg-white border border-zinc-200/90 flex items-center justify-center text-zinc-600 hover:text-black hover:bg-zinc-50 shadow-sm transition-all cursor-pointer"
+                className="h-9 w-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs"
+                style={{
+                  backgroundColor: innerItemBg,
+                  borderColor: innerBorderColor,
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
+                  color: textSecondary,
+                }}
               >
                 <X className="h-4 w-4" />
               </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-6 min-h-0 flex flex-col items-center">
+              {paymentState === 'verifying' && (
+                <div className="w-full flex flex-col items-center py-8 text-center space-y-3">
+                  <Loader2 className="h-10 w-10 animate-spin" style={{ color: textPrimary }} />
+                  <h3 className="text-base font-bold" style={{ color: textPrimary }}>Verifying payment...</h3>
+                  <p className="text-xs max-w-[260px]" style={{ color: textSecondary }}>
+                    Please wait while we confirm your transaction with the payment gateway.
+                  </p>
+                </div>
+              )}
+
+              {paymentState === 'success' && (
+                <div className="w-full flex flex-col items-center py-4 text-center">
+                  <div className="h-14 w-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 mb-3 shadow-xs">
+                    <Check className="h-7 w-7 stroke-[2.5]" />
+                  </div>
+                  <h3 className="text-lg font-bold" style={{ color: textPrimary }}>Payment successful ✓</h3>
+                  <p className="text-sm font-semibold mt-2 truncate max-w-[280px]" style={{ color: textPrimary }}>
+                    {productTitle}
+                  </p>
+                  <div className="mt-1">
+                    <span className="text-xs font-bold" style={{ color: textSecondary }}>{formattedPrice}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/notifications') && !window.location.pathname.startsWith('/purchases')) {
+                        onClose?.()
+                        router.push(`/notifications/settings?listingId=${product.id || product.productId}&openPurchase=true`)
+                      } else {
+                        setStep('purchase_detail')
+                        handleDownloadAll()
+                      }
+                    }}
+                    style={{
+                      backgroundColor: buttonBg,
+                      color: buttonTextColor,
+                      borderRadius: buttonRadius,
+                    }}
+                    className="w-full h-12 font-semibold text-sm sm:text-base flex items-center justify-center gap-2 mt-6 transition-all shadow-md active:scale-[0.99] cursor-pointer hover:opacity-95"
+                  >
+                    <Download className="h-4 w-4 stroke-[2.5]" />
+                    <span>Download</span>
+                  </button>
+                </div>
+              )}
+
+              {paymentState === 'cancelled' && (
+                <div className="w-full flex flex-col items-center py-4 text-center">
+                  <div className="h-14 w-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 mb-3 shadow-xs">
+                    <AlertCircle className="h-7 w-7 stroke-[2]" />
+                  </div>
+                  <h3 className="text-lg font-bold" style={{ color: textPrimary }}>Payment cancelled</h3>
+                  <p className="text-xs mt-2 max-w-[260px]" style={{ color: textSecondary }}>
+                    Your payment was cancelled. No charge was completed.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentState('idle')
+                      setStep('customer_info')
+                    }}
+                    style={{
+                      backgroundColor: buttonBg,
+                      color: buttonTextColor,
+                      borderRadius: buttonRadius,
+                    }}
+                    className="w-full h-12 font-semibold text-sm sm:text-base flex items-center justify-center gap-2 mt-6 transition-all shadow-md active:scale-[0.99] cursor-pointer hover:opacity-95"
+                  >
+                    <span>Try again</span>
+                  </button>
+                </div>
+              )}
+
+              {paymentState === 'failed' && (
+                <div className="w-full flex flex-col items-center py-4 text-center">
+                  <div className="h-14 w-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 mb-3 shadow-xs">
+                    <AlertCircle className="h-7 w-7 stroke-[2]" />
+                  </div>
+                  <h3 className="text-lg font-bold" style={{ color: textPrimary }}>Payment failed</h3>
+                  <p className="text-xs mt-2 max-w-[260px]" style={{ color: textSecondary }}>
+                    {paymentError || "Your payment wasn't completed."}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentState('idle')
+                      setStep('customer_info')
+                    }}
+                    style={{
+                      backgroundColor: buttonBg,
+                      color: buttonTextColor,
+                      borderRadius: buttonRadius,
+                    }}
+                    className="w-full h-12 font-semibold text-sm sm:text-base flex items-center justify-center gap-2 mt-6 transition-all shadow-md active:scale-[0.99] cursor-pointer hover:opacity-95"
+                  >
+                    <span>Try again</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1196,122 +1513,175 @@ export default function ProductPurchaseModalFlow({
         {/* STEP 3: PRODUCT DOWNLOAD DETAIL MODAL (Screenshot 4)         */}
         {/* ============================================================ */}
         {step === 'purchase_detail' && (
-          <div className="w-full flex flex-col items-center animate-in fade-in duration-200">
+          <div className="w-full flex flex-col h-full min-h-0 animate-in fade-in duration-200">
             {/* Top Navigation Bar: Back | Title | Close */}
-            <div className="w-full flex items-center justify-between border-b border-zinc-100 pb-3 mb-4">
+            <div
+              className="shrink-0 px-5 sm:px-6 py-3.5 sm:py-4 border-b flex items-center justify-between"
+              style={{ borderColor: innerBorderColor }}
+            >
               <button
                 type="button"
                 onClick={() => setStep('preview')}
                 aria-label="Back"
-                className="p-1 rounded-full text-zinc-600 hover:text-black hover:bg-zinc-100 transition-colors cursor-pointer"
+                className="h-9 w-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs"
+                style={{
+                  backgroundColor: innerItemBg,
+                  borderColor: innerBorderColor,
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
+                  color: textSecondary,
+                }}
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
 
-              <h2 className="text-sm font-bold text-zinc-900">Your purchase</h2>
+              <h2 className="text-sm font-bold" style={{ color: textPrimary }}>
+                Your purchase
+              </h2>
 
               <button
                 type="button"
                 onClick={onClose}
                 aria-label="Close"
-                className="p-1 rounded-full text-zinc-600 hover:text-black hover:bg-zinc-100 transition-colors cursor-pointer"
+                className="h-9 w-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs"
+                style={{
+                  backgroundColor: innerItemBg,
+                  borderColor: innerBorderColor,
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
+                  color: textSecondary,
+                }}
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Files List */}
-            <div className="w-full space-y-2.5">
-              {resolvedFiles.map((fileItem, idx) => (
-                <div
-                  key={fileItem.id || idx}
-                  className="w-full bg-[#F4F4F5] rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 border border-zinc-200/60"
-                >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-10 h-10 rounded-xl bg-white border border-zinc-200/80 flex items-center justify-center text-zinc-600 shadow-xs shrink-0">
-                      <FileText className="h-5 w-5 stroke-[1.75]" />
-                    </div>
-                    <div className="min-w-0 flex-1 text-left">
-                      <p className="text-xs sm:text-sm font-semibold text-zinc-900 truncate">
-                        {fileItem.fileName || 'asset.jpg'}
-                      </p>
-                      <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
-                        {fileItem.fileExtension || 'JPG'} &bull; {formatBytes(fileItem.fileSize)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDownloadFile(fileItem)}
-                    disabled={downloadingId === fileItem.id}
-                    title="Download this file"
-                    aria-label={`Download ${fileItem.fileName}`}
-                    className="p-2 rounded-xl text-zinc-600 hover:text-black hover:bg-white transition-all shrink-0 cursor-pointer disabled:opacity-50"
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-4 sm:py-5 min-h-0">
+              {/* Files List */}
+              <div className="w-full space-y-2.5">
+                {resolvedFiles.map((fileItem, idx) => (
+                  <div
+                    key={fileItem.id || idx}
+                    className="w-full rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 border transition-colors"
+                    style={{
+                      backgroundColor: innerBg,
+                      borderColor: innerBorderColor,
+                    }}
                   >
-                    {downloadingId === fileItem.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-black" />
-                    ) : (
-                      <Download className="h-4 w-4 stroke-[2]" />
-                    )}
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shadow-xs shrink-0 border"
+                        style={{
+                          backgroundColor: innerItemBg,
+                          borderColor: innerBorderColor,
+                          color: textPrimary,
+                        }}
+                      >
+                        <FileText className="h-5 w-5 stroke-[1.75]" />
+                      </div>
+                      <div className="min-w-0 flex-1 text-left">
+                        <p className="text-xs sm:text-sm font-semibold truncate" style={{ color: textPrimary }}>
+                          {fileItem.fileName || 'asset.jpg'}
+                        </p>
+                        <p className="text-[11px] font-medium mt-0.5" style={{ color: textSecondary }}>
+                          {fileItem.fileExtension || 'JPG'} &bull; {formatBytes(fileItem.fileSize)}
+                        </p>
+                      </div>
+                    </div>
 
-            {/* Bottom Actions */}
-            <div className="w-full mt-6 space-y-2.5">
-              {/* Primary: Download all */}
-              <button
-                type="button"
-                onClick={handleDownloadAll}
-                disabled={Boolean(downloadingId)}
-                className="w-full bg-black text-white hover:bg-zinc-800 disabled:opacity-60 rounded-full py-3.5 px-6 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] cursor-pointer"
-              >
-                {downloadingId ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Downloading...</span>
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 stroke-[2.5]" />
-                    <span>Download all</span>
-                  </>
-                )}
-              </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadFile(fileItem)}
+                      disabled={downloadingId === fileItem.id}
+                      title="Download this file"
+                      aria-label={`Download ${fileItem.fileName}`}
+                      className="p-2 rounded-xl transition-all shrink-0 cursor-pointer disabled:opacity-50 hover:opacity-80"
+                      style={{ color: textPrimary }}
+                    >
+                      {downloadingId === fileItem.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 stroke-[2]" />
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
 
-              {/* Secondary: Contact seller */}
-              <button
-                type="button"
-                onClick={() => setContactOpen(prev => !prev)}
-                className="w-full bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-200/90 rounded-full py-3 px-6 font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
-              >
-                <Mail className="h-4 w-4 stroke-[2]" />
-                <span>Contact seller</span>
-              </button>
-
-              {/* Optional inline contact info expander */}
-              {contactOpen && (
-                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-600 space-y-1 animate-in fade-in duration-150 text-center">
-                  <p className="font-semibold text-zinc-800">Need support with your download?</p>
-                  <p>You can reach out to {creatorName} directly through their storefront social links or email support.</p>
-                </div>
-              )}
-
-              {/* Report seller text link */}
-              <div className="pt-1 text-center">
+              {/* Bottom Actions */}
+              <div className="w-full mt-6 space-y-2.5">
+                {/* Primary: Download all */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setReportOpen(true)
-                    toast.info('Thank you. Our trust & safety team has recorded your feedback.')
+                  onClick={handleDownloadAll}
+                  disabled={Boolean(downloadingId)}
+                  style={{
+                    backgroundColor: buttonBg,
+                    color: buttonTextColor,
+                    borderRadius: buttonRadius,
                   }}
-                  className="text-xs text-zinc-400 hover:text-zinc-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="w-full h-12 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] cursor-pointer hover:opacity-95 disabled:opacity-60"
                 >
-                  <Flag className="h-3 w-3 stroke-[2]" />
-                  <span>Report seller</span>
+                  {downloadingId ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Downloading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 stroke-[2.5]" />
+                      <span>Download all</span>
+                    </>
+                  )}
                 </button>
+
+                {/* Secondary: Contact seller */}
+                <button
+                  type="button"
+                  onClick={() => setContactOpen(prev => !prev)}
+                  style={{
+                    backgroundColor: innerItemBg,
+                    color: textPrimary,
+                    borderColor: innerBorderColor,
+                    borderRadius: buttonRadius,
+                  }}
+                  className="w-full h-11 border font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer hover:opacity-90"
+                >
+                  <Mail className="h-4 w-4 stroke-[2]" />
+                  <span>Contact seller</span>
+                </button>
+
+                {/* Optional inline contact info expander */}
+                {contactOpen && (
+                  <div
+                    className="p-3 border rounded-xl text-xs space-y-1 animate-in fade-in duration-150 text-center"
+                    style={{
+                      backgroundColor: innerBg,
+                      borderColor: innerBorderColor,
+                      color: textSecondary,
+                    }}
+                  >
+                    <p className="font-semibold" style={{ color: textPrimary }}>Need support with your download?</p>
+                    <p>You can reach out to {creatorName} directly through their storefront social links or email support.</p>
+                  </div>
+                )}
+
+                {/* Report seller text link */}
+                <div className="pt-1 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReportOpen(true)
+                      toast.info('Thank you. Our trust & safety team has recorded your feedback.')
+                    }}
+                    className="text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer hover:opacity-80"
+                    style={{ color: textSecondary }}
+                  >
+                    <Flag className="h-3 w-3 stroke-[2]" />
+                    <span>Report seller</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

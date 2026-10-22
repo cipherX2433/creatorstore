@@ -54,6 +54,7 @@ import { getGalleryTheme, getGalleryThemeId, wallpaperStyleFromTheme } from '@/l
 import WallpaperPanel from '@/components/dashboard/design/WallpaperPanel'
 import TextPanel from '@/components/dashboard/design/TextPanel'
 import ColorsPanel from '@/components/dashboard/design/ColorsPanel'
+import ButtonsPanel from '@/components/dashboard/design/ButtonsPanel'
 import HeaderPanel from '@/components/dashboard/design/HeaderPanel'
 import ThemeMatchModal from '@/components/dashboard/design/ThemeMatchModal'
 import { extractImagePalette } from '@/lib/imageContrast'
@@ -72,9 +73,12 @@ import AddYouTubeModalView from '@/components/dashboard/AddYouTubeModalView'
 import AddMediaModalView from '@/components/dashboard/AddMediaModalView'
 import SocialDisplaySelectModalView from '@/components/dashboard/SocialDisplaySelectModalView'
 import SocialItemEditor from '@/components/dashboard/editors/SocialItemEditor'
-import { getSocialPlatform } from '@/lib/socialPlatforms'
-import { isBookingItem, resolveSectionProduct } from '@/lib/bookingItemUtils'
-export { isBookingItem, resolveSectionProduct }
+import MobileStoreDashboard from '@/components/dashboard/MobileStoreDashboard'
+import { getSocialPlatform, resolveSocialStyle } from '@/lib/socialPlatforms'
+import { isBookingItem, isBundleItem, resolveSectionProduct } from '@/lib/bookingItemUtils'
+export { isBookingItem, isBundleItem, resolveSectionProduct }
+import BundleEditor from '@/components/dashboard/editors/BundleEditor'
+import ProductBundleModal from '@/components/dashboard/ProductBundleModal'
 import { IconBadge, ICON_BADGE_COLORS } from '@/components/ui/icon-badge'
 import { AddOptionRow, SettingsRow, SettingsValuePill } from '@/components/ui/settings-row'
 import CoachingBookingWizardModal, { CoachingBookingWizardContent } from '@/components/coaching/CoachingBookingWizardModal'
@@ -92,6 +96,8 @@ let consumedAddIntent = null
 
 
 function toPreviewProduct(p) {
+  const bundleProductIds = p.bundleProductIds || p.bundleItems?.map((bi) => bi.productId) || p.productIds || []
+  const bundleProducts = p.bundleProducts || p.bundleItems?.map((bi) => bi.product).filter(Boolean) || []
   return {
     id: p.id,
     courseId: p.courseId || (p.type === 'COURSE' || String(p.type).toLowerCase() === 'course' ? (p.courseId || p.id) : null),
@@ -106,6 +112,11 @@ function toPreviewProduct(p) {
     shortDescription: p.shortDescription || p.description || '',
     description: p.description || '',
     thumbnail: p.thumbnail || p.coverImage || null,
+    bundleItems: p.bundleItems || [],
+    bundleProducts,
+    bundleProductIds,
+    productIds: bundleProductIds,
+    productCount: bundleProducts.length || p.productCount || bundleProductIds.length || 0,
     fileId: p.fileId || p.files?.[0]?.id || null,
     fileName: p.fileName || p.files?.[0]?.name || null,
     fileSize: p.fileSize || p.files?.[0]?.size || null,
@@ -1208,6 +1219,8 @@ export default function StoreBuilderPage() {
   const [wizardStep, setWizardStep] = useState(1)
   const [editingProductId, setEditingProductId] = useState(null)
   const [editingSectionId, setEditingSectionId] = useState(null)
+  const [bundleModalOpen, setBundleModalOpen] = useState(false)
+  const [editingBundle, setEditingBundle] = useState(null)
 
   const editingSection = useMemo(() => {
     if (!editingSectionId) return null
@@ -1595,6 +1608,17 @@ export default function StoreBuilderPage() {
     setAddModalOpen(true)
   }, [canCreate, setPricingModalOpen])
 
+  const openBundleCreationFlow = useCallback(() => {
+    if (!canCreate) {
+      toast.error('Your Pro trial has ended. Upgrade your plan to create products and continue selling.')
+      setPricingModalOpen(true)
+      return
+    }
+    setAddModalOpen(false)
+    setEditingBundle(null)
+    setBundleModalOpen(true)
+  }, [canCreate, setPricingModalOpen])
+
   const handleTabChange = useCallback((newTab) => {
     if (tab === 'design' && newTab !== 'design' && hasUnsavedThemeChanges) {
       setPendingNavTab(newTab)
@@ -1764,8 +1788,11 @@ export default function StoreBuilderPage() {
           }
           setProducts(loadedProducts)
           setBioInput(loadedStore?.bio || me?.profile?.bio || '')
-          if (igRes?.account) {
-            setIgAccount(igRes.account)
+          if (igRes) {
+            const acc = igRes.account || igRes
+            if (acc && acc.connected !== undefined) {
+              setIgAccount(acc)
+            }
           }
           // Load pages
           const storePagesRaw = Array.isArray(loadedStore?.pages) ? loadedStore.pages : []
@@ -2958,8 +2985,9 @@ export default function StoreBuilderPage() {
             canRemoveFooterBranding={canRemoveFooterBranding}
           />
         ) : (
-          /* 2-COLUMN WORKSPACE: LEFT SINGLE UNIFIED EDITOR CARD (60-65%) & RIGHT PREVIEW (35-40%) */
-          <div className="grid gap-8 xl:gap-12 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_430px] lg:items-stretch lg:h-full lg:min-h-0 items-start pt-1 pb-12 lg:pb-0 lg:pt-0 flex-1 min-h-0">
+          <>
+            {/* DESKTOP 2-COLUMN WORKSPACE (lg:grid) */}
+            <div className="hidden lg:grid gap-8 xl:gap-12 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_430px] lg:items-stretch lg:h-full lg:min-h-0 items-start pt-1 pb-12 lg:pb-0 lg:pt-0 flex-1 min-h-0">
 
             {/* LEFT: ONE SINGLE LARGE WHITE EDITOR CARD CONTAINING EVERYTHING */}
             <div className="w-full max-w-[740px] mx-auto min-w-0 lg:h-full lg:min-h-0 flex flex-col">
@@ -2981,6 +3009,53 @@ export default function StoreBuilderPage() {
                     onUpdateProps={(patch) => {
                       if (patch.title) {
                         setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, title: patch.title } : p)))
+                      }
+                      if (patch.price !== undefined || patch.currency !== undefined) {
+                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? {
+                          ...p,
+                          ...(patch.price !== undefined ? { price: patch.price } : {}),
+                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                        } : p)))
+                      }
+                      if (patch.layout || patch.displayMode) {
+                        const mode = patch.layout || patch.displayMode
+                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, displayMode: mode } : p)))
+                        setStore((prev) => {
+                          if (!prev || !Array.isArray(prev.sections)) return prev
+                          const nextSecs = prev.sections.map((sec) =>
+                            sec.props?.productId === editingProductId
+                              ? { ...sec, props: { ...sec.props, layout: mode, displayMode: mode } }
+                              : sec
+                          )
+                          return { ...prev, sections: nextSecs }
+                        })
+                      }
+                    }}
+                    onDelete={() => {
+                      setEditingProductId(null)
+                      refreshStoreData()
+                    }}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : products.find((p) => p.id === editingProductId)?.type === 'BUNDLE' ? (
+                  <BundleEditor
+                    product={products.find((p) => p.id === editingProductId)}
+                    creatorProfile={profile}
+                    onBack={() => {
+                      setEditingProductId(null)
+                      if (typeof window !== 'undefined') {
+                        const url = new URL(window.location.href)
+                        url.searchParams.delete('intent')
+                        url.searchParams.delete('productId')
+                        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
+                      }
+                    }}
+                    onUpdateProps={(patch) => {
+                      if (patch.title) {
+                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, title: patch.title } : p)))
+                      }
+                      if (patch.thumbnail !== undefined) {
+                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, thumbnail: patch.thumbnail } : p)))
                       }
                       if (patch.price !== undefined || patch.currency !== undefined) {
                         setProducts((prev) => prev.map((p) => (p.id === editingProductId ? {
@@ -3062,6 +3137,39 @@ export default function StoreBuilderPage() {
                           ...(patch.title ? { title: patch.title } : {}),
                           ...(patch.price !== undefined ? { price: patch.price } : {}),
                           ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                        } : p)))
+                      }
+                    }}
+                    onDelete={() => {
+                      remove(editingSection.id)
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onToggleHidden={() => toggleHidden(editingSection.id)}
+                    onDuplicate={() => duplicate(editingSection.id)}
+                    onOpenMobilePreview={() => setShareOpen?.(true)}
+                  />
+                ) : isBundleItem(editingSection, products) ? (
+                  <BundleEditor
+                    section={editingSection}
+                    product={resolveSectionProduct(editingSection, products)}
+                    creatorProfile={profile}
+                    onBack={() => {
+                      setEditingSectionId(null)
+                      setSelectedId(null)
+                    }}
+                    onUpdateProps={(patch) => {
+                      updateSectionProps(editingSection.id, patch)
+                      const targetPid = editingSection.props?.productId || resolveSectionProduct(editingSection, products)?.id
+                      if (targetPid) {
+                        const mode = patch.layout || patch.displayMode
+                        setProducts((prev) => prev.map((p) => (p.id === targetPid ? {
+                          ...p,
+                          ...(patch.title ? { title: patch.title } : {}),
+                          ...(patch.thumbnail !== undefined ? { thumbnail: patch.thumbnail } : {}),
+                          ...(patch.price !== undefined ? { price: patch.price } : {}),
+                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                          ...(mode ? { displayMode: mode } : {}),
                         } : p)))
                       }
                     }}
@@ -3778,8 +3886,40 @@ export default function StoreBuilderPage() {
                 </div>
               </div>
             </div>
-
           </div>
+
+            {/* MOBILE COMPACT DASHBOARD (lg:hidden) */}
+            <div className="block lg:hidden w-full flex-1 min-h-0">
+              <MobileStoreDashboard
+                store={store}
+                storeSlug={storeSlug}
+                profile={profile}
+                products={products}
+                contentSections={contentSections}
+                pages={pages}
+                activePageId={activePageId}
+                setActivePageId={setActivePageId}
+                igAccount={igAccount}
+                me={me}
+                onAddCollection={() => {
+                  setAddCollectionName('')
+                  setAddCollectionOpen(true)
+                }}
+                onOpenAddModal={(type, payload) => handleAddToStore(type, payload)}
+                onEditProduct={(pid) => setEditingProductId(pid)}
+                onEditSection={(sec) => setEditingSectionId(sec.id)}
+                onDeleteSection={(secId) => remove(secId)}
+                onDuplicateSection={(secId) => duplicate(secId)}
+                onToggleHidden={(secId) => toggleHidden(secId)}
+                onOpenShare={() => setShareOpen?.(true)}
+                onOpenAvatar={() => setAvatarModalOpen(true)}
+                onTabChange={handleTabChange}
+                refreshStoreData={refreshStoreData}
+                setProducts={setProducts}
+                setStore={setStore}
+              />
+            </div>
+          </>
         )}
       </DashboardPageTransition>
 
@@ -4090,7 +4230,9 @@ export default function StoreBuilderPage() {
             category={addModalCategory}
             onCategoryChange={setAddModalCategory}
             onSelectOption={(opt) => {
-              if (opt.type === 'digital_product') {
+              if (opt.type === 'bundle' || opt.id === 'bundles_commerce') {
+                openBundleCreationFlow()
+              } else if (opt.type === 'digital_product') {
                 openDigitalProductWizard()
               } else if (opt.type === 'coaching') {
                 openCoachingCreationFlow()
@@ -4440,13 +4582,32 @@ export default function StoreBuilderPage() {
                     setAddModalType('forms_menu')
                   }
                 }}
-                onSubmit={(formProps) => {
+                onSubmit={async (formProps) => {
                   if (editingFormSection) {
+                    try {
+                      if (editingFormSection.props?.formId) {
+                        await api.patch(`/forms/${editingFormSection.props.formId}`, formProps)
+                      }
+                    } catch (e) {
+                      console.warn('Backend form sync warning:', e)
+                    }
                     updateSectionProps(editingFormSection.id, formProps)
                     toast.success('Form updated successfully!')
                     setEditingFormSection(null)
                   } else {
-                    addSectionWithProps('form', formProps)
+                    let createdForm = null
+                    try {
+                      const res = await api.post('/forms', {
+                        ...formProps,
+                        addToStore: false,
+                        status: 'PUBLISHED',
+                      })
+                      createdForm = res?.form
+                    } catch (e) {
+                      console.warn('Backend form creation warning:', e)
+                    }
+                    const enrichedProps = createdForm ? { ...formProps, formId: createdForm.id } : formProps
+                    addSectionWithProps('form', enrichedProps)
                     toast.success('Form block added to your store!')
                   }
                   setAddModalOpen(false)
@@ -4567,15 +4728,16 @@ export default function StoreBuilderPage() {
                 setAddModalOpen(false)
                 setAddModalType('menu')
                 const platformInfo = getSocialPlatform(selectedSocialPlatform)
+                const safeStyleKey = resolveSocialStyle(styleKey, platformInfo?.id)
                 const defaultTitle = platformInfo?.name || 'Social'
                 const newSec = await addSectionWithProps('social', {
                   platform: selectedSocialPlatform,
                   title: defaultTitle,
                   label: defaultTitle,
                   url: '',
-                  layout: styleKey,
-                  displayMode: styleKey,
-                  displayStyle: styleKey,
+                  layout: safeStyleKey,
+                  displayMode: safeStyleKey,
+                  displayStyle: safeStyleKey,
                   thumbnail: null,
                   customThumbnail: null,
                 })
@@ -4792,6 +4954,20 @@ export default function StoreBuilderPage() {
           }
         }}
         editCourseId={courseWizardId}
+      />
+
+      <ProductBundleModal
+        isOpen={bundleModalOpen}
+        existingBundle={editingBundle}
+        onClose={() => {
+          setBundleModalOpen(false)
+          setEditingBundle(null)
+        }}
+        onSuccess={async (createdBundle) => {
+          await refreshStoreData()
+          setBundleModalOpen(false)
+          setEditingBundle(null)
+        }}
       />
 
       {/* UNSAVED THEME CHANGES NAVIGATION MODAL */}
@@ -5708,14 +5884,15 @@ function DesignStudioPage({
 
   const previewStore = useMemo(() => {
     if (!store) return {}
+    const activeTheme = store.theme || {}
     return {
       ...store,
       theme: {
-        ...(savedTheme || store.theme || {}),
-        showFooterBranding: canRemoveFooterBranding ? ((savedTheme || store.theme)?.showFooterBranding ?? true) : true,
+        ...activeTheme,
+        showFooterBranding: canRemoveFooterBranding ? (activeTheme.showFooterBranding ?? true) : true,
       },
     }
-  }, [store, savedTheme, canRemoveFooterBranding])
+  }, [store, canRemoveFooterBranding])
 
   const handleSuggestThemeMatch = async (imgUrl) => {
     if (!imgUrl) return
@@ -6084,123 +6261,11 @@ function DesignStudioPage({
 
               {/* ---------------- SUB-PANEL 4: BUTTONS ---------------- */}
               {activeSection === 'buttons' && (
-                <div className="space-y-5 bg-[#1A1A1A] border border-[#2E2E2E] rounded-[24px] p-4">
-                  <Field label="Button style">
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { key: 'filled', label: 'Solid', swatch: 'bg-brand' },
-                        { key: 'glass', label: 'Solid', swatch: 'bg-[#1A1A1A] border border-[#2E2E2E]' },
-                        { key: 'outline', label: 'Outline', swatch: 'bg-transparent border-2 border-brand' },
-                      ].map((opt) => {
-                        const selected = styleKeyFromTheme(theme) === opt.key
-                        return (
-                          <button
-                            key={opt.key}
-                            type="button"
-                            onClick={() => onChange({ buttonStyle: opt.key })}
-                            className={`flex flex-col gap-2 p-2 rounded-control border text-center cursor-pointer transition-all ${selected
-                              ? 'border-edge-focus bg-brand-soft'
-                              : 'border-edge bg-surface-raised hover:border-edge-strong'
-                              }`}
-                          >
-                            <div className={`h-10 w-full rounded-control ${opt.swatch}`} />
-                            <span className="text-micro text-content-primary">{opt.label}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </Field>
-
-                  <Field label="Corner roundness">
-                    <div className="grid grid-cols-4 gap-2">
-                      {ROUNDNESS_PRESETS.map((opt) => {
-                        const selected = roundnessKeyFromTheme(theme) === opt.key
-                        const r = opt.radius >= 90 ? '9999px' : `${opt.radius}px`
-                        return (
-                          <button
-                            key={opt.key}
-                            type="button"
-                            title={opt.label}
-                            onClick={() => onChange({ buttonShape: opt.shape, buttonRadius: opt.radius })}
-                            className={`flex flex-col items-center gap-2 p-2 rounded-control border cursor-pointer transition-all ${selected
-                              ? 'border-edge-focus bg-brand-soft'
-                              : 'border-edge bg-surface-raised hover:border-edge-strong'
-                              }`}
-                          >
-                            <span
-                              className="h-8 w-full bg-brand"
-                              style={{ borderRadius: r }}
-                            />
-                            <span className="text-micro text-content-muted">{opt.label}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </Field>
-
-                  <Field label="Button shadow">
-                    <div className="grid grid-cols-4 gap-2">
-                      {[
-                        { key: 'none', label: 'None', cls: 'shadow-none' },
-                        { key: 'soft', label: 'Soft', cls: 'shadow-raised' },
-                        { key: 'strong', label: 'Strong', cls: 'shadow-card' },
-                        { key: 'hard', label: 'Hard', cls: 'shadow-brand' },
-                      ].map((opt) => {
-                        const selected = shadowKeyFromTheme(theme) === opt.key
-                        return (
-                          <button
-                            key={opt.key}
-                            type="button"
-                            onClick={() => onChange({ buttonShadow: opt.key })}
-                            className={`flex flex-col items-center gap-2 p-2 rounded-control border cursor-pointer transition-all ${selected
-                              ? 'border-edge-focus bg-brand-soft'
-                              : 'border-edge bg-surface-raised hover:border-edge-strong'
-                              }`}
-                          >
-                            <span className={`h-8 w-full bg-surface-overlay rounded-control ${opt.cls}`} />
-                            <span className="text-micro text-content-muted">{opt.label}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </Field>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label="Button color">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={theme.buttonColor || activePreset.colors.buttonColor || '#194DF5'}
-                          onChange={(e) => onChange({ buttonColor: e.target.value })}
-                          className="h-9 w-10 cursor-pointer rounded-control border border-edge bg-surface-raised"
-                        />
-                        <Input
-                          value={theme.buttonColor || ''}
-                          placeholder="#194DF5"
-                          onChange={(e) => onChange({ buttonColor: e.target.value })}
-                          className="text-xs bg-surface-raised border-edge text-content-primary rounded-control"
-                        />
-                      </div>
-                    </Field>
-
-                    <Field label="Button text color">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={theme.buttonTextColor || '#000000'}
-                          onChange={(e) => onChange({ buttonTextColor: e.target.value })}
-                          className="h-9 w-10 cursor-pointer rounded-control border border-edge bg-surface-raised"
-                        />
-                        <Input
-                          value={theme.buttonTextColor || ''}
-                          placeholder="#000000"
-                          onChange={(e) => onChange({ buttonTextColor: e.target.value })}
-                          className="text-xs bg-surface-raised border-edge text-content-primary rounded-control"
-                        />
-                      </div>
-                    </Field>
-                  </div>
-                </div>
+                <ButtonsPanel
+                  theme={theme}
+                  activePreset={activePreset}
+                  onChange={onChange}
+                />
               )}
 
               {/* ---------------- SUB-PANEL 5: TEXT (TYPOGRAPHY) ---------------- */}

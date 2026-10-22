@@ -17,9 +17,10 @@ import AddToStoreMenuView from '@/components/dashboard/AddToStoreMenuView'
 import AddYouTubeModalView from '@/components/dashboard/AddYouTubeModalView'
 import AddMediaModalView from '@/components/dashboard/AddMediaModalView'
 import SocialDisplaySelectModalView from '@/components/dashboard/SocialDisplaySelectModalView'
-import { getSocialPlatform } from '@/lib/socialPlatforms'
+import { getSocialPlatform, resolveSocialStyle } from '@/lib/socialPlatforms'
 import { CoachingBookingWizardContent } from '@/components/coaching/CoachingBookingWizardModal'
 import { CourseWizardContent } from '@/components/course/CourseWizardModal'
+import ProductBundleModal from '@/components/dashboard/ProductBundleModal'
 import { useDashboard } from '@/components/dashboard/DashboardContext'
 import { useDashboardHeader } from '@/components/dashboard/HeaderContext'
 import {
@@ -936,6 +937,8 @@ export default function AddToStoreModal({
   const [editingProductId, setEditingProductId] = useState(null)
   const [coachingWizardProductId, setCoachingWizardProductId] = useState(null)
   const [courseWizardId, setCourseWizardId] = useState(null)
+  const [bundleModalOpen, setBundleModalOpen] = useState(false)
+  const [editingBundle, setEditingBundle] = useState(null)
 
   const [draftProductId, setDraftProductId] = useState(null)
   const [draftSectionId, setDraftSectionId] = useState(null)
@@ -1049,6 +1052,17 @@ export default function AddToStoreModal({
     setCourseWizardId(null)
     setModalOrigin('menu')
     setAddModalType('course')
+  }, [canCreate, setPricingModalOpen, onClose])
+
+  const openBundleCreationFlow = useCallback(() => {
+    if (!canCreate) {
+      toast.error('Your Pro trial has ended. Upgrade your plan to create products and continue selling.')
+      setPricingModalOpen?.(true)
+      onClose?.()
+      return
+    }
+    setEditingBundle(null)
+    setBundleModalOpen(true)
   }, [canCreate, setPricingModalOpen, onClose])
 
   // Handler for finishing Digital Product
@@ -1244,7 +1258,8 @@ export default function AddToStoreModal({
   )
 
   return (
-    <BaseModal
+    <>
+      <BaseModal
       open={isModalOpen}
       onOpenChange={(op) => {
         if (!op) requestCloseModal()
@@ -1393,7 +1408,9 @@ export default function AddToStoreModal({
           category={addModalCategory}
           onCategoryChange={setAddModalCategory}
           onSelectOption={(opt) => {
-            if (opt.type === 'digital_product') {
+            if (opt.type === 'bundle' || opt.id === 'bundles_commerce') {
+              openBundleCreationFlow()
+            } else if (opt.type === 'digital_product') {
               openDigitalProductWizard()
             } else if (opt.type === 'coaching') {
               openCoachingCreationFlow()
@@ -1653,14 +1670,33 @@ export default function AddToStoreModal({
                   setAddModalType('forms_menu')
                 }
               }}
-              onSubmit={(formProps) => {
+              onSubmit={async (formProps) => {
                 if (editingFormSection) {
+                  try {
+                    if (editingFormSection.props?.formId) {
+                      await api.patch(`/forms/${editingFormSection.props.formId}`, formProps)
+                    }
+                  } catch (e) {
+                    console.warn('Backend form sync warning:', e)
+                  }
                   onUpdateSectionProps?.(editingFormSection.id, formProps)
                   toast.success('Form updated successfully!')
                   setEditingFormSection(null)
                 } else {
+                  let createdForm = null
+                  try {
+                    const res = await api.post('/forms', {
+                      ...formProps,
+                      addToStore: false,
+                      status: 'PUBLISHED',
+                    })
+                    createdForm = res?.form
+                  } catch (e) {
+                    console.warn('Backend form creation warning:', e)
+                  }
+                  const enrichedProps = createdForm ? { ...formProps, formId: createdForm.id } : formProps
                   if (onAddSection) {
-                    onAddSection('form', formProps)
+                    onAddSection('form', enrichedProps)
                   }
                   toast.success('Form block added!')
                 }
@@ -1775,6 +1811,7 @@ export default function AddToStoreModal({
             onSelectStyle={async (styleKey) => {
               closeWizard()
               const platformInfo = getSocialPlatform(selectedSocialPlatform)
+              const safeStyleKey = resolveSocialStyle(styleKey, platformInfo?.id)
               const defaultTitle = platformInfo?.name || 'Social'
               if (onAddSection) {
                 onAddSection('social', {
@@ -1782,8 +1819,9 @@ export default function AddToStoreModal({
                   title: defaultTitle,
                   label: defaultTitle,
                   url: '',
-                  layout: styleKey === 'cards' ? 'image' : styleKey,
-                  displayMode: styleKey === 'cards' ? 'featured' : styleKey,
+                  layout: safeStyleKey === 'cards' ? 'image' : safeStyleKey,
+                  displayMode: safeStyleKey === 'cards' ? 'featured' : safeStyleKey,
+                  displayStyle: safeStyleKey,
                   thumbnail: null,
                   customThumbnail: null,
                 })
@@ -1795,6 +1833,18 @@ export default function AddToStoreModal({
       </div>
     )}
   </BaseModal>
+  <ProductBundleModal
+    isOpen={bundleModalOpen}
+    existingBundle={editingBundle}
+    onClose={() => setBundleModalOpen(false)}
+    onSuccess={(created) => {
+      setBundleModalOpen(false)
+      onClose?.()
+      onSuccess?.(created)
+      onStoreUpdated?.()
+    }}
+  />
+</>
 )
 }
 

@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { api, formatMoney } from '@/lib/clientApi'
+import { getThemeTokens } from '@/lib/themePresets'
 import { Button } from '@/components/ui/button'
 import {
   ArrowLeft, ArrowRight, ShieldCheck, Lock, PlayCircle, Clock, Check,
@@ -59,6 +60,13 @@ export default function ProductPurchasePage({ username, slug, productId }) {
   const [selectedCurrency, setSelectedCurrency] = useState('USD')
   const [currencyPreview, setCurrencyPreview] = useState(null)
   const [currencyLoading, setCurrencyLoading] = useState(false)
+
+  const tokens = useMemo(() => {
+    if (data?.store?.theme) {
+      return getThemeTokens(data.store.theme)
+    }
+    return {}
+  }, [data?.store?.theme])
 
   useEffect(() => {
     if (data?.product?.currency) {
@@ -636,6 +644,7 @@ export default function ProductPurchasePage({ username, slug, productId }) {
                 router.push('/')
               }
             }}
+            tokens={tokens}
           />
         ) : (
           <ProductPurchaseModalFlow
@@ -655,6 +664,7 @@ export default function ProductPurchasePage({ username, slug, productId }) {
               }
             }}
             initialStep={wizardStep}
+            tokens={tokens}
           />
         )
       )}
