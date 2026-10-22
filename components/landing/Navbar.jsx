@@ -47,15 +47,15 @@ export default function Navbar() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-[999] w-full bg-[#000000] border-b border-[#303030] select-none">
-        {/* Full-width container spanning edge-to-edge with Gumroad-inspired 88-96px desktop height */}
-        <div className="w-full flex items-center justify-between h-[72px] sm:h-[84px] md:h-[88px] lg:h-[92px] pl-6 sm:pl-8 lg:pl-10 pr-0">
+        {/* Full-width container spanning edge-to-edge with refined 76-80px desktop height */}
+        <div className="w-full flex items-center justify-between h-[64px] sm:h-[72px] md:h-[76px] lg:h-[80px] pl-5 sm:pl-6 md:pl-8 lg:pl-9 pr-0">
           
-          {/* LEFT: Prominent CreatorStore Italic Script Wordmark (~170-190px wide on desktop) */}
+          {/* LEFT: CreatorStore Italic Script Wordmark (~155-165px wide on desktop) */}
           <div className="flex items-center shrink-0">
             <Link
               href="/"
               aria-label="CreatorStore Home"
-              className="italic text-3xl sm:text-4xl md:text-[38px] lg:text-[42px] font-normal tracking-tight text-white hover:opacity-90 transition-opacity select-none leading-none pt-0.5"
+              className="italic text-2xl sm:text-3xl md:text-[32px] lg:text-[34px] xl:text-[35px] font-normal tracking-tight text-white hover:opacity-90 transition-opacity select-none leading-none pt-0.5"
               style={{
                 fontFamily: "'Instrument Serif', Georgia, 'Times New Roman', serif",
                 fontStyle: 'italic',
@@ -67,14 +67,14 @@ export default function Navbar() {
 
           {/* RIGHT: Navigation Links + Login Section Divider + Full-Height Start Selling CTA (Desktop) */}
           <div className="hidden md:flex items-center h-full">
-            {/* Primary Navigation Links (20-22px on desktop, generous spacing, white active pill) */}
-            <nav className="flex items-center gap-1.5 md:gap-2 lg:gap-3 xl:gap-4 mr-4 md:mr-6 lg:mr-8 text-base md:text-[18px] lg:text-[20px] xl:text-[21px] font-medium font-sans">
+            {/* Primary Navigation Links (18-20px on desktop, balanced spacing, compact white active pill) */}
+            <nav className="flex items-center gap-1 md:gap-1.5 lg:gap-2 xl:gap-2.5 mr-3 md:mr-4 lg:mr-5 text-base md:text-[17px] lg:text-[18px] xl:text-[19px] font-medium font-sans">
               <Link
                 href="/"
                 className={`transition-all duration-150 whitespace-nowrap ${
                   isHomeActive && !isSafetyActive && !isPricingActive && !isHowItWorksActive && !isFeaturesActive
-                    ? 'bg-white text-black font-semibold px-4 md:px-5 lg:px-6 py-2 lg:py-2.5 rounded-full shadow-sm'
-                    : 'text-white/85 hover:text-white px-3 md:px-3.5 lg:px-4 py-2 lg:py-2.5 rounded-full transition-colors'
+                    ? 'bg-white text-black font-semibold px-3.5 md:px-4 lg:px-5 py-1.5 lg:py-2 rounded-full shadow-sm'
+                    : 'text-white/85 hover:text-white px-2.5 md:px-3 lg:px-3.5 py-1.5 lg:py-2 rounded-full transition-colors'
                 }`}
               >
                 Home
@@ -83,8 +83,8 @@ export default function Navbar() {
                 href="/features"
                 className={`transition-all duration-150 whitespace-nowrap ${
                   isFeaturesActive
-                    ? 'bg-white text-black font-semibold px-4 md:px-5 lg:px-6 py-2 lg:py-2.5 rounded-full shadow-sm'
-                    : 'text-white/85 hover:text-white px-3 md:px-3.5 lg:px-4 py-2 lg:py-2.5 rounded-full transition-colors'
+                    ? 'bg-white text-black font-semibold px-3.5 md:px-4 lg:px-5 py-1.5 lg:py-2 rounded-full shadow-sm'
+                    : 'text-white/85 hover:text-white px-2.5 md:px-3 lg:px-3.5 py-1.5 lg:py-2 rounded-full transition-colors'
                 }`}
               >
                 Features
@@ -93,8 +93,8 @@ export default function Navbar() {
                 href="/pricing"
                 className={`transition-all duration-150 whitespace-nowrap ${
                   isPricingActive
-                    ? 'bg-white text-black font-semibold px-4 md:px-5 lg:px-6 py-2 lg:py-2.5 rounded-full shadow-sm'
-                    : 'text-white/85 hover:text-white px-3 md:px-3.5 lg:px-4 py-2 lg:py-2.5 rounded-full transition-colors'
+                    ? 'bg-white text-black font-semibold px-3.5 md:px-4 lg:px-5 py-1.5 lg:py-2 rounded-full shadow-sm'
+                    : 'text-white/85 hover:text-white px-2.5 md:px-3 lg:px-3.5 py-1.5 lg:py-2 rounded-full transition-colors'
                 }`}
               >
                 Pricing
@@ -103,8 +103,8 @@ export default function Navbar() {
                 href="/safety"
                 className={`transition-all duration-150 whitespace-nowrap ${
                   isSafetyActive
-                    ? 'bg-white text-black font-semibold px-4 md:px-5 lg:px-6 py-2 lg:py-2.5 rounded-full shadow-sm'
-                    : 'text-white/85 hover:text-white px-3 md:px-3.5 lg:px-4 py-2 lg:py-2.5 rounded-full transition-colors'
+                    ? 'bg-white text-black font-semibold px-3.5 md:px-4 lg:px-5 py-1.5 lg:py-2 rounded-full shadow-sm'
+                    : 'text-white/85 hover:text-white px-2.5 md:px-3 lg:px-3.5 py-1.5 lg:py-2 rounded-full transition-colors'
                 }`}
               >
                 Safety
@@ -113,8 +113,8 @@ export default function Navbar() {
                 href="/how-it-works"
                 className={`transition-all duration-150 whitespace-nowrap ${
                   isHowItWorksActive
-                    ? 'bg-white text-black font-semibold px-4 md:px-5 lg:px-6 py-2 lg:py-2.5 rounded-full shadow-sm'
-                    : 'text-white/85 hover:text-white px-3 md:px-3.5 lg:px-4 py-2 lg:py-2.5 rounded-full transition-colors'
+                    ? 'bg-white text-black font-semibold px-3.5 md:px-4 lg:px-5 py-1.5 lg:py-2 rounded-full shadow-sm'
+                    : 'text-white/85 hover:text-white px-2.5 md:px-3 lg:px-3.5 py-1.5 lg:py-2 rounded-full transition-colors'
                 }`}
               >
                 How It Works
@@ -192,7 +192,7 @@ export default function Navbar() {
                 {/* Full-Height Dashboard CTA on far right (matching Gumroad segment structure) */}
                 <Link
                   href="/dashboard/store"
-                  className="h-full flex items-center justify-center bg-white hover:bg-[#EAEAEA] text-black font-semibold text-base md:text-[18px] lg:text-[20px] tracking-tight px-6 lg:px-8 xl:px-10 border-l border-[#303030] transition-colors shrink-0 whitespace-nowrap rounded-none"
+                  className="h-full flex items-center justify-center bg-white hover:bg-[#EAEAEA] text-black font-semibold text-base md:text-[17px] lg:text-[18px] tracking-tight px-6 lg:px-7 border-l border-[#303030] transition-colors shrink-0 whitespace-nowrap rounded-none"
                 >
                   <span>Dashboard</span>
                   <ArrowRight className="h-4 w-4 ml-2 stroke-[2.5]" />
@@ -200,22 +200,22 @@ export default function Navbar() {
               </div>
             ) : (
               <div className="flex items-center h-full">
-                {/* LOGIN SECTION: Separated from navigation by subtle vertical divider, generous horizontal padding */}
+                {/* LOGIN SECTION: Separated from navigation by subtle vertical divider, 18-20px text */}
                 <div className="h-full flex items-center border-l border-[#303030]">
                   <Link
                     href="/login"
                     onClick={() => trackLoginClicked('navbar')}
-                    className="h-full flex items-center px-6 md:px-7 lg:px-9 xl:px-10 text-base md:text-[18px] lg:text-[20px] xl:text-[21px] font-medium text-white hover:text-white/80 transition-colors whitespace-nowrap"
+                    className="h-full flex items-center px-5 md:px-6 lg:px-7 xl:px-8 text-base md:text-[17px] lg:text-[18px] xl:text-[19px] font-medium text-white hover:text-white/80 transition-colors whitespace-nowrap"
                   >
                     Log in
                   </Link>
                 </div>
 
-                {/* START SELLING CTA: Prominent, full-height white CTA on the far right, rectangular with no pill radius */}
+                {/* START SELLING CTA: Prominent, full-height white CTA on the far right, 28-32px padding, 18-20px text */}
                 <Link
                   href="/signup"
                   onClick={() => trackSignupCtaClicked('navbar')}
-                  className="h-full flex items-center justify-center bg-white hover:bg-[#EAEAEA] text-black font-semibold text-base md:text-[18px] lg:text-[20px] xl:text-[21px] tracking-tight px-7 md:px-8 lg:px-10 xl:px-12 border-l border-[#303030] transition-colors shrink-0 whitespace-nowrap rounded-none focus:outline-none focus:ring-2 focus:ring-white"
+                  className="h-full flex items-center justify-center bg-white hover:bg-[#EAEAEA] text-black font-semibold text-base md:text-[17px] lg:text-[18px] xl:text-[19px] tracking-tight px-7 lg:px-8 border-l border-[#303030] transition-colors shrink-0 whitespace-nowrap rounded-none focus:outline-none focus:ring-2 focus:ring-white"
                 >
                   Start selling
                 </Link>
@@ -361,8 +361,8 @@ export default function Navbar() {
         )}
       </header>
 
-      {/* Structural spacer matching fixed header height (72px on mobile, 88-92px on desktop) */}
-      <div className="h-[72px] sm:h-[84px] md:h-[88px] lg:h-[92px] w-full shrink-0 pointer-events-none" aria-hidden="true" />
+      {/* Structural spacer matching fixed header height (64px mobile, 76-80px desktop) */}
+      <div className="h-[64px] sm:h-[72px] md:h-[76px] lg:h-[80px] w-full shrink-0 pointer-events-none" aria-hidden="true" />
     </>
   )
 }
