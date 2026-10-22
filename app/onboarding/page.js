@@ -146,7 +146,7 @@ export default function OnboardingWizardPage() {
       return
     }
     if (profile?.onboardingComplete || profile?.onboardingStatus === 'COMPLETED') {
-      router.replace('/dashboard/store')
+      router.replace('/dashboard')
       return
     }
 
@@ -412,7 +412,7 @@ export default function OnboardingWizardPage() {
 
       // Redirect smoothly to dashboard
       setTimeout(() => {
-        router.replace('/dashboard/store')
+        router.replace('/dashboard')
       }, 1500)
     } catch (err) {
       const msg = err.message || 'Something went wrong while saving your setup. Please try again.'
@@ -482,7 +482,7 @@ export default function OnboardingWizardPage() {
 
             <button
               type="button"
-              onClick={() => router.replace('/dashboard/store')}
+              onClick={() => router.replace('/dashboard')}
               className="w-full h-[48px] rounded-full bg-[#194DF5] hover:bg-[#1441D9] text-white font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>Enter Dashboard</span>

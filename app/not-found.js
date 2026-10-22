@@ -13,7 +13,7 @@ export default function NotFound() {
       <p className="text-[rgba(244,242,236,0.68)] max-w-sm text-sm font-medium">
         The page you are looking for does not exist or has been moved.
       </p>
-      <Link href="/dashboard/store">
+      <Link href="/dashboard">
         <Button className="font-black h-12 px-6 text-sm">
           Return to Dashboard
         </Button>

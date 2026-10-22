@@ -185,12 +185,12 @@ export default function MobileStoreDashboard({
   return (
     <div className="flex flex-col w-full min-h-screen bg-[#FBFAF9] text-[#1F1F1F]">
 
-      {/* 1. TOP MOBILE HEADER (Screenshot 2) */}
+      {/* 1. TOP MOBILE HEADER (Matching Reference Image 3) */}
       <div className="flex items-center justify-between px-4 h-14 bg-[#FFFFFF] border-b border-[#E5E5E3] sticky top-0 z-30 shrink-0">
         <Link
-          href="/dashboard/store"
+          href="/dashboard"
           className="p-2 -ml-2 rounded-full text-[#1F1F1F] hover:bg-[#F2F1EF] transition-colors"
-          aria-label="Store overview"
+          aria-label="Back to dashboard"
         >
           <ArrowLeft className="h-5 w-5 stroke-[2.2]" />
         </Link>
@@ -263,12 +263,13 @@ export default function MobileStoreDashboard({
         </div>
       </div>
 
-      {/* 2. STORE PROFILE SECTION (Screenshot 2) */}
+      {/* 2. STORE PROFILE SECTION (Matching Reference Image 3) */}
       <div className="px-4 pt-3.5 pb-3 bg-[#FFFFFF] border-b border-[#E5E5E3] flex flex-col items-center text-center">
         {/* Creator Avatar with camera trigger - Target 64–80px (72px) */}
         <div
           onClick={onOpenAvatar}
           className="relative w-[72px] h-[72px] min-w-[72px] min-h-[72px] max-w-[72px] max-h-[72px] rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden cursor-pointer group border border-[#E5E5E3] shadow-xs shrink-0"
+          title="Upload profile picture"
         >
           {store?.theme?.avatarUrl || store?.avatarUrl || profile?.avatarUrl ? (
             <img

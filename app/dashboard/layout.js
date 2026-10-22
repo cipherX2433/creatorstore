@@ -91,8 +91,8 @@ function DashboardContent({ children }) {
 
   const username = me?.store?.username || me?.store?.slug || me?.profile?.username || ''
   const isStorePage = pathname.startsWith('/dashboard/store')
-  const isStoreActive = pathname.startsWith('/dashboard/store') || pathname.startsWith('/dashboard/products')
-  const isEarnActive = pathname === '/dashboard' || pathname.startsWith('/dashboard/earn') || pathname.startsWith('/dashboard/orders')
+  const isStoreActive = pathname === '/dashboard' || pathname.startsWith('/dashboard/store') || pathname.startsWith('/dashboard/products')
+  const isEarnActive = pathname.startsWith('/dashboard/earn') || pathname.startsWith('/dashboard/orders')
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-[#FBFAF9] md:bg-[#0D0D0D] text-[#1F1F1F] font-sans flex flex-col selection:bg-[#1F1F1F] selection:text-[#FFFFFF]">
@@ -131,7 +131,7 @@ function DashboardContent({ children }) {
             <div>
               <div className="relative">
                 <Link
-                  href="/dashboard/store"
+                  href="/dashboard"
                   onClick={handleNavClick}
                   className={`group relative flex items-center h-[44px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
                     isHovered ? 'px-2.5 rounded-[10px]' : 'justify-center mx-0.5 rounded-[10px]'
@@ -211,7 +211,7 @@ function DashboardContent({ children }) {
             <div>
               <div className="relative">
                 <Link
-                  href="/dashboard"
+                  href="/dashboard/earn/earnings"
                   onClick={handleNavClick}
                   className={`group relative flex items-center h-[44px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
                     isHovered ? 'px-2.5 rounded-[10px]' : 'justify-center mx-0.5 rounded-[10px]'
@@ -262,7 +262,7 @@ function DashboardContent({ children }) {
                 <div className="ml-[20px] pl-2.5 border-l border-[#DCDAD6] space-y-[2px] my-1">
                   {EARN_CHILDREN.map((child) => {
                     let active = false
-                    if (child.label === 'Insights') active = pathname === '/dashboard'
+                    if (child.label === 'Insights') active = pathname.startsWith('/dashboard/analytics')
                     else if (child.label === 'Orders') active = pathname === '/dashboard/orders' || pathname.startsWith('/dashboard/earn/orders')
                     else if (child.label === 'Earnings') active = pathname === '/dashboard/earn/earnings' || pathname === '/dashboard/earn'
 
@@ -461,7 +461,8 @@ function getRouteTitle(pathname, title) {
   if (pathname.startsWith('/dashboard/orders') || pathname === '/dashboard/earn/orders') return 'Orders'
   if (pathname.startsWith('/dashboard/earn/earnings')) return 'Earnings'
   if (pathname === '/dashboard/earn') return 'Earn'
-  if (pathname === '/dashboard' || pathname.startsWith('/dashboard/analytics')) return 'Insights'
+  if (pathname === '/dashboard') return 'Overview'
+  if (pathname.startsWith('/dashboard/analytics')) return 'Insights'
   if (pathname.startsWith('/dashboard/calendar')) return 'Calendar'
   if (pathname.startsWith('/dashboard/automations')) return 'Automations'
   if (pathname.startsWith('/dashboard/payments')) return 'Payments'

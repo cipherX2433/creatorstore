@@ -26,7 +26,7 @@ function VerifyEmailContent() {
   const [resendCooldown, setResendCooldown] = useState(0)
   const [isEditingEmail, setIsEditingEmail] = useState(false)
   const [tempEmail, setTempEmail] = useState('')
-  const [redirectPath, setRedirectPath] = useState('/dashboard/store')
+  const [redirectPath, setRedirectPath] = useState('/dashboard')
 
   const inputRefs = useRef([])
 

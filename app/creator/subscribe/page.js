@@ -45,7 +45,7 @@ export default function CreatorSubscribePage() {
       }
       // If user is already on PRO, they have the top plan; send to dashboard
       if (res?.status === 'ACTIVE' && res?.planId === 'PRO' && !res?.hasScheduledChange) {
-        router.push('/dashboard/store')
+        router.push('/dashboard')
       }
     }).finally(() => setLoading(false))
   }, [router])
@@ -93,7 +93,7 @@ export default function CreatorSubscribePage() {
       if (checkoutRes.alreadyActive) {
         toast.info(checkoutRes.message || 'You already have an active subscription for this plan.')
         setPaying(false)
-        router.push('/dashboard/store')
+        router.push('/dashboard')
         return
       }
 
@@ -116,7 +116,7 @@ export default function CreatorSubscribePage() {
               })
               if (verifyRes.status === 'ACTIVE') {
                 toast.success('Subscription activated successfully!')
-                router.push('/dashboard/store')
+                router.push('/dashboard')
               }
             } catch (err) {
               toast.error(err.message || 'Subscription verification failed')
@@ -148,7 +148,7 @@ export default function CreatorSubscribePage() {
       if (checkoutRes.pending) {
         toast.info(checkoutRes.message || 'Upgrade payment is processing. Pro entitlements will activate once confirmed.')
         setPaying(false)
-        router.push('/dashboard/store')
+        router.push('/dashboard')
         return
       }
 
@@ -156,14 +156,14 @@ export default function CreatorSubscribePage() {
       if (checkoutRes.upgraded && checkoutRes.status === 'ACTIVE') {
         toast.success(checkoutRes.message || 'Successfully upgraded to Pro!')
         setPaying(false)
-        router.push('/dashboard/store')
+        router.push('/dashboard')
         return
       }
 
       if (checkoutRes.scheduledDowngrade) {
         toast.success(checkoutRes.message || 'Downgrade scheduled for your next billing cycle.')
         setPaying(false)
-        router.push('/dashboard/store')
+        router.push('/dashboard')
         return
       }
 
