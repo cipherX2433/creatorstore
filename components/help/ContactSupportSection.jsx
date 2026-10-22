@@ -10,9 +10,8 @@ export default function ContactSupportSection({
 }) {
   const { isAuthenticated } = useAuth()
 
-  // Authenticated creators can jump directly to the in-app support & ticket dashboard,
-  // while public visitors can reach out via the official contact page.
-  const supportHref = isAuthenticated ? '/dashboard/help?tab=contact' : '/contact'
+  // Direct contact support destination
+  const supportHref = '/contact'
 
   return (
     <section className="w-full mt-12 sm:mt-16 bg-white rounded-[24px] sm:rounded-[28px] border border-[#E2E3DD] p-7 sm:p-10 shadow-sm relative overflow-hidden">

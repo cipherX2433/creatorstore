@@ -368,7 +368,7 @@ function DashboardContent({ children }) {
             {isHovered ? (
               <>
                 <Link
-                  href="/dashboard/help"
+                  href="/help"
                   onClick={handleNavClick}
                   className="p-1.5 rounded-[8px] text-[#71717A] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] transition-colors outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20"
                   title="Help & Support"
@@ -392,7 +392,7 @@ function DashboardContent({ children }) {
               </>
             ) : (
               <Link
-                href="/dashboard/help"
+                href="/help"
                 onClick={handleNavClick}
                 className="p-1.5 rounded-[8px] text-[#71717A] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] transition-colors outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20"
                 title="Help & Support"

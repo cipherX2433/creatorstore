@@ -15,6 +15,20 @@ const nextConfig = {
     maxInactiveAge: 60 * 1000 * 5, // 5 minutes
     pagesBufferLength: 20, // Keep dashboard pages buffered in memory
   },
+  async redirects() {
+    return [
+      {
+        source: '/dashboard/help',
+        destination: '/help',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/success-center',
+        destination: '/help',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

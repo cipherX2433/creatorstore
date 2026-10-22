@@ -313,7 +313,7 @@ export default function MobileMoreDrawer({
             </button>
 
             <Link
-              href="/dashboard/help"
+              href="/help"
               onClick={onClose}
               className="flex items-center justify-between p-3.5 min-h-[48px] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors group"
             >
