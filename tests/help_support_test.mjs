@@ -21,8 +21,8 @@ console.log('\nTest 1: Validating Account Menu Dropdown and Navigation Routing..
 // 1.1 SidebarProfileRow.jsx inspection
 const sidebarProfileContent = fs.readFileSync(path.join(ROOT, 'components/dashboard/SidebarProfileRow.jsx'), 'utf-8')
 assert.ok(
-  sidebarProfileContent.includes('href="/dashboard/help"'),
-  'SidebarProfileRow must route Help & Support to /dashboard/help'
+  sidebarProfileContent.includes('href="/help"'),
+  'SidebarProfileRow must route Help & Support to canonical /help'
 )
 assert.ok(
   sidebarProfileContent.includes('Help & Support'),
@@ -35,26 +35,32 @@ assert.ok(
 
 // 1.2 Route file existence
 assert.ok(
-  fs.existsSync(path.join(ROOT, 'app/dashboard/help/page.js')),
-  '/dashboard/help/page.js must exist'
+  fs.existsSync(path.join(ROOT, 'app/help/page.js')),
+  '/help/page.js canonical Help Center must exist'
 )
 assert.ok(
-  fs.existsSync(path.join(ROOT, 'app/dashboard/help/HelpClient.jsx')),
-  '/dashboard/help/HelpClient.jsx must exist'
+  fs.existsSync(path.join(ROOT, 'app/dashboard/help/page.js')),
+  '/dashboard/help/page.js must exist for safe redirect'
 )
 assert.ok(
   fs.existsSync(path.join(ROOT, 'app/dashboard/success-center/page.js')),
   '/dashboard/success-center/page.js must exist for legacy redirect'
 )
 
-// 1.3 Legacy redirect inspection
-const successCenterContent = fs.readFileSync(path.join(ROOT, 'app/dashboard/success-center/page.js'), 'utf-8')
+// 1.3 Redirect inspections
+const dashboardHelpContent = fs.readFileSync(path.join(ROOT, 'app/dashboard/help/page.js'), 'utf-8')
 assert.ok(
-  successCenterContent.includes("redirect('/dashboard/help')"),
-  'success-center must redirect to /dashboard/help'
+  dashboardHelpContent.includes("redirect('/help')"),
+  'dashboard/help must redirect to canonical /help'
 )
 
-console.log('✅ Test 1 PASSED: Navigation entry points and routing validated.')
+const successCenterContent = fs.readFileSync(path.join(ROOT, 'app/dashboard/success-center/page.js'), 'utf-8')
+assert.ok(
+  successCenterContent.includes("redirect('/help')"),
+  'success-center must redirect to canonical /help'
+)
+
+console.log('✅ Test 1 PASSED: Canonical /help routing and redirects validated.')
 
 // ----------------------------------------------------
 // TEST 2: Help Categories Validation

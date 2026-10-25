@@ -226,6 +226,35 @@ async function runMobileUxTests() {
     fail('Mobile Store Dashboard UI Refinements Audit failed', err)
   }
 
+  // --- TEST 10: Mobile Store Overview → Item Editor Navigation Audit ---
+  console.log('\n--- TEST 10: Mobile Store Overview → Item Editor Navigation Audit ---')
+  try {
+    const mobileDashboardFile = fs.readFileSync(path.resolve('components/dashboard/MobileStoreDashboard.jsx'), 'utf8')
+    assert.ok(mobileDashboardFile.includes('function handleCardEdit(section)'), 'handleCardEdit must exist')
+    assert.ok(mobileDashboardFile.includes("isBundle ="), 'handleCardEdit must identify bundle items')
+    assert.ok(mobileDashboardFile.includes("isBooking ="), 'handleCardEdit must identify coaching/booking items')
+    assert.ok(!mobileDashboardFile.includes('handleCardEdit(section) {\n    setProductWizardOpen(true)'), 'handleCardEdit must NOT send all items to ProductWizard')
+    assert.ok(mobileDashboardFile.includes('e.stopPropagation()'), 'stopPropagation must be used on interactive controls')
+    assert.ok(mobileDashboardFile.includes('setActiveCardMenuId(isMenuOpen ? null : s.id)'), '3-dot menu must toggle without opening editor')
+
+    const storePageFile = fs.readFileSync(path.resolve('app/dashboard/store/page.js'), 'utf8')
+    assert.ok(storePageFile.includes('const renderActiveEditor = () =>'), 'renderActiveEditor helper must be defined')
+    assert.ok(storePageFile.includes('<BundleEditor'), 'BundleEditor must be rendered for bundles')
+    assert.ok(storePageFile.includes('<ProductEditor'), 'ProductEditor must be rendered for products')
+    assert.ok(storePageFile.includes('<BookingEditor'), 'BookingEditor must be rendered for coaching')
+    assert.ok(storePageFile.includes('{renderActiveEditor() ? ('), 'Mobile container must conditionally render active editor')
+    assert.ok(storePageFile.includes('handleCloseEditor'), 'handleCloseEditor must reset editor state')
+    assert.ok(storePageFile.includes("window.addEventListener('popstate'"), 'popstate listener must support mobile/browser back navigation')
+
+    const bundleEditorFile = fs.readFileSync(path.resolve('components/dashboard/editors/BundleEditor.jsx'), 'utf8')
+    assert.ok(bundleEditorFile.includes('selectedProductIds.length === 0'), 'Bundle editor must validate at least 1 product')
+    assert.ok(bundleEditorFile.includes("api.patch(`/bundles/${bundleId}`"), 'Bundle editor must persist to PATCH /bundles/[id]')
+
+    pass('Mobile Store Overview → Item Editor navigation flow verified: type resolution, menu isolation, back navigation, and save flow')
+  } catch (err) {
+    fail('Mobile Store Overview → Item Editor navigation audit failed', err)
+  }
+
   // --- CLEANUP ---
   if (createdProduct?.id) {
     try {

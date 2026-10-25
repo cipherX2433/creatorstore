@@ -70,22 +70,6 @@ export default function CoursesDashboardPage() {
     }
   }
 
-  const [subStatus, setSubStatus] = useState(null)
-
-  useEffect(() => {
-    api.get('/creator/subscription/status').then(setSubStatus).catch(() => {})
-  }, [])
-
-  function handleCreateCourse() {
-    if (subStatus && !subStatus.canCreateCourses && (subStatus.isTrialExpired && !subStatus.hasPaidPlan)) {
-      toast.error('Your Pro trial has ended. Upgrade your plan to create courses and continue selling.')
-      window.dispatchEvent(new CustomEvent('creatorstore:open-pricing'))
-      return
-    }
-    setEditingCourseId(null)
-    setWizardOpen(true)
-  }
-
   return (
     <div className="space-y-6 text-[#010619]">
 
@@ -96,14 +80,8 @@ export default function CoursesDashboardPage() {
             <Sparkles className="h-3.5 w-3.5" /> Learning Platform
           </div>
           <h1 className="text-3xl font-bold text-[#010619] tracking-tight">Online Courses</h1>
-          <p className="text-sm text-[#666666] font-medium">Create video modules, drip lessons, and certificates.</p>
+          <p className="text-sm text-[#666666] font-medium">Manage and view your existing courses.</p>
         </div>
-        <button
-          onClick={handleCreateCourse}
-          className="font-bold bg-primary hover:bg-primary/90 text-white rounded-xl h-11 px-5 shadow-xs flex items-center gap-1.5 cursor-pointer transition-all"
-        >
-          <Plus className="mr-1 h-5 w-5" /> Create Course
-        </button>
       </div>
 
       {courses === null ? (
@@ -114,15 +92,15 @@ export default function CoursesDashboardPage() {
             <GraduationCap className="h-8 w-8" />
           </div>
           <div className="space-y-1 max-w-sm">
-            <p className="text-xl font-bold text-[#010619]">Create your first online course</p>
-            <p className="text-xs text-[#666666] font-medium leading-relaxed">Host video modules, drip content, and automatically issue completion certificates.</p>
+            <p className="text-xl font-bold text-[#010619]">No active courses</p>
+            <p className="text-xs text-[#666666] font-medium leading-relaxed">The Courses feature has been retired and new courses cannot be created. You can manage products, coaching, and services from your products dashboard.</p>
           </div>
-          <button
-            onClick={handleCreateCourse}
-            className="font-bold bg-primary hover:bg-primary/90 text-white rounded-xl h-11 px-5 shadow-xs flex items-center gap-1.5 mt-2 cursor-pointer transition-all"
+          <Link
+            href="/dashboard/products"
+            className="font-bold bg-primary hover:bg-primary/90 text-white rounded-xl h-11 px-5 shadow-xs inline-flex items-center gap-1.5 mt-2 cursor-pointer transition-all text-sm"
           >
-            <Plus className="mr-1 h-4 w-4" /> Create Course
-          </button>
+            Go to Products
+          </Link>
         </div>
       ) : (
         <div className="space-y-4">

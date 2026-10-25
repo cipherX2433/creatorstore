@@ -359,7 +359,7 @@ export default function AddMediaConfig({
               Title (Optional)
             </Label>
             <Input
-              placeholder="e.g. My Latest Course Preview"
+              placeholder="e.g. My Latest Video Guide Preview"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="bg-surface-card border-edge text-content-primary text-body rounded-control focus:border-edge-focus"

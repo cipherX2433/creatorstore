@@ -23,7 +23,7 @@ export function ModalFooterActions({
         <button
           type="button"
           onClick={onSecondary}
-          className="h-11 px-6 rounded-full bg-[#FFFFFF] border border-[#E5E5E3] text-[#1F1F1F] text-sm font-semibold hover:bg-[#F5F5F3] transition-colors cursor-pointer disabled:opacity-50"
+          className="h-11 px-6 rounded-full bg-[#FFFFFF] border border-[#E8E8E8] text-[#222222] text-sm font-semibold hover:bg-[#F2F2F2] hover:border-[#D0D0CE] transition-colors cursor-pointer disabled:opacity-50"
         >
           {secondaryLabel}
         </button>
@@ -39,7 +39,7 @@ export function ModalFooterActions({
             'h-11 px-6 rounded-full text-sm font-bold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2',
             primaryDanger
               ? 'bg-[#DC2626] text-[#FFFFFF] hover:bg-[#B91C1C]'
-              : 'bg-[#1F1F1F] text-[#FFFFFF] hover:bg-[#000000] active:bg-[#111111]'
+              : 'bg-[#1F1F1F] text-[#FFFFFF] hover:bg-[#2A2A2A] active:bg-[#111111]'
           )}
         >
           {primaryLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -85,7 +85,7 @@ export function BaseModal({
         hideClose
         aria-label={typeof title === 'string' ? title : 'Dialog'}
         className={cn(
-          'flex flex-col gap-0 w-[calc(100vw-20px)] sm:w-full sm:max-w-[560px] max-h-[calc(100vh-20px)] sm:max-h-[calc(100vh-48px)] p-4 sm:p-6 md:p-8 rounded-[20px] sm:rounded-[24px] bg-[#FFFFFF] border border-[#E5E5E3] text-[#1F1F1F] shadow-[0_20px_60px_rgba(0,0,0,0.12)] overflow-hidden',
+          'flex flex-col gap-0 w-[calc(100vw-20px)] sm:w-full sm:max-w-[560px] max-h-[calc(100vh-20px)] sm:max-h-[calc(100vh-48px)] p-4 sm:p-6 md:p-8 rounded-[20px] sm:rounded-[24px] bg-[#FFFFFF] border border-[#E8E8E8] text-[#222222] shadow-[0_20px_60px_rgba(0,0,0,0.12)] overflow-hidden',
           className
         )}
       >
@@ -93,7 +93,7 @@ export function BaseModal({
           <div className="flex items-center gap-2 min-w-0">
             {headerLeft}
             {title ? (
-              <DialogTitle className="text-base sm:text-lg font-bold text-[#1F1F1F] truncate">
+              <DialogTitle className="text-base sm:text-lg font-bold text-[#222222] truncate">
                 {title}
               </DialogTitle>
             ) : (
@@ -106,7 +106,7 @@ export function BaseModal({
               <button
                 type="button"
                 onClick={handleClose}
-                className="p-1.5 rounded-full text-[#6F6F6B] hover:text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+                className="p-1.5 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />
@@ -116,7 +116,7 @@ export function BaseModal({
         </div>
 
         {description ? (
-          <DialogDescription className="mt-1 text-xs sm:text-sm text-[#6F6F6B]">
+          <DialogDescription className="mt-1 text-xs sm:text-sm text-[#777777]">
             {description}
           </DialogDescription>
         ) : null}
@@ -127,7 +127,7 @@ export function BaseModal({
 
         {showFooter ? (
           <>
-            <div className="mt-4 sm:mt-6 h-px w-full bg-[var(--border-subtle,#303030)] shrink-0" />
+            <div className="mt-4 sm:mt-6 h-px w-full bg-[#E8E8E8] shrink-0" />
             <div className="pt-3.5 sm:pt-5 shrink-0">
               {footer || (
                 <ModalFooterActions

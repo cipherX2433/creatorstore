@@ -113,10 +113,10 @@ const CREATORS = [
       },
       {
         id: 'p-sam-2',
-        title: 'Natural Light Portrait Masterclass',
-        subtitle: '12 video lessons filmed on location',
+        title: 'Portrait Photography Toolkit',
+        subtitle: 'Production templates & editing guides',
         price: '$79',
-        type: 'Complete Course',
+        type: 'Digital Toolkit',
         image: '/assets/products/photo-masterclass.jpg',
         imageFallback: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500&q=85&auto=format&fit=crop',
       },

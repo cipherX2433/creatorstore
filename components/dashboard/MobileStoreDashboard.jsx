@@ -112,14 +112,19 @@ export default function MobileStoreDashboard({
       setEditingProduct(null)
       setProductWizardOpen(true)
     } else if (type === 'link') {
-      onOpenAddModal?.('link')
+      if (payload?.presetUrl) {
+        onOpenAddModal?.('link_direct', { url: payload.presetUrl, title: payload.title })
+      } else {
+        onOpenAddModal?.('link')
+      }
+    } else if (type === 'coaching') {
+      onOpenAddModal?.('coaching')
+    } else if (type === 'bundle') {
+      onOpenAddModal?.('bundle')
     } else if (type === 'form' || type === 'form_contact' || type === 'form_newsletter') {
       onOpenAddModal?.(type)
     } else if (type === 'link_direct') {
       onOpenAddModal?.('link_direct', payload)
-    } else if (type === 'coaching') {
-      setEditingProduct(null)
-      setProductWizardOpen(true)
     } else {
       onOpenAddModal?.(type, payload)
     }
@@ -130,12 +135,48 @@ export default function MobileStoreDashboard({
     const prodId = section.props?.productId
     const targetProd = prodId ? products.find((p) => p.id === prodId) : null
 
-    if (targetProd || section.type === 'product') {
-      setEditingProduct(targetProd || { id: prodId, title: section.props?.title || '' })
-      setProductWizardOpen(true)
-    } else {
+    // 1. Form items
+    if (section.type === 'form') {
       onEditSection?.(section)
+      return
     }
+
+    // 2. Bundle items (must open BundleEditor, never MobileProductWizard)
+    const isBundle =
+      section.type === 'bundle' ||
+      targetProd?.type === 'BUNDLE' ||
+      (Array.isArray(targetProd?.bundleProductIds) && targetProd.bundleProductIds.length > 0) ||
+      (Array.isArray(section.props?.bundleProductIds) && section.props.bundleProductIds.length > 0) ||
+      (Array.isArray(targetProd?.bundleItems) && targetProd.bundleItems.length > 0)
+
+    if (isBundle) {
+      onEditSection?.(section)
+      return
+    }
+
+    // 3. Coaching items (must open BookingEditor)
+    const isBooking =
+      section.type === 'coaching' ||
+      targetProd?.type === 'COACHING' ||
+      section.props?.sessionDuration !== undefined
+
+    if (isBooking) {
+      onEditSection?.(section)
+      return
+    }
+
+    // 4. Standard digital products / courses
+    if (targetProd && targetProd.id) {
+      onEditProduct?.(targetProd.id)
+      return
+    }
+    if (section.type === 'product' && prodId) {
+      onEditProduct?.(prodId)
+      return
+    }
+
+    // 5. All other section types (link, social, collection, gallery, youtube, media, text, etc.)
+    onEditSection?.(section)
   }
 
   function handleCopyStoreLink() {
@@ -147,29 +188,29 @@ export default function MobileStoreDashboard({
   }
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-[#FBFAF9] text-[#1F1F1F]">
+    <div className="flex flex-col w-full min-h-screen bg-[#F7F7F7] text-[#222222]">
 
-      {/* 1. TOP MOBILE HEADER (Screenshot 2) */}
-      <div className="flex items-center justify-between px-4 h-14 bg-[#FFFFFF] border-b border-[#E5E5E3] sticky top-0 z-30 shrink-0">
+      {/* 1. TOP MOBILE HEADER (Matching Reference Image 3) */}
+      <div className="flex items-center justify-between px-4 h-14 bg-[#FFFFFF] border-b border-[#E8E8E8] sticky top-0 z-30 shrink-0">
         <Link
           href="/dashboard"
-          className="p-2 -ml-2 rounded-full text-[#1F1F1F] hover:bg-[#F2F1EF] transition-colors"
+          className="w-11 h-11 -ml-2 rounded-full text-[#222222] hover:bg-[#F2F2F2] active:scale-95 transition-all flex items-center justify-center cursor-pointer"
           aria-label="Back to dashboard"
         >
           <ArrowLeft className="h-5 w-5 stroke-[2.2]" />
         </Link>
 
         {/* Username in Center */}
-        <span className="text-sm font-bold text-[#1F1F1F] truncate max-w-[180px]">
+        <span className="text-sm font-bold text-[#222222] truncate max-w-[180px]">
           @{cleanUsername}
         </span>
 
         {/* Right Header Controls: Overflow menu & Share button */}
-        <div className="flex items-center gap-1.5 -mr-1 relative">
+        <div className="flex items-center gap-1 -mr-1 relative">
           <button
             type="button"
             onClick={() => setHeaderMenuOpen((v) => !v)}
-            className="p-2 rounded-full text-[#71717A] hover:text-[#1F1F1F] hover:bg-[#F2F1EF] transition-colors cursor-pointer"
+            className="w-11 h-11 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] active:scale-95 transition-all flex items-center justify-center cursor-pointer"
             aria-label="Store options"
           >
             <MoreHorizontal className="h-5 w-5 stroke-[2]" />
@@ -178,7 +219,7 @@ export default function MobileStoreDashboard({
           <button
             type="button"
             onClick={onOpenShare}
-            className="p-2 rounded-full text-[#71717A] hover:text-[#1F1F1F] hover:bg-[#F2F1EF] transition-colors cursor-pointer"
+            className="w-11 h-11 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] active:scale-95 transition-all flex items-center justify-center cursor-pointer"
             aria-label="Share store"
           >
             <Share2 className="h-5 w-5 stroke-[1.8]" />
@@ -191,23 +232,23 @@ export default function MobileStoreDashboard({
                 className="fixed inset-0 z-40"
                 onClick={() => setHeaderMenuOpen(false)}
               />
-              <div className="absolute right-0 top-11 z-50 w-48 rounded-2xl bg-[#FFFFFF] border border-[#E5E5E3] shadow-lg p-1 space-y-0.5">
+              <div className="absolute right-0 top-12 z-50 w-52 rounded-2xl bg-[#FFFFFF] border border-[#E8E8E8] shadow-lg p-1.5 space-y-0.5">
                 <a
                   href={liveStoreUrl}
                   target="_blank"
                   rel="noreferrer"
                   onClick={() => setHeaderMenuOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors min-h-[44px]"
                 >
-                  <ExternalLink className="h-4 w-4 text-[#71717A]" />
+                  <ExternalLink className="h-4 w-4 text-[#777777]" />
                   <span>View live store</span>
                 </a>
                 <button
                   type="button"
                   onClick={handleCopyStoreLink}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors text-left min-h-[44px] cursor-pointer"
                 >
-                  <Copy className="h-4 w-4 text-[#71717A]" />
+                  <Copy className="h-4 w-4 text-[#777777]" />
                   <span>Copy store link</span>
                 </button>
                 <button
@@ -216,9 +257,9 @@ export default function MobileStoreDashboard({
                     setHeaderMenuOpen(false)
                     onTabChange?.('design')
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors text-left min-h-[44px] cursor-pointer"
                 >
-                  <Palette className="h-4 w-4 text-[#71717A]" />
+                  <Palette className="h-4 w-4 text-[#777777]" />
                   <span>Design theme</span>
                 </button>
               </div>
@@ -227,12 +268,13 @@ export default function MobileStoreDashboard({
         </div>
       </div>
 
-      {/* 2. STORE PROFILE SECTION (Screenshot 2) */}
-      <div className="px-4 pt-3.5 pb-3 bg-[#FFFFFF] border-b border-[#E5E5E3] flex flex-col items-center text-center">
+      {/* 2. STORE PROFILE SECTION (Matching Reference Image 3) */}
+      <div className="px-4 pt-4 pb-2 bg-[#FFFFFF] flex flex-col items-center text-center">
         {/* Creator Avatar with camera trigger - Target 64–80px (72px) */}
         <div
           onClick={onOpenAvatar}
-          className="relative w-[72px] h-[72px] min-w-[72px] min-h-[72px] max-w-[72px] max-h-[72px] rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden cursor-pointer group border border-[#E5E5E3] shadow-xs shrink-0"
+          className="relative w-[72px] h-[72px] min-w-[72px] min-h-[72px] max-w-[72px] max-h-[72px] rounded-full bg-[#F2F2F2] flex items-center justify-center overflow-hidden cursor-pointer group border border-[#E8E8E8] shadow-xs shrink-0"
+          title="Upload profile picture"
         >
           {store?.theme?.avatarUrl || store?.avatarUrl || profile?.avatarUrl ? (
             <img
@@ -241,7 +283,7 @@ export default function MobileStoreDashboard({
               className="h-full w-full object-cover"
             />
           ) : (
-            <span className="text-xl font-bold text-[#1F1F1F]">
+            <span className="text-xl font-bold text-[#222222]">
               {(cleanUsername || 'C')[0].toUpperCase()}
             </span>
           )}
@@ -251,7 +293,7 @@ export default function MobileStoreDashboard({
         </div>
 
         {/* Username */}
-        <h2 className="text-sm font-bold text-[#1F1F1F] mt-2 tracking-tight truncate max-w-full">
+        <h2 className="text-sm font-bold text-[#222222] mt-2 tracking-tight truncate max-w-full">
           @{cleanUsername}
         </h2>
 
@@ -262,7 +304,7 @@ export default function MobileStoreDashboard({
               href={`https://instagram.com/${String(igAccount.username).replace(/^@/, '')}`}
               target="_blank"
               rel="noreferrer"
-              className="h-7 w-7 rounded-full bg-[#F2F1EF] hover:bg-[#EAE9E6] flex items-center justify-center text-[#1F1F1F] transition-colors"
+              className="h-7 w-7 rounded-full bg-[#F2F2F2] hover:bg-[#E8E8E8] flex items-center justify-center text-[#222222] transition-colors"
               title={`@${igAccount.username}`}
             >
               <Instagram className="h-4 w-4" />
@@ -271,7 +313,7 @@ export default function MobileStoreDashboard({
             <button
               type="button"
               onClick={() => onOpenAddModal?.('social')}
-              className="h-7 w-7 rounded-full bg-[#F2F1EF] hover:bg-[#EAE9E6] flex items-center justify-center text-[#71717A] hover:text-[#1F1F1F] transition-colors cursor-pointer"
+              className="h-7 w-7 rounded-full bg-[#F2F2F2] hover:bg-[#E8E8E8] flex items-center justify-center text-[#777777] hover:text-[#222222] transition-colors cursor-pointer"
               title="Connect Instagram"
             >
               <Instagram className="h-4 w-4" />
@@ -281,16 +323,16 @@ export default function MobileStoreDashboard({
           <button
             type="button"
             onClick={() => onOpenAddModal?.('social')}
-            className="h-7 w-7 rounded-full border border-dashed border-[#D1D5DB] hover:border-[#1F1F1F] flex items-center justify-center text-[#71717A] hover:text-[#1F1F1F] transition-colors cursor-pointer"
+            className="h-7 w-7 rounded-full border border-dashed border-[#E8E8E8] hover:border-[#D0D0CE] flex items-center justify-center text-[#777777] hover:text-[#222222] transition-colors cursor-pointer"
             title="Add social icon"
           >
             <Plus className="h-3.5 w-3.5" />
           </button>
         </div>
 
-        {/* Followers / Public Status Pill */}
+        {/* Status Pill */}
         <div className="mt-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full border border-[#E5E5E3] bg-[#F9F9F8] text-[11px] font-semibold text-[#71717A]">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#E8E8E8] bg-[#FFFFFF] text-[11px] font-semibold text-[#777777] shadow-2xs">
             <span className={`h-1.5 w-1.5 rounded-full ${store?.published ? 'bg-[#16A34A]' : 'bg-[#9CA3AF]'}`} />
             <span>{store?.published ? 'Storefront live' : 'Draft store'}</span>
           </span>
@@ -298,11 +340,11 @@ export default function MobileStoreDashboard({
       </div>
 
       {/* 3. STORE TAB (Consolidated single primary content tab with orange active indicator) */}
-      <div className="bg-[#FFFFFF] border-b border-[#E5E5E3] px-5 flex items-center shrink-0">
+      <div className="bg-[#FFFFFF] border-b border-[#E8E8E8] px-5 flex items-center shrink-0">
         <div
           role="tab"
           aria-selected="true"
-          className="py-3 text-sm font-bold text-[#1F1F1F] relative cursor-default"
+          className="py-3 text-sm font-bold text-[#222222] relative cursor-default"
         >
           <span>Store</span>
           <div
@@ -317,7 +359,7 @@ export default function MobileStoreDashboard({
         <button
           type="button"
           onClick={onAddCollection}
-          className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-full bg-[#FFFFFF] hover:bg-[#F9F9F8] border border-[#E5E5E3] text-xs font-bold text-[#1F1F1F] shadow-2xs transition-colors cursor-pointer"
+          className="flex-1 inline-flex items-center justify-center gap-2 h-12 min-h-[44px] px-4 rounded-full bg-[#FFFFFF] hover:bg-[#F2F2F2] active:scale-[0.98] border border-[#E8E8E8] text-xs font-bold text-[#222222] shadow-2xs transition-all cursor-pointer"
         >
           <Folder className="h-4 w-4" />
           <span>Add collection</span>
@@ -326,7 +368,7 @@ export default function MobileStoreDashboard({
         <button
           type="button"
           onClick={() => setAddSheetOpen(true)}
-          className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-full bg-[#1F1F1F] hover:bg-black text-white text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+          className="flex-1 inline-flex items-center justify-center gap-2 h-12 min-h-[44px] px-4 rounded-full bg-[#1F1F1F] hover:bg-[#2A2A2A] active:scale-[0.98] text-white text-xs font-bold shadow-2xs transition-all cursor-pointer"
         >
           <Plus className="h-4 w-4 stroke-[2.5]" />
           <span>Add</span>
@@ -334,7 +376,12 @@ export default function MobileStoreDashboard({
       </div>
 
       {/* 5. CONTENT ITEMS LIST (Screenshot 2) */}
-      <div className="flex-1 min-h-0 px-4 pb-36 space-y-2.5">
+      <div
+        className="flex-1 min-h-0 px-4 space-y-2.5"
+        style={{
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 148px)',
+        }}
+      >
         {filteredSections.length > 0 ? (
           filteredSections.map((s) => {
             const isMenuOpen = activeCardMenuId === s.id
@@ -374,18 +421,18 @@ export default function MobileStoreDashboard({
             return (
               <div
                 key={s.id}
-                className="relative flex items-center justify-between p-3 rounded-2xl bg-[#FFFFFF] border border-[#E5E5E3] shadow-2xs hover:border-[#DADAD7] transition-all"
+                className="relative flex items-center justify-between p-3 rounded-2xl bg-[#FFFFFF] border border-[#E8E8E8] shadow-2xs hover:border-[#D0D0CE] transition-all"
               >
                 {/* Left: Thumbnail or Type Icon */}
                 <div
                   onClick={() => handleCardEdit(s)}
                   className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
                 >
-                  <div className="h-12 w-12 rounded-[14px] bg-[#F2F1EF] border border-[#E5E5E3] overflow-hidden flex items-center justify-center shrink-0">
+                  <div className="h-12 w-12 rounded-[14px] bg-[#F2F2F2] border border-[#E8E8E8] overflow-hidden flex items-center justify-center shrink-0">
                     {thumbUrl ? (
                       <img src={thumbUrl} alt="" className="h-full w-full object-cover" />
                     ) : isCollection ? (
-                      <Folder className="h-6 w-6 text-[#1F1F1F]" />
+                      <Folder className="h-6 w-6 text-[#222222]" />
                     ) : s.type === 'youtube' ? (
                       <Youtube className="h-6 w-6 text-[#EF4444]" />
                     ) : s.type === 'instagram' ? (
@@ -395,28 +442,31 @@ export default function MobileStoreDashboard({
                     ) : s.type === 'coaching' ? (
                       <Video className="h-6 w-6 text-[#8B5CF6]" />
                     ) : (
-                      <Package className="h-6 w-6 text-[#1F1F1F]" />
+                      <Package className="h-6 w-6 text-[#222222]" />
                     )}
                   </div>
 
                   {/* Middle: Title & Metadata */}
                   <div className="min-w-0 flex-1 pr-2">
-                    <p className="text-sm font-bold text-[#1F1F1F] truncate leading-tight">
+                    <p className="text-sm font-bold text-[#222222] truncate leading-tight">
                       {title}
                     </p>
-                    <p className="text-xs text-[#71717A] truncate mt-1">
+                    <p className="text-xs text-[#777777] truncate mt-1">
                       {metaText}
                     </p>
                   </div>
                 </div>
 
                 {/* Right: Setup badge & 3-dot overflow menu */}
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                   {(isDraft || isSetupIncomplete) && (
                     <button
                       type="button"
-                      onClick={() => handleCardEdit(s)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FEF3C7] text-[#D97706] text-[11px] font-bold cursor-pointer hover:bg-[#FDE68A] transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleCardEdit(s)
+                      }}
+                      className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1 rounded-full bg-[#FEF3C7] text-[#D97706] text-[11px] font-bold cursor-pointer hover:bg-[#FDE68A] active:scale-95 transition-all"
                     >
                       <Wrench className="h-3 w-3" />
                       <span>Setup</span>
@@ -426,8 +476,11 @@ export default function MobileStoreDashboard({
                   <div className="relative">
                     <button
                       type="button"
-                      onClick={() => setActiveCardMenuId(isMenuOpen ? null : s.id)}
-                      className="p-1.5 rounded-full text-[#71717A] hover:text-[#1F1F1F] hover:bg-[#F2F1EF] transition-colors cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setActiveCardMenuId(isMenuOpen ? null : s.id)
+                      }}
+                      className="w-11 h-11 flex items-center justify-center rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] active:scale-95 transition-all cursor-pointer"
                       aria-label="Item options"
                     >
                       <MoreVertical className="h-4.5 w-4.5" />
@@ -438,59 +491,73 @@ export default function MobileStoreDashboard({
                       <>
                         <div
                           className="fixed inset-0 z-40"
-                          onClick={() => setActiveCardMenuId(null)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setActiveCardMenuId(null)
+                          }}
                         />
-                        <div className="absolute right-0 top-8 z-50 w-44 rounded-2xl bg-[#FFFFFF] border border-[#E5E5E3] shadow-lg p-1 space-y-0.5 animate-in fade-in duration-150">
+                        <div
+                          className="absolute right-0 top-11 z-50 w-48 rounded-2xl bg-[#FFFFFF] border border-[#E8E8E8] shadow-lg p-1.5 space-y-0.5 animate-in fade-in duration-150"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <button
                             type="button"
-                            onClick={() => handleCardEdit(s)}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors text-left"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setActiveCardMenuId(null)
+                              handleCardEdit(s)
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors text-left min-h-[44px] cursor-pointer"
                           >
-                            <Pencil className="h-3.5 w-3.5 text-[#71717A]" />
+                            <Pencil className="h-4 w-4 text-[#777777]" />
                             <span>Edit item</span>
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation()
                               setActiveCardMenuId(null)
                               setPreviewModalOpen(true)
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors text-left"
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors text-left min-h-[44px] cursor-pointer"
                           >
-                            <Eye className="h-3.5 w-3.5 text-[#71717A]" />
+                            <Eye className="h-4 w-4 text-[#777777]" />
                             <span>Preview</span>
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation()
                               setActiveCardMenuId(null)
                               onDuplicateSection?.(s.id)
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors text-left"
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors text-left min-h-[44px] cursor-pointer"
                           >
-                            <Copy className="h-3.5 w-3.5 text-[#71717A]" />
+                            <Copy className="h-4 w-4 text-[#777777]" />
                             <span>Duplicate</span>
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation()
                               setActiveCardMenuId(null)
                               onToggleHidden?.(s.id)
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors text-left"
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] transition-colors text-left min-h-[44px] cursor-pointer"
                           >
-                            <Power className="h-3.5 w-3.5 text-[#71717A]" />
+                            <Power className="h-4 w-4 text-[#777777]" />
                             <span>{s.hidden ? 'Show on store' : 'Hide from store'}</span>
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation()
                               setActiveCardMenuId(null)
                               setDeleteConfirmSection(s)
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-[#DC2626] hover:bg-rose-50 transition-colors text-left"
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#DC2626] hover:bg-rose-50 active:bg-rose-100 transition-colors text-left min-h-[44px] cursor-pointer"
                           >
-                            <Trash2 className="h-3.5 w-3.5 text-[#DC2626]" />
+                            <Trash2 className="h-4 w-4 text-[#DC2626]" />
                             <span>Delete</span>
                           </button>
                         </div>
@@ -503,22 +570,22 @@ export default function MobileStoreDashboard({
           })
         ) : (
           /* Empty state for Store */
-          <div className="py-12 px-4 text-center rounded-2xl border border-dashed border-[#E5E5E3] bg-[#FFFFFF] space-y-3">
-            <div className="h-12 w-12 rounded-full bg-[#F2F1EF] mx-auto flex items-center justify-center text-[#71717A]">
+          <div className="py-12 px-4 text-center rounded-2xl border border-dashed border-[#E8E8E8] bg-[#FFFFFF] space-y-3">
+            <div className="h-12 w-12 rounded-full bg-[#F2F2F2] mx-auto flex items-center justify-center text-[#777777]">
               <Package className="h-6 w-6" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-bold text-[#1F1F1F]">
+              <p className="text-sm font-bold text-[#222222]">
                 Your store is empty
               </p>
-              <p className="text-xs text-[#71717A] max-w-xs mx-auto">
-                Add links, products, courses, or forms to start sharing and earning.
+              <p className="text-xs text-[#777777] max-w-xs mx-auto">
+                Add links, products, coaching, or forms to start sharing and earning.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setAddSheetOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#1F1F1F] text-white text-xs font-bold shadow-xs hover:bg-black transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#1F1F1F] text-white text-xs font-bold shadow-xs hover:bg-[#2A2A2A] transition-colors cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Add to store</span>
@@ -528,34 +595,39 @@ export default function MobileStoreDashboard({
       </div>
 
       {/* 6. FLOATING BOTTOM EDITOR ACTION PILL */}
-      <div className="fixed bottom-[68px] left-1/2 -translate-x-1/2 z-30 select-none">
-        <div className="flex items-center gap-5 px-6 py-2.5 rounded-full bg-[#FFFFFF] border border-[#E5E5E3] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+      <div
+        className="fixed left-1/2 -translate-x-1/2 z-30 select-none"
+        style={{
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)',
+        }}
+      >
+        <div className="flex items-center gap-5 px-6 py-2.5 rounded-full bg-[#FFFFFF] border border-[#E8E8E8] shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
           <button
             type="button"
             onClick={() => setAddSheetOpen(true)}
-            className="flex items-center gap-1.5 text-xs font-bold text-[#1F1F1F] hover:text-[#000000] cursor-pointer"
+            className="flex items-center gap-1.5 text-xs font-bold text-[#222222] hover:text-[#000000] cursor-pointer"
           >
             <Plus className="h-4 w-4 stroke-[2.5]" />
             <span>Add</span>
           </button>
 
-          <div className="h-3.5 w-px bg-[#E5E5E3]" />
+          <div className="h-3.5 w-px bg-[#E8E8E8]" />
 
           <button
             type="button"
             onClick={() => setPreviewModalOpen(true)}
-            className="flex items-center gap-1.5 text-xs font-bold text-[#1F1F1F] hover:text-[#000000] cursor-pointer"
+            className="flex items-center gap-1.5 text-xs font-bold text-[#222222] hover:text-[#000000] cursor-pointer"
           >
             <Eye className="h-4 w-4" />
             <span>Preview</span>
           </button>
 
-          <div className="h-3.5 w-px bg-[#E5E5E3]" />
+          <div className="h-3.5 w-px bg-[#E8E8E8]" />
 
           <button
             type="button"
             onClick={() => onTabChange?.('design')}
-            className="flex items-center gap-1.5 text-xs font-bold text-[#1F1F1F] hover:text-[#000000] cursor-pointer"
+            className="flex items-center gap-1.5 text-xs font-bold text-[#222222] hover:text-[#000000] cursor-pointer"
           >
             <Palette className="h-4 w-4" />
             <span>Design</span>

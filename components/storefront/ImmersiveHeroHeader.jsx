@@ -129,7 +129,7 @@ export default function ImmersiveHeroHeader({
       ref={containerRef}
       className="immersive-hero relative w-full overflow-hidden select-none"
       style={{
-        height: 'clamp(380px, 48vh, 480px)',
+        height: avatarUrl ? 'clamp(320px, 42vh, 420px)' : 'clamp(210px, 26vh, 250px)',
         '--hero-blur': '0px',
         '--hero-opacity': '1',
         '--hero-scale': '1',
@@ -153,16 +153,14 @@ export default function ImmersiveHeroHeader({
           />
         ) : (
           <div
-            className="w-full h-full flex items-center justify-center bg-gradient-to-b from-[#2B3240] to-[#12141A]"
+            className="w-full h-full bg-gradient-to-b from-[#262D3B] to-[#12141A]"
             style={{
               transform: 'scale(var(--hero-scale, 1))',
               filter: 'blur(var(--hero-blur, 0px))',
               opacity: 'var(--hero-opacity, 1)',
               willChange: 'transform, filter, opacity',
             }}
-          >
-            <User className="h-28 w-28 text-white/20" />
-          </div>
+          />
         )}
       </div>
 
@@ -191,6 +189,13 @@ export default function ImmersiveHeroHeader({
           willChange: 'transform, opacity',
         }}
       >
+        {/* Missing avatar fallback circle */}
+        {!avatarUrl && (
+          <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-white/10 ring-2 ring-white/20 flex items-center justify-center font-black text-xl sm:text-2xl text-white shadow-md mb-1 select-none backdrop-blur-md">
+            {String(name).replace(/^@/, '').slice(0, 1).toUpperCase()}
+          </div>
+        )}
+
         {/* Creator Name or Logo */}
         {showTitle && (
           titleStyle === 'logo' && header.logoUrl ? (
@@ -200,22 +205,29 @@ export default function ImmersiveHeroHeader({
               className="h-10 sm:h-12 max-w-[220px] object-contain drop-shadow-md"
             />
           ) : (
-            <h1
-              className={`text-2xl sm:text-4xl font-extrabold tracking-tight drop-shadow-sm ${typography?.titleWeight || ''}`}
-              style={{
-                fontFamily: typography?.headingFont,
-                color: palette.text || '#FFFFFF',
-              }}
-            >
-              {name}
-            </h1>
+            <div className="space-y-0.5">
+              <h1
+                className={`text-xl sm:text-2xl font-bold tracking-tight drop-shadow-sm ${typography?.titleWeight || ''}`}
+                style={{
+                  fontFamily: typography?.headingFont,
+                  color: palette.text || '#FFFFFF',
+                }}
+              >
+                {name}
+              </h1>
+              {handle && name !== `@${handle}` && (
+                <p className="text-xs font-medium opacity-65 tracking-normal drop-shadow-xs" style={{ color: palette.textSecondary || '#D4D4D8' }}>
+                  @{handle.replace(/^@/, '')}
+                </p>
+              )}
+            </div>
           )
         )}
 
         {/* Bio */}
         {showBio && bio && (
           <p
-            className="text-xs sm:text-sm leading-relaxed font-medium max-w-md mx-auto drop-shadow-sm break-words line-clamp-2"
+            className="text-xs sm:text-sm leading-relaxed font-medium max-w-sm sm:max-w-md mx-auto drop-shadow-sm break-words line-clamp-2"
             style={{
               color: palette.textSecondary || 'rgba(255,255,255,0.78)',
             }}

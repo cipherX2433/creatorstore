@@ -23,7 +23,7 @@ export default function MobileBottomNavigation({ onOpenMore, isMoreOpen = false 
   return (
     <nav
       aria-label="Mobile Bottom Navigation"
-      className="fixed left-0 right-0 bottom-0 z-40 md:hidden bg-[#FFFFFF] border-t border-[#E5E5E3] select-none shadow-[0_-4px_16px_rgba(0,0,0,0.03)]"
+      className="fixed left-0 right-0 bottom-0 z-40 md:hidden bg-[#FFFFFF] border-t border-[#E8E8E8] select-none shadow-[0_-4px_16px_rgba(0,0,0,0.03)]"
       style={{
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
@@ -50,14 +50,14 @@ export default function MobileBottomNavigation({ onOpenMore, isMoreOpen = false 
                 <div className="relative flex items-center justify-center">
                   <Icon
                     className={`h-[20px] w-[20px] transition-transform group-active:scale-95 shrink-0 ${
-                      isActive ? 'stroke-[2.2]' : 'stroke-[1.8] text-[#71717A] group-hover:text-[#1F1F1F]'
+                      isActive ? 'stroke-[2.2]' : 'stroke-[1.8] text-[#777777] group-hover:text-[#222222]'
                     }`}
                     style={isActive ? { color: activeColor } : undefined}
                   />
                 </div>
                 <span
                   className={`text-[10px] tracking-tight mt-0.5 truncate max-w-[70px] ${
-                    isActive ? 'font-bold' : 'font-medium text-[#71717A] group-hover:text-[#1F1F1F]'
+                    isActive ? 'font-bold' : 'font-medium text-[#777777] group-hover:text-[#222222]'
                   }`}
                   style={isActive ? { color: activeColor } : undefined}
                 >
@@ -78,14 +78,14 @@ export default function MobileBottomNavigation({ onOpenMore, isMoreOpen = false 
               <div className="relative flex items-center justify-center">
                 <Icon
                   className={`h-[20px] w-[20px] transition-transform group-active:scale-95 shrink-0 ${
-                    isActive ? 'stroke-[2.2]' : 'stroke-[1.8] text-[#71717A] group-hover:text-[#1F1F1F]'
+                    isActive ? 'stroke-[2.2]' : 'stroke-[1.8] text-[#777777] group-hover:text-[#222222]'
                   }`}
                   style={isActive ? { color: activeColor } : undefined}
                 />
               </div>
               <span
                 className={`text-[10px] tracking-tight mt-0.5 truncate max-w-[70px] ${
-                  isActive ? 'font-bold' : 'font-medium text-[#71717A] group-hover:text-[#1F1F1F]'
+                  isActive ? 'font-bold' : 'font-medium text-[#777777] group-hover:text-[#222222]'
                 }`}
                 style={isActive ? { color: activeColor } : undefined}
               >

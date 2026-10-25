@@ -82,7 +82,6 @@ import ProductBundleModal from '@/components/dashboard/ProductBundleModal'
 import { IconBadge, ICON_BADGE_COLORS } from '@/components/ui/icon-badge'
 import { AddOptionRow, SettingsRow, SettingsValuePill } from '@/components/ui/settings-row'
 import CoachingBookingWizardModal, { CoachingBookingWizardContent } from '@/components/coaching/CoachingBookingWizardModal'
-import CourseWizardModal, { CourseWizardContent } from '@/components/course/CourseWizardModal'
 import DashboardPageTransition from '@/components/dashboard/DashboardPageTransition'
 import { getPreviewButtonStyles } from '@/lib/colorContrast'
 import { isThemeDirty } from '@/lib/themeComparison'
@@ -195,7 +194,7 @@ function defaultProps(type, products = []) {
     case 'heading_text': return { text: 'Welcome to my store', align: 'center' }
     case 'text':
     case 'text_block':
-    case 'paragraph_text': return { text: 'Explore my exclusive digital products and courses.', content: 'Explore my exclusive digital products and courses.', align: 'left' }
+    case 'paragraph_text': return { text: 'Explore my exclusive digital products.', content: 'Explore my exclusive digital products.', align: 'left' }
     case 'button': return { label: 'Follow me', url: '', layout: 'classic' }
     case 'social':
     case 'instagram': return {
@@ -414,8 +413,8 @@ function CollectionContentCard({
         isDropTarget
           ? 'border-[#3B82F6] bg-[#F0F7FF] ring-2 ring-[#3B82F6]/30 shadow-md'
           : selectedId === s.id
-            ? 'border-[#1F1F1F] bg-[#FFFFFF] shadow-sm'
-            : 'border-[#E5E5E3] bg-[#FFFFFF] hover:border-[#DADAD7] shadow-xs'
+            ? 'border-[#222222] ring-1 ring-[#222222] bg-[#FFFFFF] shadow-2xs'
+            : 'border-[#E8E8E8] bg-[#FFFFFF] hover:border-[#D0D0CE] hover:shadow-2xs'
       }`}
     >
       {/* TOP HEADER ROW */}
@@ -428,7 +427,7 @@ function CollectionContentCard({
               e.preventDefault()
               dragControls?.start(e)
             }}
-            className="text-[#999995] hover:text-[#1F1F1F] cursor-grab active:cursor-grabbing shrink-0 transition-colors touch-none select-none p-1 -m-1 rounded"
+            className="text-[#999995] hover:text-[#222222] cursor-grab active:cursor-grabbing shrink-0 transition-colors touch-none select-none p-1.5 -m-1 rounded"
             aria-label="Drag to reorder"
             title="Drag to reorder"
           >
@@ -438,10 +437,10 @@ function CollectionContentCard({
           {/* FOLDER ICON */}
           <div
             onClick={() => setEditingSectionId?.(s.id)}
-            className="h-9 w-9 rounded-xl bg-[#F5F5F3] hover:bg-[#EBEBEA] text-[#1F1F1F] flex items-center justify-center shrink-0 cursor-pointer transition-colors"
+            className="h-10 w-10 rounded-[12px] bg-[#F2F2F2] hover:bg-[#E8E8E8] text-[#222222] flex items-center justify-center shrink-0 cursor-pointer transition-colors"
             title="Edit collection"
           >
-            <Folder className="h-4 w-4" />
+            <Folder className="h-5 w-5" />
           </div>
 
           {/* EDITABLE TITLE */}
@@ -463,7 +462,7 @@ function CollectionContentCard({
                   }
                 }}
                 placeholder="Add collection title"
-                className="h-8.5 px-2.5 w-full rounded-lg border border-[#1F1F1F] bg-white text-sm font-bold text-[#1F1F1F] focus:outline-none focus:ring-1 focus:ring-[#1F1F1F]"
+                className="h-8.5 px-2.5 w-full rounded-lg border border-[#E8E8E8] bg-white text-sm font-bold text-[#222222] focus:outline-none focus:border-[#222222] focus:ring-1 focus:ring-[#222222]"
               />
               <button
                 type="button"
@@ -483,7 +482,7 @@ function CollectionContentCard({
               className="flex items-center gap-2 cursor-pointer group/title flex-1 min-w-0 py-1"
               title="Click to edit collection title"
             >
-              <h4 className={`text-sm sm:text-base font-bold text-[#1F1F1F] truncate group-hover/title:text-black ${s.hidden ? 'line-through text-[#999995]' : ''}`}>
+              <h4 className={`text-sm sm:text-base font-bold text-[#222222] truncate group-hover/title:text-black ${s.hidden ? 'line-through text-[#999995]' : ''}`}>
                 {s.props?.title || 'Add collection title'}
               </h4>
               <Edit3 className="h-3 w-3 text-[#999995] opacity-0 group-hover/title:opacity-100 transition-opacity shrink-0" />
@@ -494,7 +493,7 @@ function CollectionContentCard({
         {/* RIGHT CONTROLS: COLLAPSE/EXPAND + 3-DOTS */}
         <div className="flex items-center gap-1 shrink-0">
           {!isExpanded && (
-            <span className="text-xs text-[#6F6F6B] font-normal mr-1 hidden sm:inline">
+            <span className="text-xs text-[#777777] font-normal mr-1 hidden sm:inline">
               {s.hidden ? 'Hidden' : `${items.length} ${items.length === 1 ? 'item' : 'items'}`}
             </span>
           )}
@@ -502,7 +501,7 @@ function CollectionContentCard({
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1.5 rounded-lg text-[#6F6F6B] hover:text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] transition-colors cursor-pointer"
             title={isExpanded ? 'Collapse collection' : 'Expand collection'}
           >
             {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -513,25 +512,26 @@ function CollectionContentCard({
             <button
               type="button"
               onClick={() => setMenuOpen(!menuOpen)}
-              className="p-1.5 rounded-full text-[#6F6F6B] hover:text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors cursor-pointer"
+              className="w-9 h-9 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] active:scale-95 flex items-center justify-center transition-all cursor-pointer"
               title="More options"
+              aria-label="More options"
             >
-              <MoreVertical className="h-4 w-4" />
+              <MoreVertical className="h-4.5 w-4.5" />
             </button>
 
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-8 z-30 w-44 rounded-xl border border-[#E5E5E3] bg-[#FFFFFF] py-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.08)] space-y-0.5 animate-in fade-in zoom-in-95">
+                <div className="absolute right-0 top-10 z-30 w-48 rounded-2xl border border-[#E8E8E8] bg-[#FFFFFF] p-1.5 shadow-lg space-y-0.5 animate-in fade-in zoom-in-95">
                   <button
                     type="button"
                     onClick={() => {
                       setMenuOpen(false)
                       setEditingSectionId?.(s.id)
                     }}
-                    className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#1F1F1F] hover:bg-[#F5F5F3] flex items-center gap-2 cursor-pointer"
+                    className="w-full px-3 py-2 text-left text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] rounded-xl flex items-center gap-2.5 cursor-pointer transition-colors"
                   >
-                    <Edit3 className="h-3.5 w-3.5 text-[#1F1F1F]" />
+                    <Edit3 className="h-4 w-4 text-[#777777]" />
                     <span>Edit collection</span>
                   </button>
 
@@ -541,9 +541,9 @@ function CollectionContentCard({
                       setMenuOpen(false)
                       setIsEditingTitle(true)
                     }}
-                    className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#1F1F1F] hover:bg-[#F5F5F3] flex items-center gap-2 cursor-pointer"
+                    className="w-full px-3 py-2 text-left text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] rounded-xl flex items-center gap-2.5 cursor-pointer transition-colors"
                   >
-                    <Pencil className="h-3.5 w-3.5 text-[#1F1F1F]" />
+                    <Pencil className="h-4 w-4 text-[#777777]" />
                     <span>Rename</span>
                   </button>
 
@@ -553,9 +553,9 @@ function CollectionContentCard({
                       setMenuOpen(false)
                       toggleHidden?.(s.id)
                     }}
-                    className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#1F1F1F] hover:bg-[#F5F5F3] flex items-center gap-2 cursor-pointer"
+                    className="w-full px-3 py-2 text-left text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] rounded-xl flex items-center gap-2.5 cursor-pointer transition-colors"
                   >
-                    {s.hidden ? <Eye className="h-3.5 w-3.5 text-[#1F1F1F]" /> : <EyeOff className="h-3.5 w-3.5 text-[#1F1F1F]" />}
+                    {s.hidden ? <Eye className="h-4 w-4 text-[#777777]" /> : <EyeOff className="h-4 w-4 text-[#777777]" />}
                     <span>{s.hidden ? 'Show on store' : 'Hide from store'}</span>
                   </button>
 
@@ -566,9 +566,11 @@ function CollectionContentCard({
                       setMenuOpen(false)
                       moveSectionUp?.(s.id)
                     }}
-                    className={`w-full px-3.5 py-1.5 text-left text-xs font-medium flex items-center gap-2 ${isFirst ? 'text-[#999995] cursor-not-allowed' : 'text-[#1F1F1F] hover:bg-[#F5F5F3] cursor-pointer'}`}
+                    className={`w-full px-3 py-2 text-left text-xs font-semibold rounded-xl flex items-center gap-2.5 transition-colors ${
+                      isFirst ? 'text-[#999995] cursor-not-allowed opacity-40' : 'text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] cursor-pointer'
+                    }`}
                   >
-                    <MoveUp className="h-3.5 w-3.5 text-[#6B7280]" />
+                    <MoveUp className="h-4 w-4 text-[#777777]" />
                     <span>Move up</span>
                   </button>
 
@@ -578,13 +580,13 @@ function CollectionContentCard({
                       setMenuOpen(false)
                       duplicate?.(s.id)
                     }}
-                    className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#111827] hover:bg-[#F3F4F6] flex items-center gap-2 cursor-pointer"
+                    className="w-full px-3 py-2 text-left text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] rounded-xl flex items-center gap-2.5 cursor-pointer transition-colors"
                   >
-                    <Copy className="h-3.5 w-3.5 text-[#6B7280]" />
+                    <Copy className="h-4 w-4 text-[#777777]" />
                     <span>Duplicate</span>
                   </button>
 
-                  <div className="h-px bg-[#E5E7EB] my-1" />
+                  <div className="h-px bg-[#E8E8E8] my-1" />
 
                   <button
                     type="button"
@@ -592,9 +594,9 @@ function CollectionContentCard({
                       setMenuOpen(false)
                       remove?.(s.id)
                     }}
-                    className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#EF4444] hover:bg-[#FEE2E2] flex items-center gap-2 cursor-pointer"
+                    className="w-full px-3 py-2 text-left text-xs font-semibold text-[#DC2626] hover:bg-rose-50 active:bg-rose-100 rounded-xl flex items-center gap-2.5 cursor-pointer transition-colors"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4 text-[#DC2626]" />
                     <span>Delete</span>
                   </button>
                 </div>
@@ -630,8 +632,8 @@ function CollectionContentCard({
                   }}
                   className={`py-2 px-1 sm:py-2.5 sm:px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer select-none ${
                     isSelected
-                      ? 'border-2 border-[#1F1F1F] bg-[#FFFFFF] text-[#1F1F1F] shadow-xs'
-                      : 'border border-[#E5E5E3] bg-[#FFFFFF] hover:bg-[#F5F5F3] hover:border-[#DADAD7] text-[#6F6F6B]'
+                      ? 'border border-[#222222] ring-1 ring-[#222222] bg-[#FFFFFF] text-[#222222] shadow-2xs'
+                      : 'border border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] text-[#777777]'
                   }`}
                   aria-pressed={isSelected}
                   title={`${opt.label} display layout`}
@@ -650,7 +652,7 @@ function CollectionContentCard({
             <div className={`py-6 px-4 rounded-xl border border-dashed text-center text-xs font-medium transition-colors ${
               isDropTarget
                 ? 'bg-[#DBEAFE]/40 border-[#3B82F6] text-[#1D4ED8]'
-                : 'bg-[#FBFBFB] border-[#E5E5E3] text-[#6F6F6B]'
+                : 'bg-[#F2F2F2] border-[#E8E8E8] text-[#777777]'
             }`}>
               {isDropTarget ? 'Drop product here to add' : 'Add or drag items into this collection'}
             </div>
@@ -664,10 +666,10 @@ function CollectionContentCard({
                 return (
                   <div
                     key={it.id || it.productId || idx}
-                    className="flex items-center justify-between gap-2.5 p-2 sm:p-2.5 rounded-xl border border-[#E5E5E3] bg-[#FBFBFB] hover:bg-[#F5F5F3] transition-colors"
+                    className="flex items-center justify-between gap-2.5 p-2 sm:p-2.5 rounded-xl border border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] transition-colors"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className="h-8 w-8 rounded-lg bg-white border border-[#E5E5E3] flex items-center justify-center shrink-0 overflow-hidden">
+                      <div className="h-8 w-8 rounded-lg bg-[#F2F2F2] border border-[#E8E8E8] flex items-center justify-center shrink-0 overflow-hidden">
                         {isProd ? (
                           p?.thumbnail ? <img src={p.thumbnail} alt="" className="h-full w-full object-cover" /> : <Package className="h-4 w-4 text-[#1F1F1F]" />
                         ) : (
@@ -766,7 +768,6 @@ function StoreContentCard({
   setAddModalOpen,
   setSelectedMediaType,
   setEditingMediaSection,
-  setCourseWizardId,
   setCoachingWizardProductId,
   setEditingProductId,
   setEditingSectionId,
@@ -890,10 +891,6 @@ function StoreContentCard({
       setSelectedId(s.id)
       setEditingProductId?.(null)
       setEditingSectionId?.(s.id)
-    } else if (prod?.type === 'COURSE' || String(prod?.type).toLowerCase() === 'course') {
-      setCourseWizardId(prod.courseId || prod.id)
-      setAddModalType('course')
-      setAddModalOpen(true)
     } else if (prod) {
       setEditingSectionId?.(null)
       setEditingProductId(prod.id)
@@ -965,24 +962,26 @@ function StoreContentCard({
       dragListener={false}
       dragControls={dragControls}
       onPointerDown={prod ? handleProductPointerDown : undefined}
-      className={`group rounded-2xl border p-3.5 sm:p-4 transition-all w-full flex items-center justify-between gap-3 relative ${
+      className={`group rounded-2xl border p-3 sm:p-3.5 transition-all w-full flex items-center justify-between gap-3 relative cursor-pointer ${
         prod ? 'cursor-grab active:cursor-grabbing' : ''
       } ${selectedId === s.id
-        ? 'border-[#1F1F1F] bg-[#FFFFFF] shadow-xs'
-        : 'border-[#E5E5E3] bg-[#FFFFFF] hover:bg-[#F5F5F3] hover:border-[#1F1F1F] shadow-xs'
+        ? 'border-[#222222] ring-1 ring-[#222222] bg-[#FFFFFF] shadow-2xs'
+        : 'border-[#E8E8E8] bg-[#FFFFFF] hover:border-[#D0D0CE] hover:shadow-2xs'
         }`}
+      onClick={handleEdit}
     >
       {/* LEFT: DRAG HANDLE + THUMBNAIL + TITLE/SUBTITLE */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
         {/* 6-DOT DRAG HANDLE */}
         <div
           data-no-drag="true"
+          onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => {
             if (e.button !== undefined && e.button !== 0) return
             e.preventDefault()
             dragControls.start(e)
           }}
-          className="text-[#999995] hover:text-[#1F1F1F] cursor-grab active:cursor-grabbing shrink-0 transition-colors touch-none select-none p-1 -m-1 rounded"
+          className="text-[#999995] hover:text-[#222222] cursor-grab active:cursor-grabbing shrink-0 transition-colors touch-none select-none p-1.5 -m-1 rounded"
           aria-label="Drag to reorder"
           title="Drag to reorder"
         >
@@ -991,9 +990,7 @@ function StoreContentCard({
 
         {/* THUMBNAIL / ICON BADGE */}
         <div
-          data-no-drag="true"
-          onClick={handleEdit}
-          className={`h-11 w-11 sm:h-12 sm:w-12 rounded-xl ${badge.bg} ${badge.border} ${badge.text} flex items-center justify-center shrink-0 overflow-hidden cursor-pointer shadow-xs transition-transform hover:scale-105`}
+          className={`h-12 w-12 rounded-[14px] ${badge.bg} border border-[#E8E8E8] ${badge.text} flex items-center justify-center shrink-0 overflow-hidden shadow-2xs`}
         >
           {thumbnailImg ? (
             <img src={thumbnailImg} alt="" className="h-full w-full object-cover" />
@@ -1006,14 +1003,13 @@ function StoreContentCard({
         <div className="min-w-0 flex-1 flex flex-col justify-center">
           <div className="flex items-center gap-2">
             <h4
-              onClick={handleEdit}
-              className={`text-sm sm:text-base font-bold text-[#1F1F1F] truncate hover:text-[#000000] cursor-pointer transition-colors ${s.hidden ? 'line-through text-[#999995]' : ''}`}
+              className={`text-sm sm:text-base font-bold text-[#222222] truncate hover:text-black transition-colors ${s.hidden ? 'line-through text-[#999995]' : ''}`}
             >
               {title || 'Untitled'}
             </h4>
           </div>
 
-          <p className="text-xs text-[#6F6F6B] font-normal truncate mt-0.5">
+          <p className="text-xs text-[#777777] font-normal truncate mt-0.5">
             {s.type === 'pdf' ? `PDF • ${s.props?.fileSize || '30 pages'}` :
               s.type === 'collection' || s.type === 'product_collection' ? `${s.props?.items?.length || 0} items` :
                 s.type === 'gallery' ? `${s.props?.images?.length || 0} photos` :
@@ -1023,41 +1019,27 @@ function StoreContentCard({
         </div>
       </div>
 
-      {/* RIGHT: QUICK ACTIONS & 3-DOTS MENU */}
-      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        {/* QUICK EDIT BUTTON */}
-        <button
-          type="button"
-          onClick={handleEdit}
-          title="Edit item"
-          className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FFFFFF] hover:bg-[#F5F5F3] border border-[#E5E5E3] text-xs font-semibold text-[#1F1F1F] transition-colors cursor-pointer"
-        >
-          <Edit3 className="h-3 w-3 text-[#1F1F1F]" />
-          <span>Edit</span>
-        </button>
+      {/* RIGHT: SETUP BUTTON (IF DRAFT) & 3-DOTS MENU */}
+      <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+        {s.hidden && (
+          <span className="text-[11px] font-semibold text-[#777777] bg-[#F2F2F2] px-2.5 py-0.5 rounded-full border border-[#E8E8E8] hidden sm:inline-flex items-center gap-1">
+            <EyeOff className="h-3 w-3" />
+            <span>Hidden</span>
+          </span>
+        )}
 
-        {/* SETUP BUTTON (IF DRAFT) OR PUBLISHED/HIDDEN TOGGLE */}
-        {isDraftItem ? (
+        {/* SETUP BUTTON (IF DRAFT) */}
+        {isDraftItem && (
           <button
             type="button"
-            onClick={handleEdit}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#D97706]/10 text-[#D97706] border border-[#D97706]/20 hover:bg-[#D97706]/15 text-xs font-semibold transition-colors cursor-pointer shadow-xs"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleEdit()
+            }}
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#FEF3C7] text-[#D97706] text-xs font-bold transition-all cursor-pointer hover:bg-[#FDE68A] active:scale-95 shadow-2xs"
           >
             <Wrench className="h-3 w-3 text-[#D97706]" />
             <span>Setup</span>
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => toggleHidden(s.id)}
-            title={s.hidden ? 'Show on store' : 'Hide from store'}
-            className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors cursor-pointer ${s.hidden
-              ? 'bg-[#F5F5F3] text-[#6F6F6B] border border-[#E5E5E3]'
-              : 'bg-[#16A34A]/10 text-[#16A34A] border border-[#16A34A]/20'
-              }`}
-          >
-            {!s.hidden ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-            <span className="hidden md:inline">{!s.hidden ? 'Published' : 'Hidden'}</span>
           </button>
         )}
 
@@ -1065,42 +1047,60 @@ function StoreContentCard({
         <div className="relative">
           <button
             type="button"
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-1.5 rounded-full text-[#6F6F6B] hover:text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation()
+              setMenuOpen(!menuOpen)
+            }}
+            className="w-9 h-9 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] active:scale-95 flex items-center justify-center transition-all cursor-pointer"
             title="More Options"
+            aria-label="More options"
           >
-            <MoreVertical className="h-4 w-4" />
+            <MoreVertical className="h-4.5 w-4.5" />
           </button>
 
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-8 z-30 w-44 rounded-xl border border-[#E5E5E3] bg-[#FFFFFF] py-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.08)] space-y-0.5 animate-in fade-in zoom-in-95">
+              <div className="absolute right-0 top-10 z-30 w-48 rounded-2xl border border-[#E8E8E8] bg-[#FFFFFF] p-1.5 shadow-lg space-y-0.5 animate-in fade-in zoom-in-95">
                 <button
                   type="button"
                   onClick={() => { setMenuOpen(false); handleEdit() }}
-                  className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#1F1F1F] hover:bg-[#F5F5F3] flex items-center gap-2 cursor-pointer"
+                  className="w-full px-3 py-2 text-left text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] rounded-xl flex items-center gap-2.5 cursor-pointer transition-colors"
                 >
-                  <Edit3 className="h-3.5 w-3.5 text-[#1F1F1F]" />
+                  <Edit3 className="h-4 w-4 text-[#777777]" />
                   <span>Edit details</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    toggleHidden(s.id)
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] rounded-xl flex items-center gap-2.5 cursor-pointer transition-colors"
+                >
+                  {s.hidden ? <Eye className="h-4 w-4 text-[#777777]" /> : <EyeOff className="h-4 w-4 text-[#777777]" />}
+                  <span>{s.hidden ? 'Show on store' : 'Hide from store'}</span>
                 </button>
 
                 <button
                   type="button"
                   disabled={isFirst || isMovingUp}
                   onClick={() => { setMenuOpen(false); moveSectionUp(s.id) }}
-                  className={`w-full px-3.5 py-1.5 text-left text-xs font-medium flex items-center gap-2 ${isFirst ? 'text-[#999995] cursor-not-allowed' : 'text-[#1F1F1F] hover:bg-[#F5F5F3] cursor-pointer'}`}
+                  className={`w-full px-3 py-2 text-left text-xs font-semibold rounded-xl flex items-center gap-2.5 transition-colors ${
+                    isFirst ? 'text-[#999995] cursor-not-allowed opacity-40' : 'text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] cursor-pointer'
+                  }`}
                 >
-                  <MoveUp className="h-3.5 w-3.5 text-[#6B7280]" />
+                  <MoveUp className="h-4 w-4 text-[#777777]" />
                   <span>Move up</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => { setMenuOpen(false); duplicate(s.id) }}
-                  className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#111827] hover:bg-[#F3F4F6] flex items-center gap-2 cursor-pointer"
+                  className="w-full px-3 py-2 text-left text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] rounded-xl flex items-center gap-2.5 cursor-pointer transition-colors"
                 >
-                  <Copy className="h-3.5 w-3.5 text-[#6B7280]" />
+                  <Copy className="h-4 w-4 text-[#777777]" />
                   <span>Duplicate</span>
                 </button>
 
@@ -1108,17 +1108,17 @@ function StoreContentCard({
                   <Link
                     href={prod.type === 'COURSE' || String(prod.type).toLowerCase() === 'course' ? `/dashboard/courses/${prod.courseId || prod.id}` : `/dashboard/products/${prod.id}`}
                     onClick={() => setMenuOpen(false)}
-                    className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#111827] hover:bg-[#F3F4F6] flex items-center gap-2 cursor-pointer"
+                    className="w-full px-3 py-2 text-left text-xs font-semibold text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] rounded-xl flex items-center gap-2.5 cursor-pointer transition-colors"
                   >
-                    <Eye className="h-3.5 w-3.5 text-[#6B7280]" />
+                    <Eye className="h-4 w-4 text-[#777777]" />
                     <span>View analytics</span>
                   </Link>
                 )}
 
                 {prod && availableCollections?.length > 0 && (
                   <>
-                    <div className="h-px bg-[#E5E7EB] my-1" />
-                    <div className="px-3.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#999995]">
+                    <div className="h-px bg-[#E8E8E8] my-1" />
+                    <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#8C8C88]">
                       Add to collection
                     </div>
                     {availableCollections.map((col) => {
@@ -1141,20 +1141,20 @@ function StoreContentCard({
                               })
                             }
                           }}
-                          className={`w-full px-3.5 py-1.5 text-left text-xs font-medium flex items-center justify-between gap-2 ${
+                          className={`w-full px-3 py-1.5 text-left text-xs font-medium rounded-lg flex items-center justify-between gap-2 transition-colors ${
                             isAlreadyIn
                               ? 'text-[#999995] cursor-not-allowed bg-transparent'
-                              : 'text-[#1F1F1F] hover:bg-[#F5F5F3] cursor-pointer'
+                              : 'text-[#222222] hover:bg-[#F2F2F2] active:bg-[#E8E8E8] cursor-pointer'
                           }`}
                         >
-                          <span className="truncate flex items-center gap-1.5">
-                            <Folder className="h-3.5 w-3.5 text-[#6B7280] shrink-0" />
+                          <span className="truncate flex items-center gap-2">
+                            <Folder className="h-3.5 w-3.5 text-[#777777] shrink-0" />
                             <span className="truncate">{colTitle}</span>
                           </span>
                           {isAlreadyIn ? (
                             <span className="text-[10px] text-[#999995] font-normal shrink-0">Added</span>
                           ) : (
-                            <Plus className="h-3.5 w-3.5 text-[#3B82F6] shrink-0" />
+                            <Plus className="h-3.5 w-3.5 text-[#222222] shrink-0" />
                           )}
                         </button>
                       )
@@ -1162,14 +1162,14 @@ function StoreContentCard({
                   </>
                 )}
 
-                <div className="h-px bg-[#E5E7EB] my-1" />
+                <div className="h-px bg-[#E8E8E8] my-1" />
 
                 <button
                   type="button"
                   onClick={() => { setMenuOpen(false); remove(s.id) }}
-                  className="w-full px-3.5 py-1.5 text-left text-xs font-medium text-[#EF4444] hover:bg-[#FEE2E2] flex items-center gap-2 cursor-pointer"
+                  className="w-full px-3 py-2 text-left text-xs font-semibold text-[#DC2626] hover:bg-rose-50 active:bg-rose-100 rounded-xl flex items-center gap-2.5 cursor-pointer transition-colors"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-4 w-4 text-[#DC2626]" />
                   <span>Delete</span>
                 </button>
               </div>
@@ -1212,6 +1212,8 @@ export default function StoreBuilderPage() {
   const [addModalCategory, setAddModalCategory] = useState('suggested')
   const [addModalSearch, setAddModalSearch] = useState('')
   const [selectedFormType, setSelectedFormType] = useState('contact')
+  const [linkDirectUrl, setLinkDirectUrl] = useState('')
+  const [linkDirectTitle, setLinkDirectTitle] = useState('')
   const [editingFormSection, setEditingFormSection] = useState(null)
   const [selectedMediaType, setSelectedMediaType] = useState('video')
   const [editingMediaSection, setEditingMediaSection] = useState(null)
@@ -1219,17 +1221,16 @@ export default function StoreBuilderPage() {
   const [wizardStep, setWizardStep] = useState(1)
   const [editingProductId, setEditingProductId] = useState(null)
   const [editingSectionId, setEditingSectionId] = useState(null)
+  const [editingSectionObject, setEditingSectionObject] = useState(null)
   const [bundleModalOpen, setBundleModalOpen] = useState(false)
   const [editingBundle, setEditingBundle] = useState(null)
 
   const editingSection = useMemo(() => {
     if (!editingSectionId) return null
-    return (store?.sections || []).find((s) => s.id === editingSectionId) || null
-  }, [editingSectionId, store?.sections])
+    return (store?.sections || []).find((s) => s.id === editingSectionId) || (editingSectionObject?.id === editingSectionId ? editingSectionObject : null) || null
+  }, [editingSectionId, store?.sections, editingSectionObject])
   const [coachingWizardOpen, setCoachingWizardOpen] = useState(false)
   const [coachingWizardProductId, setCoachingWizardProductId] = useState(null)
-  const [courseWizardOpen, setCourseWizardOpen] = useState(false)
-  const [courseWizardId, setCourseWizardId] = useState(null)
   // Legacy unfinished drafts (already in the DB) can still be resumed.
   // New Digital Product creates stay in memory until the final Complete step.
   const [draftProductId, setDraftProductId] = useState(null)
@@ -1596,17 +1597,6 @@ export default function StoreBuilderPage() {
     setCoachingWizardOpen(true)
   }, [canCreate, setPricingModalOpen])
 
-  const openCourseCreationFlow = useCallback(() => {
-    if (!canCreate) {
-      toast.error('Your Pro trial has ended. Upgrade your plan to create products and continue selling.')
-      setPricingModalOpen(true)
-      return
-    }
-    setCourseWizardId(null)
-    setModalOrigin('menu')
-    setAddModalType('course')
-    setAddModalOpen(true)
-  }, [canCreate, setPricingModalOpen])
 
   const openBundleCreationFlow = useCallback(() => {
     if (!canCreate) {
@@ -1618,6 +1608,51 @@ export default function StoreBuilderPage() {
     setEditingBundle(null)
     setBundleModalOpen(true)
   }, [canCreate, setPricingModalOpen])
+
+  const handleMobileAddOption = useCallback((type, payload) => {
+    if (type === 'link') {
+      setLinkDirectUrl('')
+      setLinkDirectTitle('')
+      setAddModalType('link')
+      setAddModalOpen(true)
+    } else if (type === 'link_direct') {
+      setLinkDirectUrl(payload?.url || '')
+      setLinkDirectTitle(payload?.title || '')
+      setAddModalType('link')
+      setAddModalOpen(true)
+    } else if (type === 'coaching') {
+      openCoachingCreationFlow()
+    } else if (type === 'bundle') {
+      openBundleCreationFlow()
+    } else if (type === 'form' || type === 'forms_menu') {
+      setAddModalType('forms_menu')
+      setAddModalOpen(true)
+    } else if (type === 'form_contact') {
+      setSelectedFormType('contact')
+      setEditingFormSection(null)
+      setAddModalType('form_config')
+      setAddModalOpen(true)
+    } else if (type === 'form_newsletter') {
+      setSelectedFormType('newsletter')
+      setEditingFormSection(null)
+      setAddModalType('form_config')
+      setAddModalOpen(true)
+    } else if (type === 'instagram' || type === 'social') {
+      setAddModalType('social_display_select')
+      setAddModalOpen(true)
+    } else if (type === 'add_youtube' || type === 'youtube') {
+      setAddModalType('add_youtube')
+      setAddModalOpen(true)
+    } else if (type === 'add_tiktok' || type === 'tiktok') {
+      setAddModalType('add_tiktok')
+      setAddModalOpen(true)
+    } else if (type === 'audio' || type === 'spotify') {
+      setAddModalType('media_config')
+      setAddModalOpen(true)
+    } else {
+      handleAddToStore(type)
+    }
+  }, [openCoachingCreationFlow, openBundleCreationFlow, handleAddToStore])
 
   const handleTabChange = useCallback((newTab) => {
     if (tab === 'design' && newTab !== 'design' && hasUnsavedThemeChanges) {
@@ -1728,6 +1763,114 @@ export default function StoreBuilderPage() {
   }, [])
 
   const loadStoreData = refreshStoreData
+
+  const savedScrollYRef = useRef(0)
+
+  const captureScrollPosition = useCallback(() => {
+    if (typeof window === 'undefined') return
+    const scrollEl = document.querySelector('div.overflow-y-auto')
+    const pos = scrollEl ? scrollEl.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0)
+    savedScrollYRef.current = pos
+    try {
+      sessionStorage.setItem('creatorstore_overview_scroll_top', String(pos))
+    } catch {}
+  }, [])
+
+  const restoreScrollPosition = useCallback(() => {
+    if (typeof window === 'undefined') return
+    setTimeout(() => {
+      let pos = savedScrollYRef.current
+      if (!pos) {
+        try {
+          const stored = sessionStorage.getItem('creatorstore_overview_scroll_top')
+          if (stored) pos = parseInt(stored, 10)
+        } catch {}
+      }
+      if (pos > 0) {
+        const scrollEl = document.querySelector('div.overflow-y-auto')
+        if (scrollEl) {
+          scrollEl.scrollTop = pos
+        }
+        window.scrollTo(0, pos)
+      }
+    }, 60)
+  }, [])
+
+  const handleCloseEditor = useCallback(() => {
+    setEditingProductId(null)
+    setEditingSectionId(null)
+    setEditingSectionObject(null)
+    setSelectedId(null)
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('intent')
+      url.searchParams.delete('productId')
+      url.searchParams.delete('sectionId')
+      window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
+    }
+    refreshStoreData()
+    restoreScrollPosition()
+  }, [refreshStoreData, restoreScrollPosition])
+
+  const handleEditProductNav = useCallback((pid) => {
+    captureScrollPosition()
+    setEditingSectionId(null)
+    setEditingSectionObject(null)
+    setEditingProductId(pid)
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.set('intent', 'edit_product')
+      url.searchParams.set('productId', pid)
+      window.history.pushState({ editingProductId: pid }, '', url.pathname + url.search)
+    }
+  }, [captureScrollPosition])
+
+  const handleEditSectionNav = useCallback((sec) => {
+    if (!sec) return
+    if (sec.type === 'form') {
+      setSelectedFormType(sec.props?.formType || 'contact')
+      setEditingFormSection(sec)
+      setAddModalType('form_config')
+      setAddModalOpen(true)
+      return
+    }
+    captureScrollPosition()
+    setEditingProductId(null)
+    setEditingSectionId(sec.id)
+    setEditingSectionObject(sec)
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.set('intent', 'edit_section')
+      url.searchParams.set('sectionId', sec.id)
+      window.history.pushState({ editingSectionId: sec.id }, '', url.pathname + url.search)
+    }
+  }, [captureScrollPosition])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window === 'undefined') return
+      const sp = new URLSearchParams(window.location.search)
+      const intent = sp.get('intent')
+      const pid = sp.get('productId')
+      const secId = sp.get('sectionId')
+      if (intent === 'edit_product' && pid) {
+        setEditingSectionId(null)
+        setEditingSectionObject(null)
+        setEditingProductId(pid)
+      } else if (intent === 'edit_section' && secId) {
+        setEditingProductId(null)
+        setEditingSectionId(secId)
+      } else {
+        setEditingProductId(null)
+        setEditingSectionId(null)
+        setEditingSectionObject(null)
+        setSelectedId(null)
+        restoreScrollPosition()
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [restoreScrollPosition])
 
   useEffect(() => {
     let mounted = true
@@ -2325,10 +2468,11 @@ export default function StoreBuilderPage() {
   useEffect(() => {
     const intent = searchParams?.get('intent')
     const targetProdId = searchParams?.get('productId')
+    const targetSecId = searchParams?.get('sectionId')
     const addParam = searchParams?.get('add')
 
     if (intent) {
-      const intentKey = `${intent}:${targetProdId || ''}`
+      const intentKey = `${intent}:${targetProdId || targetSecId || ''}`
       if (consumedAddIntent === intentKey) return
       consumedAddIntent = intentKey
 
@@ -2337,23 +2481,24 @@ export default function StoreBuilderPage() {
       } else if (intent === 'edit_product' && targetProdId) {
         setEditingProductId(targetProdId)
         setModalOrigin('direct')
+      } else if (intent === 'edit_section' && targetSecId) {
+        setEditingSectionId(targetSecId)
+        setModalOrigin('direct')
       }
     } else if (addParam) {
       const addKey = `add:${addParam}`
       if (consumedAddIntent === addKey) return
       consumedAddIntent = addKey
 
-      if (addParam === 'course') {
-        openCourseCreationFlow()
-      } else if (addParam === 'booking' || addParam === 'coaching') {
+      if (addParam === 'booking' || addParam === 'coaching') {
         openCoachingCreationFlow()
-      } else if (addParam === 'digital_product' || addParam === 'product') {
+      } else if (addParam === 'digital_product' || addParam === 'product' || addParam === 'course') {
         openDigitalProductWizard()
       } else {
         handleAddToStore(addParam === 'social' ? 'social' : 'suggested')
       }
     }
-  }, [searchParams, openDigitalProductWizard, openCourseCreationFlow, openCoachingCreationFlow, handleAddToStore])
+  }, [searchParams, openDigitalProductWizard, openCoachingCreationFlow, handleAddToStore])
 
   const resumeDigitalProductDraft = useCallback((sectionOrProd, prodOrSection) => {
     let section = null
@@ -2960,6 +3105,406 @@ export default function StoreBuilderPage() {
     </div>
   )
 
+  const renderActiveEditor = () => {
+    if (editingProductId) {
+      const prod = products.find((p) => p.id === editingProductId)
+      if (prod) {
+        if (prod?.type === 'COACHING') {
+          return (
+            <BookingEditor
+              key={`prod-${editingProductId}`}
+              product={prod}
+              creatorProfile={profile}
+              currentPlan={me?.user?.plan || 'FREE'}
+              onBack={handleCloseEditor}
+              onUpdateProps={(patch) => {
+                if (patch.title) {
+                  setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, title: patch.title } : p)))
+                }
+                if (patch.price !== undefined || patch.currency !== undefined) {
+                  setProducts((prev) => prev.map((p) => (p.id === editingProductId ? {
+                    ...p,
+                    ...(patch.price !== undefined ? { price: patch.price } : {}),
+                    ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                  } : p)))
+                }
+                if (patch.layout || patch.displayMode) {
+                  const mode = patch.layout || patch.displayMode
+                  setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, displayMode: mode } : p)))
+                  setStore((prev) => {
+                    if (!prev || !Array.isArray(prev.sections)) return prev
+                    const nextSecs = prev.sections.map((sec) =>
+                      sec.props?.productId === editingProductId
+                        ? { ...sec, props: { ...sec.props, layout: mode, displayMode: mode } }
+                        : sec
+                    )
+                    return { ...prev, sections: nextSecs }
+                  })
+                }
+              }}
+              onDelete={() => {
+                setEditingProductId(null)
+                refreshStoreData()
+              }}
+              onOpenMobilePreview={() => setShareOpen?.(true)}
+            />
+          )
+        }
+
+        if (prod?.type === 'BUNDLE') {
+          return (
+            <BundleEditor
+              key={`prod-${editingProductId}`}
+              product={prod}
+              creatorProfile={profile}
+              onBack={handleCloseEditor}
+              onUpdateProps={(patch) => {
+                if (patch.title) {
+                  setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, title: patch.title } : p)))
+                }
+                if (patch.thumbnail !== undefined) {
+                  setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, thumbnail: patch.thumbnail } : p)))
+                }
+                if (patch.price !== undefined || patch.currency !== undefined) {
+                  setProducts((prev) => prev.map((p) => (p.id === editingProductId ? {
+                    ...p,
+                    ...(patch.price !== undefined ? { price: patch.price } : {}),
+                    ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                  } : p)))
+                }
+                if (patch.layout || patch.displayMode) {
+                  const mode = patch.layout || patch.displayMode
+                  setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, displayMode: mode } : p)))
+                  setStore((prev) => {
+                    if (!prev || !Array.isArray(prev.sections)) return prev
+                    const nextSecs = prev.sections.map((sec) =>
+                      sec.props?.productId === editingProductId
+                        ? { ...sec, props: { ...sec.props, layout: mode, displayMode: mode } }
+                        : sec
+                    )
+                    return { ...prev, sections: nextSecs }
+                  })
+                }
+              }}
+              onDelete={() => {
+                setEditingProductId(null)
+                refreshStoreData()
+              }}
+              onOpenMobilePreview={() => setShareOpen?.(true)}
+            />
+          )
+        }
+
+        return (
+          <ProductEditor
+            key={`prod-${editingProductId}`}
+            productId={editingProductId}
+            initialProduct={prod}
+            isStoreContext={true}
+            storeSlug={storeSlug || store?.username}
+            onBack={handleCloseEditor}
+            onProductUpdated={(updatedProd) => {
+              const formatted = toPreviewProduct(updatedProd)
+              setProducts((prev) => prev.map((prodItem) => (prodItem.id === formatted.id ? formatted : prodItem)))
+              if (updatedProd.displayMode) {
+                setStore((prev) => {
+                  if (!prev || !Array.isArray(prev.sections)) return prev
+                  const nextSections = prev.sections.map((sec) =>
+                    sec.props?.productId === updatedProd.id
+                      ? { ...sec, props: { ...sec.props, layout: updatedProd.displayMode, displayMode: updatedProd.displayMode } }
+                      : sec
+                  )
+                  storeRef.current = { ...(storeRef.current || {}), sections: nextSections }
+                  return { ...prev, sections: nextSections }
+                })
+              }
+              refreshStoreData()
+            }}
+          />
+        )
+      } else if (products.length > 0) {
+        return (
+          <div key="prod-not-found" className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-4">
+            <div className="flex items-center justify-between pb-4 border-b border-[#E5E5E3]">
+              <h3 className="text-base font-bold text-[#1F1F1F]">Item Not Found</h3>
+              <button
+                type="button"
+                onClick={handleCloseEditor}
+                className="text-xs text-[#6F6F6B] hover:text-[#1F1F1F] font-semibold cursor-pointer"
+              >
+                Back to store
+              </button>
+            </div>
+            <p className="text-sm text-[#6F6F6B]">
+              This product could not be found or you do not have permission to access it.
+            </p>
+          </div>
+        )
+      }
+    }
+
+    if (editingSectionId && !editingSection && (store?.sections || []).length > 0) {
+      return (
+        <div key="sec-not-found" className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-4">
+          <div className="flex items-center justify-between pb-4 border-b border-[#E5E5E3]">
+            <h3 className="text-base font-bold text-[#1F1F1F]">Item Not Found</h3>
+            <button
+              type="button"
+              onClick={handleCloseEditor}
+              className="text-xs text-[#6F6F6B] hover:text-[#1F1F1F] font-semibold cursor-pointer"
+            >
+              Back to store
+            </button>
+          </div>
+          <p className="text-sm text-[#6F6F6B]">
+            This store item could not be found or you do not have permission to access it.
+          </p>
+        </div>
+      )
+    }
+
+    if (editingSection) {
+      return isBookingItem(editingSection, products) ? (
+        <BookingEditor
+          section={editingSection}
+          product={resolveSectionProduct(editingSection, products)}
+          creatorProfile={profile}
+          currentPlan={me?.user?.plan || 'FREE'}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => {
+            updateSectionProps(editingSection.id, patch)
+            const targetPid = editingSection.props?.productId || resolveSectionProduct(editingSection, products)?.id
+            if (targetPid) {
+              setProducts((prev) => prev.map((p) => (p.id === targetPid ? {
+                ...p,
+                ...(patch.title ? { title: patch.title } : {}),
+                ...(patch.price !== undefined ? { price: patch.price } : {}),
+                ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+              } : p)))
+            }
+          }}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : isBundleItem(editingSection, products) ? (
+        <BundleEditor
+          section={editingSection}
+          product={resolveSectionProduct(editingSection, products)}
+          creatorProfile={profile}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => {
+            updateSectionProps(editingSection.id, patch)
+            const targetPid = editingSection.props?.productId || resolveSectionProduct(editingSection, products)?.id
+            if (targetPid) {
+              const mode = patch.layout || patch.displayMode
+              setProducts((prev) => prev.map((p) => (p.id === targetPid ? {
+                ...p,
+                ...(patch.title ? { title: patch.title } : {}),
+                ...(patch.thumbnail !== undefined ? { thumbnail: patch.thumbnail } : {}),
+                ...(patch.price !== undefined ? { price: patch.price } : {}),
+                ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
+                ...(mode ? { displayMode: mode } : {}),
+              } : p)))
+            }
+          }}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : editingSection.type === 'gallery' ? (
+        <GalleryEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : (editingSection.type === 'collection' || editingSection.type === 'product_collection') ? (
+        <CollectionEditor
+          section={editingSection}
+          products={products}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateCollectionProps(editingSection.id, patch)}
+          onAddItem={(item) => addItemToCollection(editingSection.id, item)}
+          onRemoveItem={(itemId) => removeItemFromCollection(editingSection.id, itemId)}
+          onMoveItem={(fromIdx, dirOrTo) => {
+            const dir = (dirOrTo === -1 || dirOrTo === 1) ? dirOrTo : (dirOrTo > fromIdx ? 1 : -1)
+            moveItemInCollection(editingSection.id, fromIdx, dir)
+          }}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+          setAddContentModalOpen={setAddContentModalOpen}
+          setAddContentType={setAddContentType}
+        />
+      ) : (['social', 'instagram'].includes(editingSection.type) || Boolean(editingSection.props?.platform)) ? (
+        <SocialItemEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+          igAccount={igAccount}
+          onConnectInstagram={handleConnectInstagram}
+          onDisconnectInstagram={handleDisconnectInstagram}
+          isPro={canCreate}
+          onOpenPricing={() => setPricingModalOpen(true)}
+        />
+      ) : ['button', 'link', 'url'].includes(editingSection.type) ? (
+        <LinkEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : (editingSection.type === 'youtube' || editingSection.props?.mediaType === 'youtube' || editingSection.props?.embedType === 'youtube') ? (
+        <YouTubeEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : (['tiktok', 'vimeo', 'video'].includes(editingSection.type) ||
+          ['tiktok', 'vimeo', 'video'].includes(editingSection.props?.mediaType) ||
+          ['tiktok', 'vimeo'].includes(editingSection.props?.embedType)) ? (
+        <MediaContentEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : ['video', 'youtube', 'audio', 'pdf', 'media'].includes(editingSection.type) ? (
+        <MediaEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : editingSection.type === 'product' ? (
+        <ProductEditor
+          productId={resolveSectionProduct(editingSection, products)?.id}
+          initialProduct={resolveSectionProduct(editingSection, products)}
+          isStoreContext={true}
+          storeSlug={storeSlug || store?.username}
+          onBack={handleCloseEditor}
+          onProductUpdated={(updatedProd) => {
+            const formatted = toPreviewProduct(updatedProd)
+            setProducts((prev) => prev.map((prodItem) => (prodItem.id === formatted.id ? formatted : prodItem)))
+            if (updatedProd.displayMode) {
+              setStore((prev) => {
+                if (!prev || !Array.isArray(prev.sections)) return prev
+                const nextSections = prev.sections.map((sec) =>
+                  sec.props?.productId === updatedProd.id
+                    ? { ...sec, props: { ...sec.props, layout: updatedProd.displayMode, displayMode: updatedProd.displayMode } }
+                    : sec
+                )
+                storeRef.current = { ...(storeRef.current || {}), sections: nextSections }
+                return { ...prev, sections: nextSections }
+              })
+            }
+            refreshStoreData()
+          }}
+        />
+      ) : ['heading', 'heading_text'].includes(editingSection.type) ? (
+        <HeadingEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : ['text', 'text_block', 'paragraph_text'].includes(editingSection.type) ? (
+        <TextBlockEditor
+          section={editingSection}
+          onBack={handleCloseEditor}
+          onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
+          onSave={(patch) => saveSectionProps(editingSection.id, patch)}
+          onDelete={() => {
+            remove(editingSection.id)
+            handleCloseEditor()
+          }}
+          onToggleHidden={() => toggleHidden(editingSection.id)}
+          onDuplicate={() => duplicate(editingSection.id)}
+          onOpenMobilePreview={() => setShareOpen?.(true)}
+        />
+      ) : (
+        <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-4">
+          <div className="flex items-center justify-between pb-4 border-b border-[#E5E5E3]">
+            <h3 className="text-base font-bold text-[#1F1F1F]">Edit Section</h3>
+            <button
+              type="button"
+              onClick={handleCloseEditor}
+              className="text-xs text-[#6F6F6B] hover:text-[#1F1F1F] font-semibold cursor-pointer"
+            >
+              Back
+            </button>
+          </div>
+          <p className="text-sm text-[#6F6F6B]">
+            This section type ({editingSection.type}) does not have a dedicated editor.
+          </p>
+        </div>
+      )
+    }
+
+    return null
+  }
+
   return (
     <div className="text-content-primary selection:bg-brand selection:text-brand-fg w-full lg:h-full lg:min-h-0 flex flex-col py-2 lg:py-0">
       <DashboardPageTransition transitionKey={tab} className="flex-1 flex flex-col min-h-0 w-full">
@@ -2991,441 +3536,28 @@ export default function StoreBuilderPage() {
 
             {/* LEFT: ONE SINGLE LARGE WHITE EDITOR CARD CONTAINING EVERYTHING */}
             <div className="w-full max-w-[740px] mx-auto min-w-0 lg:h-full lg:min-h-0 flex flex-col">
-              {editingProductId ? (
-                products.find((p) => p.id === editingProductId)?.type === 'COACHING' ? (
-                  <BookingEditor
-                    product={products.find((p) => p.id === editingProductId)}
-                    creatorProfile={profile}
-                    currentPlan={me?.user?.plan || 'FREE'}
-                    onBack={() => {
-                      setEditingProductId(null)
-                      if (typeof window !== 'undefined') {
-                        const url = new URL(window.location.href)
-                        url.searchParams.delete('intent')
-                        url.searchParams.delete('productId')
-                        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
-                      }
-                    }}
-                    onUpdateProps={(patch) => {
-                      if (patch.title) {
-                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, title: patch.title } : p)))
-                      }
-                      if (patch.price !== undefined || patch.currency !== undefined) {
-                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? {
-                          ...p,
-                          ...(patch.price !== undefined ? { price: patch.price } : {}),
-                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
-                        } : p)))
-                      }
-                      if (patch.layout || patch.displayMode) {
-                        const mode = patch.layout || patch.displayMode
-                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, displayMode: mode } : p)))
-                        setStore((prev) => {
-                          if (!prev || !Array.isArray(prev.sections)) return prev
-                          const nextSecs = prev.sections.map((sec) =>
-                            sec.props?.productId === editingProductId
-                              ? { ...sec, props: { ...sec.props, layout: mode, displayMode: mode } }
-                              : sec
-                          )
-                          return { ...prev, sections: nextSecs }
-                        })
-                      }
-                    }}
-                    onDelete={() => {
-                      setEditingProductId(null)
-                      refreshStoreData()
-                    }}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : products.find((p) => p.id === editingProductId)?.type === 'BUNDLE' ? (
-                  <BundleEditor
-                    product={products.find((p) => p.id === editingProductId)}
-                    creatorProfile={profile}
-                    onBack={() => {
-                      setEditingProductId(null)
-                      if (typeof window !== 'undefined') {
-                        const url = new URL(window.location.href)
-                        url.searchParams.delete('intent')
-                        url.searchParams.delete('productId')
-                        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
-                      }
-                    }}
-                    onUpdateProps={(patch) => {
-                      if (patch.title) {
-                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, title: patch.title } : p)))
-                      }
-                      if (patch.thumbnail !== undefined) {
-                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, thumbnail: patch.thumbnail } : p)))
-                      }
-                      if (patch.price !== undefined || patch.currency !== undefined) {
-                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? {
-                          ...p,
-                          ...(patch.price !== undefined ? { price: patch.price } : {}),
-                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
-                        } : p)))
-                      }
-                      if (patch.layout || patch.displayMode) {
-                        const mode = patch.layout || patch.displayMode
-                        setProducts((prev) => prev.map((p) => (p.id === editingProductId ? { ...p, displayMode: mode } : p)))
-                        setStore((prev) => {
-                          if (!prev || !Array.isArray(prev.sections)) return prev
-                          const nextSecs = prev.sections.map((sec) =>
-                            sec.props?.productId === editingProductId
-                              ? { ...sec, props: { ...sec.props, layout: mode, displayMode: mode } }
-                              : sec
-                          )
-                          return { ...prev, sections: nextSecs }
-                        })
-                      }
-                    }}
-                    onDelete={() => {
-                      setEditingProductId(null)
-                      refreshStoreData()
-                    }}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : (
-                <ProductEditor
-                  productId={editingProductId}
-                  initialProduct={products.find((p) => p.id === editingProductId)}
-                  isStoreContext={true}
-                  storeSlug={storeSlug || store?.username}
-                  onBack={() => {
-                    setEditingProductId(null)
-                    if (typeof window !== 'undefined') {
-                      const url = new URL(window.location.href)
-                      url.searchParams.delete('intent')
-                      url.searchParams.delete('productId')
-                      window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''))
-                    }
-                  }}
-                  onProductUpdated={(updatedProd) => {
-                    const formatted = toPreviewProduct(updatedProd)
-                    setProducts((prev) => prev.map((p) => (p.id === formatted.id ? formatted : p)))
-                    if (updatedProd.displayMode) {
-                      setStore((prev) => {
-                        if (!prev || !Array.isArray(prev.sections)) return prev
-                        const nextSections = prev.sections.map((sec) =>
-                          sec.props?.productId === updatedProd.id
-                            ? { ...sec, props: { ...sec.props, layout: updatedProd.displayMode, displayMode: updatedProd.displayMode } }
-                            : sec
-                        )
-                        storeRef.current = { ...(storeRef.current || {}), sections: nextSections }
-                        return { ...prev, sections: nextSections }
-                      })
-                    }
-                  }}
-                />
-              )
-              ) : editingSection ? (
-                isBookingItem(editingSection, products) ? (
-                  <BookingEditor
-                    section={editingSection}
-                    product={resolveSectionProduct(editingSection, products)}
-                    creatorProfile={profile}
-                    currentPlan={me?.user?.plan || 'FREE'}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => {
-                      updateSectionProps(editingSection.id, patch)
-                      const targetPid = editingSection.props?.productId || resolveSectionProduct(editingSection, products)?.id
-                      if (targetPid) {
-                        setProducts((prev) => prev.map((p) => (p.id === targetPid ? {
-                          ...p,
-                          ...(patch.title ? { title: patch.title } : {}),
-                          ...(patch.price !== undefined ? { price: patch.price } : {}),
-                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
-                        } : p)))
-                      }
-                    }}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : isBundleItem(editingSection, products) ? (
-                  <BundleEditor
-                    section={editingSection}
-                    product={resolveSectionProduct(editingSection, products)}
-                    creatorProfile={profile}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => {
-                      updateSectionProps(editingSection.id, patch)
-                      const targetPid = editingSection.props?.productId || resolveSectionProduct(editingSection, products)?.id
-                      if (targetPid) {
-                        const mode = patch.layout || patch.displayMode
-                        setProducts((prev) => prev.map((p) => (p.id === targetPid ? {
-                          ...p,
-                          ...(patch.title ? { title: patch.title } : {}),
-                          ...(patch.thumbnail !== undefined ? { thumbnail: patch.thumbnail } : {}),
-                          ...(patch.price !== undefined ? { price: patch.price } : {}),
-                          ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
-                          ...(mode ? { displayMode: mode } : {}),
-                        } : p)))
-                      }
-                    }}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : editingSection.type === 'gallery' ? (
-                  <GalleryEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : editingSection.type === 'collection' || editingSection.type === 'product_collection' ? (
-                  <CollectionEditor
-                    section={editingSection}
-                    products={products}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateCollectionProps(editingSection.id, patch)}
-                    onAddItem={(item) => addItemToCollection(editingSection.id, item)}
-                    onRemoveItem={(itemId) => removeItemFromCollection(editingSection.id, itemId)}
-                    onMoveItem={(fromIdx, dirOrTo) => {
-                      const dir = (dirOrTo === -1 || dirOrTo === 1) ? dirOrTo : (dirOrTo > fromIdx ? 1 : -1)
-                      moveItemInCollection(editingSection.id, fromIdx, dir)
-                    }}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                    setAddContentModalOpen={setAddContentModalOpen}
-                    setAddContentType={setAddContentType}
-                  />
-                ) : ['social', 'instagram'].includes(editingSection.type) || Boolean(editingSection.props?.platform) ? (
-                  <SocialItemEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                    igAccount={igAccount}
-                    onConnectInstagram={handleConnectInstagram}
-                    onDisconnectInstagram={handleDisconnectInstagram}
-                    isPro={canCreate}
-                    onOpenPricing={() => setPricingModalOpen(true)}
-                  />
-                ) : ['button', 'link', 'url'].includes(editingSection.type) ? (
-                  <LinkEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : editingSection.type === 'youtube' || editingSection.props?.mediaType === 'youtube' || editingSection.props?.embedType === 'youtube' ? (
-                  <YouTubeEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : ['tiktok', 'vimeo', 'video'].includes(editingSection.type) ||
-                    ['tiktok', 'vimeo', 'video'].includes(editingSection.props?.mediaType) ||
-                    ['tiktok', 'vimeo'].includes(editingSection.props?.embedType) ? (
-                  <MediaContentEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : ['audio', 'pdf', 'media'].includes(editingSection.type) ? (
-                  <MediaEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : editingSection.type === 'product' ? (
-                  <ProductEditor
-                    productId={resolveSectionProduct(editingSection, products)?.id}
-                    initialProduct={resolveSectionProduct(editingSection, products)}
-                    isStoreContext={true}
-                    storeSlug={storeSlug || store?.username}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onProductUpdated={(updatedProd) => {
-                      const formatted = toPreviewProduct(updatedProd)
-                      setProducts((prev) => prev.map((p) => (p.id === formatted.id ? formatted : p)))
-                      if (updatedProd.displayMode) {
-                        setStore((prev) => {
-                          if (!prev || !Array.isArray(prev.sections)) return prev
-                          const nextSections = prev.sections.map((sec) =>
-                            sec.props?.productId === updatedProd.id
-                              ? { ...sec, props: { ...sec.props, layout: updatedProd.displayMode, displayMode: updatedProd.displayMode } }
-                              : sec
-                          )
-                          storeRef.current = { ...(storeRef.current || {}), sections: nextSections }
-                          return { ...prev, sections: nextSections }
-                        })
-                      }
-                    }}
-                  />
-                ) : ['heading', 'heading_text'].includes(editingSection.type) ? (
-                  <HeadingEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : ['text', 'text_block', 'paragraph_text'].includes(editingSection.type) ? (
-                  <TextBlockEditor
-                    section={editingSection}
-                    onBack={() => {
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onUpdateProps={(patch) => updateSectionProps(editingSection.id, patch)}
-                    onSave={(patch) => saveSectionProps(editingSection.id, patch)}
-                    onDelete={() => {
-                      remove(editingSection.id)
-                      setEditingSectionId(null)
-                      setSelectedId(null)
-                    }}
-                    onToggleHidden={() => toggleHidden(editingSection.id)}
-                    onDuplicate={() => duplicate(editingSection.id)}
-                    onOpenMobilePreview={() => setShareOpen?.(true)}
-                  />
-                ) : (
-                  /* Safe fallback for any unknown section type — NEVER MediaEditor */
-                  <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-4">
-                    <div className="flex items-center justify-between pb-4 border-b border-[#E5E5E3]">
-                      <h3 className="text-base font-bold text-[#1F1F1F]">Edit Section</h3>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingSectionId(null)
-                          setSelectedId(null)
-                        }}
-                        className="text-xs text-[#6F6F6B] hover:text-[#1F1F1F] font-semibold"
-                      >
-                        Back
-                      </button>
-                    </div>
-                    <p className="text-sm text-[#6F6F6B]">
-                      This section type ({editingSection.type}) does not have a dedicated editor.
-                    </p>
-                  </div>
-                )
-              ) : (
-                <div className="bg-[#FFFFFF] border border-[#E5E5E3] rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 sm:p-8 space-y-6 lg:h-full lg:min-h-0 lg:overflow-y-auto subtle-scrollbar">
+              {renderActiveEditor() || (
+                <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-[24px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-6 sm:p-8 space-y-6 lg:h-full lg:min-h-0 lg:overflow-y-auto subtle-scrollbar">
 
-                {/* 1. COMPACT STOREFRONT STATUS ROW */}
-                <div className="flex items-center justify-between gap-3 pb-4 border-b border-[#E5E5E3] text-xs">
-                  <div className="flex items-center gap-2 flex-wrap min-w-0">
-                    {store?.published ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#16A34A]/10 text-[#16A34A] font-bold text-[11px] border border-[#16A34A]/20 shrink-0">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A] animate-pulse" />
-                        LIVE
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F2F1EF] text-[#6F6F6B] font-bold text-[11px] border border-[#E5E5E3] shrink-0">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#999995]" />
-                        OFFLINE
-                      </span>
-                    )}
+                {/* 0. CONSOLIDATED DESKTOP STORE EDITOR HEADER */}
+                <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#E8E8E8]">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Link
+                      href="/dashboard"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] active:scale-95 text-xs font-semibold text-[#222222] transition-all shadow-2xs cursor-pointer group shrink-0"
+                      aria-label="Back to dashboard"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5 stroke-[2.2] group-hover:-translate-x-0.5 transition-transform" />
+                      <span>Back to Dashboard</span>
+                    </Link>
+
+                    <div className="h-3.5 w-px bg-[#E8E8E8] shrink-0 hidden sm:block" />
+
                     <a
                       href={typeof window !== 'undefined' && storeSlug ? `${window.location.origin}/${storeSlug}` : `/${storeSlug || 'store'}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[#6F6F6B] hover:text-[#1F1F1F] font-medium transition-colors flex items-center gap-1 truncate"
+                      className="text-[#777777] hover:text-[#222222] font-medium transition-colors hidden md:inline-flex items-center gap-1 text-xs truncate max-w-[220px]"
                     >
                       <span className="truncate">creatorstore.store/{storeSlug || 'yourname'}</span>
                       <ExternalLink className="h-3 w-3 shrink-0" />
@@ -3433,22 +3565,36 @@ export default function StoreBuilderPage() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    {store?.published ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#16A34A]/10 text-[#16A34A] font-bold text-[11px] border border-[#16A34A]/20 shrink-0">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A] animate-pulse" />
+                        LIVE
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F2F2F2] text-[#777777] font-bold text-[11px] border border-[#E8E8E8] shrink-0">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#999995]" />
+                        OFFLINE
+                      </span>
+                    )}
+
                     <a
                       href={typeof window !== 'undefined' && storeSlug ? `${window.location.origin}/${storeSlug}` : `/${storeSlug || 'store'}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-2.5 py-1 rounded-full border border-[#E5E5E3] bg-[#FFFFFF] hover:bg-[#F5F5F3] text-[#1F1F1F] font-semibold transition-colors hidden sm:inline-flex items-center gap-1 shadow-2xs"
+                      className="px-3 py-1 rounded-full border border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] active:scale-95 text-[#222222] text-xs font-semibold transition-all hidden sm:inline-flex items-center gap-1 shadow-2xs"
                     >
                       View Store
                     </a>
+
                     <button
                       type="button"
                       disabled={storeStatusLoading}
                       onClick={handleToggleStoreLive}
-                      className={`px-2.5 py-1 rounded-full font-semibold transition-colors cursor-pointer flex items-center gap-1 shadow-2xs ${store?.published
-                        ? 'bg-[#DC2626]/10 text-[#DC2626] hover:bg-[#DC2626]/20 border border-[#DC2626]/20'
-                        : 'bg-[#1F1F1F] text-white hover:bg-black'
-                        }`}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95 ${
+                        store?.published
+                          ? 'bg-[#DC2626]/10 text-[#DC2626] hover:bg-[#DC2626]/20 border border-[#DC2626]/20'
+                          : 'bg-[#1F1F1F] text-white hover:bg-black'
+                      }`}
                       title={store?.published ? 'Turn Storefront Offline' : 'Publish Storefront Live'}
                     >
                       {storeStatusLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Power className="h-3 w-3" />}
@@ -3457,27 +3603,27 @@ export default function StoreBuilderPage() {
                   </div>
                 </div>
 
-                {/* 2. CARD HEADER — CREATOR PROFILE (AVATAR, USERNAME, BIO, SOCIALS & ACTIONS) */}
-                <div className="flex items-start justify-between gap-4">
+                {/* 1. CREATOR PROFILE ROW (Avatar, Username, Bio, Socials & Actions) */}
+                <div className="flex items-start justify-between gap-4 pt-1">
                   <div className="flex items-center gap-4 sm:gap-5 min-w-0 flex-1">
                     {/* AVATAR WITH CAMERA HOVER */}
                     <div
                       onClick={() => setAvatarModalOpen(true)}
-                      className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden cursor-pointer group shrink-0 border border-[#E5E7EB] shadow-2xs"
+                      className="relative w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-[#F2F2F2] flex items-center justify-center overflow-hidden cursor-pointer group shrink-0 border border-[#E8E8E8] shadow-2xs"
                     >
                       {store?.theme?.avatarUrl || store?.avatarUrl || profile?.avatarUrl ? (
                         <img src={store?.theme?.avatarUrl || store?.avatarUrl || profile?.avatarUrl} alt="" className="h-full w-full object-cover" />
                       ) : (
-                        <User className="h-9 w-9 sm:h-11 sm:w-11 text-[#9CA3AF]" />
+                        <User className="h-8 w-8 sm:h-9 sm:w-9 text-[#9CA3AF]" />
                       )}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <Camera className="h-5 w-5 text-white" />
+                      <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <Camera className="h-4.5 w-4.5 text-white" />
                       </div>
                     </div>
 
                     {/* USERNAME + BIO + SOCIALS */}
                     <div className="min-w-0 flex-1 flex flex-col items-start gap-1">
-                      <h3 className="text-base sm:text-lg font-bold text-[#111827] tracking-tight truncate max-w-full">
+                      <h3 className="text-base sm:text-lg font-bold text-[#222222] tracking-tight truncate max-w-full">
                         @{storeSlug || store?.username || me?.store?.username || 'creator'}
                       </h3>
 
@@ -3493,7 +3639,7 @@ export default function StoreBuilderPage() {
                               }}
                               placeholder="Add a bio..."
                               rows={2}
-                              className="bg-[#FFFFFF] border border-[#E5E5E3] text-[#1F1F1F] text-xs sm:text-sm rounded-xl text-left resize-none p-2 focus:border-[#1F1F1F]"
+                              className="bg-[#FFFFFF] border border-[#E8E8E8] text-[#222222] text-xs sm:text-sm rounded-xl text-left resize-none p-2 focus:border-[#222222]"
                               autoFocus
                               onBlur={() => setIsEditingBio(false)}
                             />
@@ -3502,7 +3648,7 @@ export default function StoreBuilderPage() {
                               <button
                                 type="button"
                                 onClick={() => setIsEditingBio(false)}
-                                className="text-xs font-semibold text-[#1F1F1F] hover:underline cursor-pointer"
+                                className="text-xs font-semibold text-[#222222] hover:underline cursor-pointer"
                               >
                                 Done
                               </button>
@@ -3512,7 +3658,7 @@ export default function StoreBuilderPage() {
                           <button
                             type="button"
                             onClick={() => setIsEditingBio(true)}
-                            className="inline-flex items-center gap-1 text-xs text-[#6F6F6B] hover:text-[#1F1F1F] font-medium transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 text-xs text-[#777777] hover:text-[#222222] font-medium transition-colors cursor-pointer"
                           >
                             <Pencil className="h-3 w-3 text-[#999995]" />
                             <span>{bioInput || store?.bio || '+ Add bio'}</span>
@@ -3528,7 +3674,7 @@ export default function StoreBuilderPage() {
                             target="_blank"
                             rel="noreferrer"
                             title={`@${igAccount.username}`}
-                            className="h-6 w-6 rounded-full bg-[#F5F5F3] hover:bg-[#E5E5E3] flex items-center justify-center text-[#1F1F1F] hover:text-[#000000] transition-colors"
+                            className="h-7 w-7 rounded-full bg-[#F2F2F2] hover:bg-[#E8E8E8] flex items-center justify-center text-[#222222] transition-colors"
                           >
                             <Instagram className="h-3.5 w-3.5" />
                           </a>
@@ -3537,7 +3683,7 @@ export default function StoreBuilderPage() {
                             type="button"
                             onClick={handleConnectInstagram}
                             title="Connect Instagram"
-                            className="h-6 w-6 rounded-full bg-[#F3F4F6] hover:bg-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:text-[#111827] transition-colors cursor-pointer"
+                            className="h-7 w-7 rounded-full bg-[#F2F2F2] hover:bg-[#E8E8E8] flex items-center justify-center text-[#777777] hover:text-[#222222] transition-colors cursor-pointer"
                           >
                             <Instagram className="h-3.5 w-3.5" />
                           </button>
@@ -3547,7 +3693,7 @@ export default function StoreBuilderPage() {
                           type="button"
                           onClick={() => handleAddToStore('social')}
                           title="Connect YouTube / Social"
-                          className="h-6 w-6 rounded-full bg-[#F3F4F6] hover:bg-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:text-[#111827] transition-colors cursor-pointer"
+                          className="h-7 w-7 rounded-full bg-[#F2F2F2] hover:bg-[#E8E8E8] flex items-center justify-center text-[#777777] hover:text-[#222222] transition-colors cursor-pointer"
                         >
                           <Youtube className="h-3.5 w-3.5" />
                         </button>
@@ -3556,7 +3702,7 @@ export default function StoreBuilderPage() {
                           type="button"
                           onClick={() => handleAddToStore('social')}
                           title="Add Social Link"
-                          className="h-6 w-6 rounded-full border border-dashed border-[#D1D5DB] flex items-center justify-center text-[#6B7280] hover:text-[#111827] hover:border-[#111827] transition-colors cursor-pointer"
+                          className="h-7 w-7 rounded-full border border-dashed border-[#E8E8E8] hover:border-[#D0D0CE] flex items-center justify-center text-[#777777] hover:text-[#222222] transition-colors cursor-pointer"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
@@ -3569,7 +3715,7 @@ export default function StoreBuilderPage() {
                     <button
                       type="button"
                       onClick={() => handleTabChange('design')}
-                      className="h-9 w-9 rounded-full bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#6B7280] hover:text-[#111827] flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                      className="h-9 w-9 rounded-full bg-[#F2F2F2] hover:bg-[#E8E8E8] text-[#777777] hover:text-[#222222] flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
                       title="Theme / Design Studio"
                     >
                       <SlidersHorizontal className="h-4 w-4" />
@@ -3580,7 +3726,7 @@ export default function StoreBuilderPage() {
                         setAddCollectionName('')
                         setAddCollectionOpen(true)
                       }}
-                      className="h-9 w-9 rounded-full bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#6B7280] hover:text-[#111827] flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                      className="h-9 w-9 rounded-full bg-[#F2F2F2] hover:bg-[#E8E8E8] text-[#777777] hover:text-[#222222] flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
                       title="Collections / Archive"
                     >
                       <Archive className="h-4 w-4" />
@@ -3588,50 +3734,50 @@ export default function StoreBuilderPage() {
                   </div>
                 </div>
 
-                {/* 3. CONTENT TYPE TABS ([ Store ]) */}
-                <div className="flex items-center justify-between border-b border-[#E5E4E2] gap-4 pt-1">
+                {/* 2. STORE TAB (Consolidated heading with item count) */}
+                <div className="flex items-center justify-between border-b border-[#E8E8E8] gap-4 pt-1">
                   <div className="flex items-center gap-6 overflow-x-auto scrollbar-none pb-0 -mb-px">
                     <button
                       type="button"
                       onClick={() => setContentTypeTab('links')}
-                      className="pb-2.5 font-bold text-sm whitespace-nowrap cursor-pointer transition-all border-b-2 border-[#010619] text-[#010619]"
+                      className="pb-2.5 font-bold text-sm whitespace-nowrap cursor-pointer transition-all border-b-2 border-[#FF4D2E] text-[#222222]"
                     >
                       Store
                     </button>
                   </div>
 
-                  <div className="text-xs text-[#6B7399] pb-2 shrink-0 font-medium">
+                  <div className="text-xs text-[#777777] pb-2 shrink-0 font-medium">
                     {contentSections.length} {contentSections.length === 1 ? 'item' : 'items'}
                   </div>
                 </div>
 
-                {/* 4. MAIN ACTION ROW: [ + Add Collection ] [ + Add Product ] */}
-                <div className="flex items-center gap-3 pt-1">
+                {/* 3. MAIN ACTION ROW: [ 📁 Add collection ] [ + Add ] */}
+                <div className="flex items-center gap-3 pt-0.5">
                   <button
                     type="button"
                     onClick={() => {
                       setAddCollectionName('')
                       setAddCollectionOpen(true)
                     }}
-                    className="inline-flex h-11 px-5 rounded-full bg-[#FFFFFF] hover:bg-[#F5F5F3] text-[#1F1F1F] border border-[#E5E5E3] text-xs sm:text-sm font-semibold items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs shrink-0"
+                    className="inline-flex h-11 px-5 rounded-full bg-[#FFFFFF] hover:bg-[#F2F2F2] hover:border-[#D0D0CE] active:scale-[0.98] text-[#222222] border border-[#E8E8E8] text-xs sm:text-sm font-semibold items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs shrink-0"
                   >
-                    <Folder className="h-4 w-4 text-[#1F1F1F]" />
-                    <span>+ Add Collection</span>
+                    <Folder className="h-4 w-4 text-[#222222]" />
+                    <span>Add collection</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleAddToStore('suggested')}
-                    className="inline-flex h-11 px-6 rounded-full bg-[#1F1F1F] hover:bg-[#000000] active:bg-[#111111] text-white text-xs sm:text-sm font-bold items-center justify-center gap-2 transition-all cursor-pointer shadow-xs flex-1"
+                    className="inline-flex h-11 px-6 rounded-full bg-[#1F1F1F] hover:bg-[#2A2A2A] active:scale-[0.98] text-white text-xs sm:text-sm font-bold items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs flex-1"
                   >
                     <Plus className="h-4 w-4 stroke-[2.5]" />
-                    <span>+ Add Product</span>
+                    <span>Add</span>
                   </button>
                 </div>
 
-                {/* 5. STORE PAGES ROW ([ Home ] [ + New Page ] ... Storefront Pages: Unlimited) */}
-                <div className="flex items-center justify-between gap-3 pt-1 flex-wrap">
-                  <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+                {/* 4. STORE PAGES ROW ([ Home ] [ + New Page ]) */}
+                <div className="flex items-center justify-between gap-3 pt-0.5 flex-wrap">
+                  <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5">
                     {pages.map((page) => {
                       const isDefaultPage = Boolean(page.isDefault || page.id === 'home' || page.slug === 'home')
                       const isActive = isHomeSelected
@@ -3643,8 +3789,8 @@ export default function StoreBuilderPage() {
                         <div
                           key={page.id}
                           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all ${isActive
-                            ? 'bg-[#1F1F1F] text-white shadow-xs'
-                            : 'bg-[#FFFFFF] text-[#6F6F6B] hover:text-[#1F1F1F] hover:bg-[#F5F5F3] border border-[#E5E5E3]'
+                            ? 'bg-[#1F1F1F] text-white shadow-2xs'
+                            : 'bg-[#FFFFFF] text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] border border-[#E8E8E8]'
                             }`}
                         >
                           <button
@@ -3683,7 +3829,7 @@ export default function StoreBuilderPage() {
                           setAddPageOpen(true)
                         }
                       }}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border border-dashed border-[#E5E5E3] hover:border-[#1F1F1F] text-xs font-semibold text-[#6F6F6B] hover:text-[#1F1F1F] transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border border-dashed border-[#E8E8E8] hover:border-[#222222] text-xs font-semibold text-[#777777] hover:text-[#222222] transition-colors cursor-pointer"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       <span>+ New Page</span>
@@ -3691,29 +3837,17 @@ export default function StoreBuilderPage() {
                   </div>
 
                   {/* Entitlement indicator */}
-                  <div className="text-xs text-[#9CA3AF] font-medium shrink-0">
+                  <div className="text-xs text-[#777777] font-medium shrink-0">
                     {isPro ? (
-                      <span className="font-semibold text-[#166534]">Storefront Pages: Unlimited</span>
+                      <span className="font-semibold text-[#16A34A]">Pages: Unlimited</span>
                     ) : (
-                      <span>Storefront Pages: {currentPagesCount}/{maxPages}</span>
+                      <span>Pages: {currentPagesCount}/{maxPages}</span>
                     )}
                   </div>
                 </div>
 
-                {/* 6. CONTENT SECTION TITLE */}
-                <div className="pt-2 flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-[#6B7280] tracking-wider uppercase">
-                    Content
-                  </h4>
-                  {contentSections.length > 1 && (
-                    <span className="text-[11px] text-[#9CA3AF] font-normal">
-                      Drag handle ⠿ to reorder
-                    </span>
-                  )}
-                </div>
-
-                {/* 7. PRODUCTS / CONTENT LIST OR EMPTY STATE INSIDE THE SAME CARD */}
-                <div className="pt-0">
+                {/* 5. PRODUCTS / CONTENT LIST OR EMPTY STATE INSIDE THE SAME CARD */}
+                <div className="pt-1">
                   {contentSections.length ? (
                     <Reorder.Group axis="y" values={contentSections} onReorder={reorder} className="space-y-3">
                       {contentSections.map((s, itemIdx) => (
@@ -3751,7 +3885,6 @@ export default function StoreBuilderPage() {
                           setAddModalOpen={setAddModalOpen}
                           setSelectedMediaType={setSelectedMediaType}
                           setEditingMediaSection={setEditingMediaSection}
-                          setCourseWizardId={setCourseWizardId}
                           setCoachingWizardProductId={setCoachingWizardProductId}
                           setEditingProductId={setEditingProductId}
                           setEditingSectionId={setEditingSectionId}
@@ -3888,36 +4021,42 @@ export default function StoreBuilderPage() {
             </div>
           </div>
 
-            {/* MOBILE COMPACT DASHBOARD (lg:hidden) */}
+            {/* MOBILE COMPACT DASHBOARD & ITEM EDITOR (lg:hidden) */}
             <div className="block lg:hidden w-full flex-1 min-h-0">
-              <MobileStoreDashboard
-                store={store}
-                storeSlug={storeSlug}
-                profile={profile}
-                products={products}
-                contentSections={contentSections}
-                pages={pages}
-                activePageId={activePageId}
-                setActivePageId={setActivePageId}
-                igAccount={igAccount}
-                me={me}
-                onAddCollection={() => {
-                  setAddCollectionName('')
-                  setAddCollectionOpen(true)
-                }}
-                onOpenAddModal={(type, payload) => handleAddToStore(type, payload)}
-                onEditProduct={(pid) => setEditingProductId(pid)}
-                onEditSection={(sec) => setEditingSectionId(sec.id)}
-                onDeleteSection={(secId) => remove(secId)}
-                onDuplicateSection={(secId) => duplicate(secId)}
-                onToggleHidden={(secId) => toggleHidden(secId)}
-                onOpenShare={() => setShareOpen?.(true)}
-                onOpenAvatar={() => setAvatarModalOpen(true)}
-                onTabChange={handleTabChange}
-                refreshStoreData={refreshStoreData}
-                setProducts={setProducts}
-                setStore={setStore}
-              />
+              {renderActiveEditor() ? (
+                <div className="w-full flex-1 min-h-screen bg-[#FBFAF9] flex flex-col p-3 sm:p-4 pb-28">
+                  {renderActiveEditor()}
+                </div>
+              ) : (
+                <MobileStoreDashboard
+                  store={store}
+                  storeSlug={storeSlug}
+                  profile={profile}
+                  products={products}
+                  contentSections={contentSections}
+                  pages={pages}
+                  activePageId={activePageId}
+                  setActivePageId={setActivePageId}
+                  igAccount={igAccount}
+                  me={me}
+                  onAddCollection={() => {
+                    setAddCollectionName('')
+                    setAddCollectionOpen(true)
+                  }}
+                  onOpenAddModal={(type, payload) => handleMobileAddOption(type, payload)}
+                  onEditProduct={handleEditProductNav}
+                  onEditSection={handleEditSectionNav}
+                  onDeleteSection={(secId) => remove(secId)}
+                  onDuplicateSection={(secId) => duplicate(secId)}
+                  onToggleHidden={(secId) => toggleHidden(secId)}
+                  onOpenShare={() => setShareOpen?.(true)}
+                  onOpenAvatar={() => setAvatarModalOpen(true)}
+                  onTabChange={handleTabChange}
+                  refreshStoreData={refreshStoreData}
+                  setProducts={setProducts}
+                  setStore={setStore}
+                />
+              )}
             </div>
           </>
         )}
@@ -3933,15 +4072,15 @@ export default function StoreBuilderPage() {
           <input ref={avatarFileRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
           <div
             onClick={() => avatarFileRef.current?.click()}
-            className="h-28 w-28 rounded-full border-2 border-dashed border-[var(--border-subtle,#303030)] hover:border-[var(--accent-primary)] bg-[var(--bg-surface-hover,#2A2A2A)] mx-auto flex items-center justify-center cursor-pointer transition-colors"
+            className="h-28 w-28 rounded-full border-2 border-dashed border-[#E8E8E8] hover:border-[#1F1F1F] bg-[#F7F7F7] hover:bg-[#F2F2F2] mx-auto flex items-center justify-center cursor-pointer transition-colors"
           >
             {uploadingAvatar ? (
-              <Loader2 className="h-6 w-6 animate-spin text-[var(--accent-primary)]" />
+              <Loader2 className="h-6 w-6 animate-spin text-[#222222]" />
             ) : (
-              <Camera className="h-8 w-8 text-[var(--accent-primary)]" />
+              <Camera className="h-8 w-8 text-[#777777]" />
             )}
           </div>
-          <p className="text-sm text-[var(--text-secondary,#A3A3A3)]">JPG, PNG or WebP up to 10MB.</p>
+          <p className="text-sm text-[#777777]">JPG, PNG or WebP up to 10MB.</p>
           <ModalFooterActions
             secondaryLabel={store?.theme?.avatarUrl || store?.avatarUrl || profile?.avatarUrl ? 'Remove' : 'Cancel'}
             onSecondary={async () => {
@@ -4420,22 +4559,28 @@ export default function StoreBuilderPage() {
             {/* ADD LINK FORM */}
           {addModalType === 'link' && (
             <div className="p-4 sm:p-6">
-              <AddLinkForm onSubmit={(title, url, layout, thumbnail) => {
-                if (!canCreate) {
-                  toast.error('Your Pro trial has ended. Upgrade your plan to add links and continue selling.')
-                  setPricingModalOpen(true)
+              <AddLinkForm
+                initialUrl={linkDirectUrl}
+                initialTitle={linkDirectTitle}
+                onSubmit={(title, url, layout, thumbnail) => {
+                  if (!canCreate) {
+                    toast.error('Your Pro trial has ended. Upgrade your plan to add links and continue selling.')
+                    setPricingModalOpen(true)
+                    setAddModalOpen(false)
+                    return
+                  }
+                  const validated = safeUrlValidate(url)
+                  if (!validated) {
+                    toast.error('Invalid URL scheme. Please enter a valid web link.')
+                    return
+                  }
+                  addSectionWithProps('button', { label: title || 'Follow me', url: validated, layout: layout || 'classic', thumbnail })
+                  setLinkDirectUrl('')
+                  setLinkDirectTitle('')
                   setAddModalOpen(false)
-                  return
-                }
-                const validated = safeUrlValidate(url)
-                if (!validated) {
-                  toast.error('Invalid URL scheme. Please enter a valid web link.')
-                  return
-                }
-                addSectionWithProps('button', { label: title || 'Follow me', url: validated, layout: layout || 'classic', thumbnail })
-                setAddModalOpen(false)
-                setAddModalType('menu')
-              }} />
+                  setAddModalType('menu')
+                }}
+              />
             </div>
           )}
 
@@ -4474,28 +4619,6 @@ export default function StoreBuilderPage() {
                 setAddModalOpen(false)
                 setAddModalType('menu')
                 setCoachingWizardProductId(null)
-              }}
-            />
-          )}
-
-          {/* COURSE 7-STEP WIZARD */}
-          {addModalType === 'course' && (
-            <CourseWizardContent
-              key={courseWizardId || 'new-course'}
-              editCourseId={courseWizardId}
-              onClose={() => {
-                setAddModalOpen(false)
-                setAddModalType('menu')
-                setCourseWizardId(null)
-              }}
-              onSuccess={async (createdCourse) => {
-                await refreshStoreData()
-                if (createdCourse?.id && !courseWizardId) {
-                  addSectionWithProps('product', { productId: createdCourse.id, layout: 'classic' })
-                }
-                setAddModalOpen(false)
-                setAddModalType('menu')
-                setCourseWizardId(null)
               }}
             />
           )}
@@ -4941,21 +5064,6 @@ export default function StoreBuilderPage() {
         currentPlan={me?.user?.plan || 'FREE'}
       />
 
-      <CourseWizardModal
-        open={courseWizardOpen}
-        onClose={() => {
-          setCourseWizardOpen(false)
-          setCourseWizardId(null)
-        }}
-        onSuccess={async (createdCourse) => {
-          await refreshStoreData()
-          if (createdCourse?.id && !courseWizardId) {
-            addSectionWithProps('product', { productId: createdCourse.id, layout: 'classic' })
-          }
-        }}
-        editCourseId={courseWizardId}
-      />
-
       <ProductBundleModal
         isOpen={bundleModalOpen}
         existingBundle={editingBundle}
@@ -5030,11 +5138,16 @@ export default function StoreBuilderPage() {
 
 /* ---------------- Helper Components & Forms ---------------- */
 
-function AddLinkForm({ onSubmit }) {
-  const [title, setTitle] = useState('')
-  const [url, setUrl] = useState('')
+function AddLinkForm({ onSubmit, initialUrl = '', initialTitle = '' }) {
+  const [title, setTitle] = useState(initialTitle)
+  const [url, setUrl] = useState(initialUrl)
   const [layout, setLayout] = useState('classic')
   const [thumbnail, setThumbnail] = useState('')
+
+  useEffect(() => {
+    if (initialUrl) setUrl(initialUrl)
+    if (initialTitle) setTitle(initialTitle)
+  }, [initialUrl, initialTitle])
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(title, url, layout, thumbnail) }} className="space-y-4">
@@ -6088,12 +6201,12 @@ function DesignStudioPage({
   return (
     <div className="space-y-6 text-[#010619] w-full lg:h-full lg:min-h-0 flex flex-col">
       {/* 1. TOP HEADER & MOBILE NAVIGATION */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[var(--border-subtle,#303030)] pb-4 shrink-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#E5E5E3] pb-4 shrink-0">
         {onBackToContent && (
           <button
             type="button"
             onClick={onBackToContent}
-            className="lg:hidden inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--bg-surface-hover,#2A2A2A)] border border-[var(--border-subtle,#303030)] text-[var(--text-heading,#F5F5F5)] text-xs font-semibold cursor-pointer active:scale-95 transition-all"
+            className="lg:hidden inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#FFFFFF] hover:bg-[#F5F5F3] border border-[#E5E5E3] text-[#1F1F1F] text-xs font-semibold cursor-pointer active:scale-95 transition-all shadow-2xs"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             <span>Back to Store</span>
@@ -6102,20 +6215,22 @@ function DesignStudioPage({
       </div>
 
       {/* MOBILE RESPONSIVE TOGGLE BAR (Visible on screens < lg) */}
-      <div className="lg:hidden flex items-center justify-center gap-1 rounded-full border border-[var(--border-subtle,#303030)] bg-[var(--bg-surface-hover,#2A2A2A)] p-1 w-full max-w-sm mx-auto shrink-0">
+      <div className="lg:hidden flex items-center justify-center gap-1 rounded-full border border-[#E5E5E3] bg-[#F5F5F3] p-1 w-full max-w-sm mx-auto shrink-0">
         <button
           type="button"
           onClick={() => setMobileViewMode('customize')}
-          className={`flex-1 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${mobileViewMode === 'customize' ? 'bg-[var(--accent-primary)] text-[var(--text-heading,#F5F5F5)] shadow-xs' : 'text-[var(--text-secondary,#A3A3A3)] hover:text-[var(--text-heading,#F5F5F5)]'
-            }`}
+          className={`flex-1 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+            mobileViewMode === 'customize' ? 'bg-[#1F1F1F] text-[#FFFFFF] shadow-xs font-bold' : 'text-[#71717A] hover:text-[#1F1F1F]'
+          }`}
         >
           Customize
         </button>
         <button
           type="button"
           onClick={() => setMobileViewMode('preview')}
-          className={`flex-1 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${mobileViewMode === 'preview' ? 'bg-[var(--accent-primary)] text-[var(--text-heading,#F5F5F5)] shadow-xs' : 'text-[var(--text-secondary,#A3A3A3)] hover:text-[var(--text-heading,#F5F5F5)]'
-            }`}
+          className={`flex-1 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+            mobileViewMode === 'preview' ? 'bg-[#1F1F1F] text-[#FFFFFF] shadow-xs font-bold' : 'text-[#71717A] hover:text-[#1F1F1F]'
+          }`}
         >
           Preview
         </button>

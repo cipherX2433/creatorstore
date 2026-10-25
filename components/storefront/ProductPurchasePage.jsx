@@ -222,7 +222,7 @@ export default function ProductPurchasePage({ username, slug, productId }) {
           <div className="space-y-2">
             <h1 className="text-2xl font-black text-white tracking-tight">Product Not Found</h1>
             <p className="text-xs sm:text-sm text-[rgba(244,242,236,0.68)] font-medium leading-relaxed">
-              This product or course is unavailable, private, or has been moved by the creator.
+              This product is unavailable, private, or has been moved by the creator.
             </p>
           </div>
           <div className="pt-2">

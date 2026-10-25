@@ -48,7 +48,7 @@ const STORAGE_KEY = 'creatorstore_onboarding_draft_v3'
 // 1. Creator Categories (What do you create?)
 const CREATOR_TYPES = [
   { id: 'Content Creator', title: 'Content Creator', desc: 'Videos, reels, podcasts & social media', icon: '📹' },
-  { id: 'Educator', title: 'Educator / Teacher', desc: 'Courses, workshops, guides & tutorials', icon: '🎓' },
+  { id: 'Educator', title: 'Educator / Teacher', desc: 'Workshops, guides, templates & tutorials', icon: '📚' },
   { id: 'Coach', title: 'Coach / Mentor', desc: '1:1 coaching, personal calls & advisory', icon: '👥' },
   { id: 'Consultant', title: 'Consultant', desc: 'Strategy, business audits & consulting', icon: '💼' },
   { id: 'Designer', title: 'Designer / Creative', desc: 'UI kits, templates, graphics & design assets', icon: '🎨' },
@@ -62,7 +62,6 @@ const CREATOR_TYPES = [
 // 2. Offerings / Products to sell
 const OFFERING_TYPES = [
   { id: 'digital_products', title: 'Digital Downloads & Guides', desc: 'Ebooks, PDFs, presets & templates', icon: '📘' },
-  { id: 'courses', title: 'Online Courses', desc: 'Video lessons, masterclasses & modules', icon: '🎓' },
   { id: 'coaching', title: '1:1 Coaching & Calls', desc: 'Personal video sessions & consultations', icon: '👥' },
   { id: 'memberships', title: 'Memberships & Subscriptions', desc: 'Recurring subscriber content & access', icon: '🏆' },
   { id: 'communities', title: 'Exclusive Community', desc: 'Member groups, discussions & chats', icon: '💬' },
@@ -146,7 +145,7 @@ export default function OnboardingWizardPage() {
       return
     }
     if (profile?.onboardingComplete || profile?.onboardingStatus === 'COMPLETED') {
-      router.replace('/dashboard/store')
+      router.replace('/dashboard')
       return
     }
 
@@ -412,7 +411,7 @@ export default function OnboardingWizardPage() {
 
       // Redirect smoothly to dashboard
       setTimeout(() => {
-        router.replace('/dashboard/store')
+        router.replace('/dashboard')
       }, 1500)
     } catch (err) {
       const msg = err.message || 'Something went wrong while saving your setup. Please try again.'
@@ -482,7 +481,7 @@ export default function OnboardingWizardPage() {
 
             <button
               type="button"
-              onClick={() => router.replace('/dashboard/store')}
+              onClick={() => router.replace('/dashboard')}
               className="w-full h-[48px] rounded-full bg-[#194DF5] hover:bg-[#1441D9] text-white font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>Enter Dashboard</span>

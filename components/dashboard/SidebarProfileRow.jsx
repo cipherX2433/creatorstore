@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDashboardHeader } from '@/components/dashboard/HeaderContext'
+import { useNotifications } from '@/context/NotificationContext'
 
 export default function SidebarProfileRow({
   me,
@@ -23,6 +24,7 @@ export default function SidebarProfileRow({
   collapsed = false,
 }) {
   const { setPricingModalOpen } = useDashboardHeader()
+  const { openNotificationCenter, unreadCount, isOpen: isNotificationCenterOpen } = useNotifications()
   const [open, setOpen] = useState(false)
   const menuRef = useRef(null)
 
@@ -93,7 +95,7 @@ export default function SidebarProfileRow({
           aria-expanded={open}
           aria-haspopup="menu"
         >
-          <div className="flex h-[34px] w-[34px] min-w-[34px] min-h-[34px] max-w-[34px] max-h-[34px] items-center justify-center overflow-hidden rounded-full bg-[#1F1F1F] text-xs font-semibold text-[#FFFFFF] shrink-0 ring-1 ring-[#E5E5E3]">
+          <div className="relative flex h-[34px] w-[34px] min-w-[34px] min-h-[34px] max-w-[34px] max-h-[34px] items-center justify-center overflow-hidden rounded-full bg-[#1F1F1F] text-xs font-semibold text-[#FFFFFF] shrink-0 ring-1 ring-[#E5E5E3]">
             {me?.profile?.avatarUrl ? (
               <img
                 src={me.profile.avatarUrl}
@@ -102,6 +104,12 @@ export default function SidebarProfileRow({
               />
             ) : (
               initial
+            )}
+            {unreadCount > 0 && (
+              <span
+                className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[#8B5CF6] ring-2 ring-[#F7F7F7]"
+                aria-hidden="true"
+              />
             )}
           </div>
         </button>
@@ -145,12 +153,20 @@ export default function SidebarProfileRow({
           {/* Notification Bell */}
           <button
             type="button"
-            onClick={() => toast.info('No new notifications')}
-            className="h-7.5 w-7.5 flex items-center justify-center rounded-[8px] text-[#5F5F5F] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] transition-colors cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 shrink-0"
+            onClick={openNotificationCenter}
+            className={`relative h-7.5 w-7.5 flex items-center justify-center rounded-[8px] text-[#5F5F5F] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] transition-colors cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 shrink-0 ${
+              isNotificationCenterOpen ? 'bg-[#EAE9E6] text-[#1F1F1F]' : ''
+            }`}
             title="Notifications"
-            aria-label="Notifications"
+            aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
           >
             <Bell className="h-[18px] w-[18px] stroke-[1.8]" />
+            {unreadCount > 0 && (
+              <span
+                className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#8B5CF6] ring-2 ring-[#FFFFFF]"
+                aria-hidden="true"
+              />
+            )}
           </button>
         </div>
       )}
@@ -219,6 +235,22 @@ export default function SidebarProfileRow({
               <span>Create new store</span>
             </Link>
 
+            <button
+              type="button"
+              onClick={() => closeAnd(openNotificationCenter)}
+              className="flex w-full items-center justify-between px-2.5 py-1.5 rounded-[10px] text-xs font-medium text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors duration-150 cursor-pointer text-left"
+            >
+              <div className="flex items-center gap-2.5">
+                <Bell className="h-3.5 w-3.5 text-[#6F6F6B]" />
+                <span>Notifications</span>
+              </div>
+              {unreadCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#8B5CF6] text-white">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
             <Link
               href="/dashboard/settings"
               onClick={() => closeAnd()}
@@ -244,7 +276,7 @@ export default function SidebarProfileRow({
           {/* Section 2: Support & Feedback */}
           <div className="space-y-0.5">
             <Link
-              href="/dashboard/help"
+              href="/help"
               onClick={() => closeAnd()}
               className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-[10px] text-xs font-medium text-[#1F1F1F] hover:bg-[#F5F5F3] transition-colors duration-150"
             >

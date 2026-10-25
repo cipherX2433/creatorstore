@@ -41,20 +41,20 @@ export default function MobileStorePreviewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-[#FBFAF9] text-[#1F1F1F] md:hidden overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col bg-[#F7F7F7] text-[#222222] md:hidden overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-label="Mobile Storefront Preview"
     >
       {/* 1. TOP PREVIEW HEADER (Matching Screenshot 4) */}
-      <div className="flex items-center justify-between px-4 h-14 border-b border-[#E5E5E3] bg-[#FFFFFF] shrink-0">
+      <div className="flex items-center justify-between px-4 h-14 border-b border-[#E8E8E8] bg-[#FFFFFF] shrink-0">
         <button
           type="button"
           onClick={onClose}
-          className="flex items-center gap-2 p-1.5 -ml-1.5 rounded-full text-[#1F1F1F] hover:bg-[#F2F1EF] transition-colors cursor-pointer"
+          className="flex items-center gap-2 h-11 px-2.5 -ml-2 rounded-full text-[#222222] hover:bg-[#F2F2F2] active:scale-95 transition-all cursor-pointer"
         >
           <ArrowLeft className="h-5 w-5 stroke-[2.2]" />
-          <span className="text-base font-bold text-[#1F1F1F]">Preview</span>
+          <span className="text-sm font-bold text-[#222222]">Preview</span>
         </button>
 
         <div className="flex items-center gap-2">
@@ -62,8 +62,9 @@ export default function MobileStorePreviewModal({
             <button
               type="button"
               onClick={onShare}
-              className="p-2 rounded-full text-[#71717A] hover:text-[#1F1F1F] hover:bg-[#F2F1EF] transition-colors cursor-pointer"
+              className="w-11 h-11 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] active:scale-95 transition-all flex items-center justify-center cursor-pointer"
               title="Share store"
+              aria-label="Share store"
             >
               <Share2 className="h-4.5 w-4.5 stroke-[1.8]" />
             </button>
@@ -73,7 +74,7 @@ export default function MobileStorePreviewModal({
             href={liveUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#1F1F1F] text-white text-xs font-bold transition-all shadow-2xs hover:bg-black"
+            className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-[#1F1F1F] text-white text-xs font-bold transition-all shadow-2xs hover:bg-[#2A2A2A] active:scale-95"
           >
             <span>View live</span>
             <ExternalLink className="h-3 w-3" />
@@ -82,7 +83,7 @@ export default function MobileStorePreviewModal({
       </div>
 
       {/* 2. LIVE PREVIEW STORE RENDERER */}
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar bg-[#FBFAF9]">
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar bg-[#F7F7F7]">
         <div className="max-w-[420px] mx-auto min-h-full flex flex-col">
           <StorePreview
             device="mobile"

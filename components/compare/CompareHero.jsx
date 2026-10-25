@@ -18,7 +18,7 @@ export default function CompareHero() {
 
       {/* Subheading */}
       <p className="text-base sm:text-lg text-[#5F6873] font-medium leading-relaxed max-w-2xl mx-auto">
-        0% fees on every plan, courses + coaching + memberships + Instagram AutoDM all in one place.
+        0% fees on every plan, digital downloads + coaching + memberships + Instagram AutoDM all in one place.
       </p>
     </div>
   )

@@ -20,8 +20,8 @@ const INTEGRATION_ITEMS = [
   },
   {
     icon: BookOpen,
-    title: 'Hosted Courses & Files',
-    desc: 'Private digital downloads and structured multi-lesson video courses with built-in student access.',
+    title: 'Hosted Digital Files',
+    desc: 'Private encrypted digital downloads, PDF guides, templates, and asset bundles with instant delivery.',
   },
 ]
 

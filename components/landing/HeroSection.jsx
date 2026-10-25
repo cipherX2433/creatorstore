@@ -305,9 +305,7 @@ export default function HeroSection() {
           Your store, your content, your brand - live in minutes. No developer, no design skills needed. 0% transaction fees. More than link-in-bio.
         </p>
 
-        <p className="text-sm sm:text-base text-[#71717A] font-normal max-w-xl mx-auto mb-10 sm:mb-12">
-          Storefront features will be launched after Beta. Let's claim and launch your page first!
-        </p>
+
 
         {/* 4. THE CLAIM BOX CONTAINER */}
         <div className="w-full max-w-[480px] mx-auto mb-8 sm:mb-10">

@@ -5,11 +5,11 @@ import CompareView from '@/components/compare/CompareView'
 export const metadata = {
   title: 'CreatorStore vs Stan Store, Linktree & Beacons — Full Comparison',
   description:
-    'Compare CreatorStore with popular creator platforms across digital products, courses, coaching, memberships, Instagram AutoDM, and 0% platform fee pricing.',
+    'Compare CreatorStore with popular creator platforms across digital products, coaching, memberships, Instagram AutoDM, and 0% platform fee pricing.',
   openGraph: {
     title: 'CreatorStore vs Stan Store, Linktree & Beacons — Full Comparison',
     description:
-      '0% fees on every plan. Sell courses, digital products, coaching, and automate Instagram conversations with CreatorStore.',
+      '0% fees on every plan. Sell digital products, coaching, services, and automate Instagram conversations with CreatorStore.',
     url: 'https://creatorstore.store/compare',
   },
 }

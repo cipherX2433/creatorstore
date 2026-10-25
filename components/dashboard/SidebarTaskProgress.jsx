@@ -86,7 +86,7 @@ export default function SidebarTaskProgress({ collapsed = false, onNavClick, cla
         id: 'first-product',
         title: 'Add a product',
         label: 'Add a product',
-        description: 'Create a digital product, course, or service to sell.',
+        description: 'Create a digital product, coaching session, or service to sell.',
         completed: isProductDone,
         actionType: 'product-wizard',
         route: isProductDone ? '/dashboard/products' : '/dashboard/products?create=true',

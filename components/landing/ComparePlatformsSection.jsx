@@ -5,7 +5,7 @@ import { ArrowRight, Sparkles, Check, Layers } from 'lucide-react'
 
 const COMPARISON_HIGHLIGHTS = [
   'Digital products & instant downloads',
-  'Hosted video courses with student access',
+  'Custom services & digital bundles',
   '1:1 coaching calendar bookings',
   'Recurring memberships & subscriptions',
   'Instagram AutoDM on every plan',
@@ -33,7 +33,7 @@ export default function ComparePlatformsSection() {
               </h2>
 
               <p className="text-sm sm:text-base text-[#A3A3A3] leading-relaxed max-w-xl">
-                Compare CreatorStore side-by-side with Stan Store, Linktree, and Beacons across monetization, digital course delivery, Instagram automation, and platform fees.
+                Compare CreatorStore side-by-side with Stan Store, Linktree, and Beacons across monetization, digital product delivery, Instagram automation, and platform fees.
               </p>
 
               {/* Feature highlight badges */}

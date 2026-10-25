@@ -113,6 +113,7 @@ export default function MobileProductWizard({
   const [submitting, setSubmitting] = useState(false)
   const [validationErrors, setValidationErrors] = useState({})
 
+  const submittingLockRef = useRef(false)
   const thumbInputRef = useRef(null)
   const deliverableInputRef = useRef(null)
 
@@ -274,6 +275,8 @@ export default function MobileProductWizard({
 
   // Save / Publish product via real API
   async function handleSave(publish = true) {
+    if (submittingLockRef.current) return
+
     const status = publish ? 'PUBLISHED' : 'DRAFT'
     if (!validateForm(status)) {
       const firstKey = Object.keys(validationErrors)[0]
@@ -283,6 +286,7 @@ export default function MobileProductWizard({
       return
     }
 
+    submittingLockRef.current = true
     setSubmitting(true)
     try {
       const numPrice = Number(price)
@@ -329,6 +333,7 @@ export default function MobileProductWizard({
     } catch (err) {
       toast.error(err.message || 'Failed to save product. Please try again.')
     } finally {
+      submittingLockRef.current = false
       setSubmitting(false)
     }
   }
@@ -337,13 +342,13 @@ export default function MobileProductWizard({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-[#FFFFFF] text-[#1F1F1F] md:hidden overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col bg-[#FFFFFF] text-[#222222] md:hidden overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-label={isEdit ? 'Edit Product' : 'Create Product'}
     >
       {/* 1. COMPACT MOBILE HEADER */}
-      <div className="flex items-center justify-between px-4 h-14 border-b border-[#E5E5E3] bg-[#FFFFFF] shrink-0">
+      <div className="flex items-center justify-between px-4 h-14 border-b border-[#E8E8E8] bg-[#FFFFFF] shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
           <button
             type="button"
@@ -354,13 +359,13 @@ export default function MobileProductWizard({
                 handleAttemptClose()
               }
             }}
-            className="p-2 -ml-2 rounded-full text-[#1F1F1F] hover:bg-[#F2F1EF] transition-colors cursor-pointer"
+            className="w-11 h-11 -ml-2 rounded-full text-[#222222] hover:bg-[#F2F2F2] active:scale-95 transition-all flex items-center justify-center cursor-pointer"
             aria-label="Back"
           >
             <ArrowLeft className="h-5 w-5 stroke-[2.2]" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-base font-bold text-[#1F1F1F] truncate">
+            <h1 className="text-sm font-bold text-[#222222] truncate">
               {isEdit ? 'Edit Product' : 'New Product'}
             </h1>
           </div>
@@ -369,7 +374,7 @@ export default function MobileProductWizard({
         <button
           type="button"
           onClick={handleAttemptClose}
-          className="p-2 -mr-2 rounded-full text-[#71717A] hover:text-[#1F1F1F] hover:bg-[#F2F1EF] transition-colors cursor-pointer"
+          className="w-11 h-11 -mr-2 rounded-full text-[#777777] hover:text-[#222222] hover:bg-[#F2F2F2] active:scale-95 transition-all flex items-center justify-center cursor-pointer"
           aria-label="Close"
         >
           <X className="h-5 w-5" />
@@ -377,14 +382,14 @@ export default function MobileProductWizard({
       </div>
 
       {/* 2. SCROLLABLE FORM BODY */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 space-y-6 pb-28">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-5 space-y-6 pb-28">
 
         {/* STEP 1: SELECT PRODUCT TYPE (CREATE MODE ONLY) */}
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <h2 className="text-lg font-bold text-[#1F1F1F]">Select product type</h2>
-              <p className="text-xs text-[#71717A] mt-0.5">
+              <h2 className="text-base font-bold text-[#222222]">Select product type</h2>
+              <p className="text-xs text-[#777777] mt-0.5">
                 Choose the kind of product you want to offer to your audience.
               </p>
             </div>
@@ -402,10 +407,10 @@ export default function MobileProductWizard({
                       markChanged()
                       setStep(2)
                     }}
-                    className={`w-full flex items-start gap-3.5 p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                    className={`w-full flex items-start gap-3.5 p-4 rounded-2xl border text-left transition-all active:scale-[0.99] cursor-pointer ${
                       isSelected
-                        ? 'border-[#1F1F1F] bg-[#F9F9F8] shadow-xs'
-                        : 'border-[#E5E5E3] bg-[#FFFFFF] hover:bg-[#F9F9F8]'
+                        ? 'border-[#222222] ring-1 ring-[#222222] bg-[#FFFFFF] shadow-2xs'
+                        : 'border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2]'
                     }`}
                   >
                     <div
@@ -415,10 +420,10 @@ export default function MobileProductWizard({
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-[#1F1F1F] truncate">
+                      <p className="text-sm font-bold text-[#222222] truncate">
                         {t.title}
                       </p>
-                      <p className="text-xs text-[#71717A] mt-0.5 leading-relaxed">
+                      <p className="text-xs text-[#777777] mt-0.5 leading-relaxed">
                         {t.desc}
                       </p>
                     </div>
@@ -737,9 +742,9 @@ export default function MobileProductWizard({
 
       {/* 3. STICKY BOTTOM ACTIONS */}
       <div
-        className="border-t border-[#E5E5E3] bg-[#FFFFFF] p-4 shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.04)]"
+        className="border-t border-[#E8E8E8] bg-[#FFFFFF] p-4 shrink-0 shadow-[0_-4px_16px_rgba(0,0,0,0.04)]"
         style={{
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
         }}
       >
         <div className="flex items-center gap-2.5 max-w-md mx-auto">
@@ -748,7 +753,7 @@ export default function MobileProductWizard({
               type="button"
               disabled={submitting}
               onClick={() => handleSave(false)}
-              className="flex-1 h-12 rounded-full border border-[#E5E5E3] bg-[#FFFFFF] hover:bg-[#F9F9F8] text-xs sm:text-sm font-bold text-[#1F1F1F] transition-all cursor-pointer shadow-xs disabled:opacity-50"
+              className="flex-1 h-12 min-h-[44px] rounded-full border border-[#E8E8E8] bg-[#FFFFFF] hover:bg-[#F2F2F2] active:scale-[0.98] text-xs sm:text-sm font-bold text-[#222222] transition-all cursor-pointer shadow-2xs disabled:opacity-50"
             >
               Save draft
             </button>
@@ -758,7 +763,7 @@ export default function MobileProductWizard({
             type="button"
             disabled={submitting}
             onClick={() => handleSave(true)}
-            className="flex-1 h-12 rounded-full bg-[#1F1F1F] hover:bg-black active:scale-[0.98] text-white text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+            className="flex-1 h-12 min-h-[44px] rounded-full bg-[#1F1F1F] hover:bg-[#2A2A2A] active:scale-[0.98] text-white text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {submitting ? (
               <>

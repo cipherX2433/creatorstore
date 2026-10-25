@@ -14,7 +14,7 @@ export async function generateMetadata({ params }) {
     const data = result.data
     const name = data.profile?.name || slug
     const title = `${name} — CreatorStore`
-    const description = data.profile?.bio || `Shop digital products and courses from ${name}.`
+    const description = data.profile?.bio || `Shop digital products from ${name}.`
     return {
       title,
       description,

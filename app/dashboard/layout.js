@@ -8,6 +8,8 @@ import { api, formatMoney } from '@/lib/clientApi'
 import { DashboardProvider, useDashboard } from '@/components/dashboard/DashboardContext'
 import { HeaderProvider, useDashboardHeader } from '@/components/dashboard/HeaderContext'
 import PricingModal from '@/components/dashboard/PricingModal'
+import NotificationCenter from '@/components/dashboard/NotificationCenter'
+import { NotificationProvider } from '@/context/NotificationContext'
 import SetupChecklist from '@/components/dashboard/setup/SetupChecklist'
 import SidebarProfileRow from '@/components/dashboard/SidebarProfileRow'
 import SidebarTaskProgress from '@/components/dashboard/SidebarTaskProgress'
@@ -83,34 +85,34 @@ function DashboardContent({ children }) {
 
   if (loading || !me) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#FBFAF9] text-[#1F1F1F]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1F1F1F]" />
+      <div className="flex min-h-screen items-center justify-center bg-[#F7F7F7] text-[#222222]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#222222]" />
       </div>
     )
   }
 
   const username = me?.store?.username || me?.store?.slug || me?.profile?.username || ''
   const isStorePage = pathname.startsWith('/dashboard/store')
-  const isStoreActive = pathname.startsWith('/dashboard/store') || pathname.startsWith('/dashboard/products')
-  const isEarnActive = pathname === '/dashboard' || pathname.startsWith('/dashboard/earn') || pathname.startsWith('/dashboard/orders')
+  const isStoreActive = pathname === '/dashboard' || pathname.startsWith('/dashboard/store') || pathname.startsWith('/dashboard/products')
+  const isEarnActive = pathname.startsWith('/dashboard/earn') || pathname.startsWith('/dashboard/orders')
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[#FBFAF9] md:bg-[#0D0D0D] text-[#1F1F1F] font-sans flex flex-col selection:bg-[#1F1F1F] selection:text-[#FFFFFF]">
+    <div className="h-screen w-screen overflow-hidden bg-[#F7F7F7] md:bg-[#0D0D0D] text-[#222222] font-sans flex flex-col selection:bg-[#1F1F1F] selection:text-[#FFFFFF]">
 
       {/* 1. GLOBAL TOPBAR (REFERENCE STYLE: Full-width dark bar with brand mark, trial countdown & Keep Pro access CTA) - Hidden on mobile */}
       <GlobalTopBar me={me} onOpenPricing={() => setPricingModalOpen(true)} />
 
       {/* 2. DASHBOARD BODY (SIDEBAR + MAIN CANVAS) - WITH ROUNDED TOP CORNER CUTOUTS ON DESKTOP */}
-      <div className="flex-1 flex min-h-0 relative w-full overflow-hidden bg-[#FBFAF9] rounded-none md:rounded-t-[24px]">
+      <div className="flex-1 flex min-h-0 relative w-full overflow-hidden bg-[#F7F7F7] rounded-none md:rounded-t-[24px]">
 
         {/* STATIC SPACER FOR DESKTOP (PREVENTS DASHBOARD FROM JUMPING/RESIZING ON SIDEBAR HOVER) */}
-        <div className="hidden md:block w-[72px] shrink-0 bg-[#F2F1EF] rounded-tl-[20px] md:rounded-tl-[24px]" aria-hidden="true" />
+        <div className="hidden md:block w-[72px] shrink-0 bg-[#F2F2F2] rounded-tl-[20px] md:rounded-tl-[24px]" aria-hidden="true" />
 
         {/* DESKTOP COLLAPSIBLE LIGHT NAVIGATION RAIL + HOVER EXPANSION OVERLAY */}
         <aside
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
-          className={`hidden md:flex absolute top-0 bottom-0 left-0 z-40 bg-[#F2F1EF] border-r border-[#E5E5E3] flex-col transition-all duration-200 ease-out shadow-[4px_0_24px_rgba(0,0,0,0.02)] rounded-tl-[20px] md:rounded-tl-[24px] overflow-hidden ${
+          className={`hidden md:flex absolute top-0 bottom-0 left-0 z-40 bg-[#F2F2F2] border-r border-[#E8E8E8] flex-col transition-all duration-200 ease-out shadow-[4px_0_24px_rgba(0,0,0,0.02)] rounded-tl-[20px] md:rounded-tl-[24px] overflow-hidden ${
             isHovered ? 'w-[248px]' : 'w-[72px]'
           }`}
         >
@@ -131,7 +133,7 @@ function DashboardContent({ children }) {
             <div>
               <div className="relative">
                 <Link
-                  href="/dashboard/store"
+                  href="/dashboard"
                   onClick={handleNavClick}
                   className={`group relative flex items-center h-[44px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
                     isHovered ? 'px-2.5 rounded-[10px]' : 'justify-center mx-0.5 rounded-[10px]'
@@ -211,7 +213,7 @@ function DashboardContent({ children }) {
             <div>
               <div className="relative">
                 <Link
-                  href="/dashboard"
+                  href="/dashboard/earn/earnings"
                   onClick={handleNavClick}
                   className={`group relative flex items-center h-[44px] transition-colors duration-150 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20 ${
                     isHovered ? 'px-2.5 rounded-[10px]' : 'justify-center mx-0.5 rounded-[10px]'
@@ -262,7 +264,7 @@ function DashboardContent({ children }) {
                 <div className="ml-[20px] pl-2.5 border-l border-[#DCDAD6] space-y-[2px] my-1">
                   {EARN_CHILDREN.map((child) => {
                     let active = false
-                    if (child.label === 'Insights') active = pathname === '/dashboard'
+                    if (child.label === 'Insights') active = pathname.startsWith('/dashboard/analytics')
                     else if (child.label === 'Orders') active = pathname === '/dashboard/orders' || pathname.startsWith('/dashboard/earn/orders')
                     else if (child.label === 'Earnings') active = pathname === '/dashboard/earn/earnings' || pathname === '/dashboard/earn'
 
@@ -302,7 +304,7 @@ function DashboardContent({ children }) {
                 Tools
               </div>
             ) : (
-              <div className="h-[1px] bg-[#E5E5E3] mx-2.5 my-2" />
+              <div className="h-[1px] bg-[#E8E8E8] mx-2.5 my-2" />
             )}
 
             {/* OTHER PRIMARY NAVIGATION ITEMS */}
@@ -362,13 +364,13 @@ function DashboardContent({ children }) {
           <SidebarTaskProgress collapsed={!isHovered} onNavClick={handleNavClick} />
 
           {/* BOTTOM UTILITY ACTIONS */}
-          <div className={`mt-auto shrink-0 border-t border-[#E5E5E3]/80 flex items-center bg-[#F2F1EF] transition-all ${
+          <div className={`mt-auto shrink-0 border-t border-[#E8E8E8]/80 flex items-center bg-[#F2F2F2] transition-all ${
             isHovered ? 'h-[42px] px-3 justify-between' : 'h-[42px] justify-center'
           }`}>
             {isHovered ? (
               <>
                 <Link
-                  href="/dashboard/help"
+                  href="/help"
                   onClick={handleNavClick}
                   className="p-1.5 rounded-[8px] text-[#71717A] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] transition-colors outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20"
                   title="Help & Support"
@@ -392,7 +394,7 @@ function DashboardContent({ children }) {
               </>
             ) : (
               <Link
-                href="/dashboard/help"
+                href="/help"
                 onClick={handleNavClick}
                 className="p-1.5 rounded-[8px] text-[#71717A] hover:text-[#1F1F1F] hover:bg-[#EAE9E6] transition-colors outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F1F1F]/20"
                 title="Help & Support"
@@ -405,12 +407,12 @@ function DashboardContent({ children }) {
         </aside>
 
         {/* MAIN CONTENT CANVAS */}
-        <div className={`flex-1 flex flex-col min-w-0 min-h-0 bg-[#FBFAF9] text-[#1F1F1F] no-scrollbar rounded-none md:rounded-tr-[24px] ${
+        <div className={`flex-1 flex flex-col min-w-0 min-h-0 bg-[#F7F7F7] text-[#222222] no-scrollbar rounded-none md:rounded-tr-[24px] ${
           isStorePage ? 'overflow-y-auto lg:overflow-hidden' : 'overflow-y-auto'
         }`}>
 
           {/* MAIN PAGE VIEW CANVAS */}
-          <main className={`flex-1 w-full max-w-full min-w-0 bg-[#FBFAF9] text-[#1F1F1F] ${
+          <main className={`flex-1 w-full max-w-full min-w-0 bg-[#F7F7F7] text-[#222222] ${
             isStorePage
               ? 'p-0 lg:px-8 lg:pb-5 lg:pt-5 lg:h-full lg:min-h-0 lg:overflow-hidden flex flex-col'
               : 'px-3.5 sm:px-6 md:px-8 pb-28 sm:pb-32 md:pb-20 pt-4 sm:pt-6'
@@ -447,6 +449,7 @@ function DashboardContent({ children }) {
       </div>
 
       <PricingModal isOpen={pricingModalOpen} onClose={() => setPricingModalOpen(false)} />
+      <NotificationCenter />
     </div>
   )
 }
@@ -461,7 +464,8 @@ function getRouteTitle(pathname, title) {
   if (pathname.startsWith('/dashboard/orders') || pathname === '/dashboard/earn/orders') return 'Orders'
   if (pathname.startsWith('/dashboard/earn/earnings')) return 'Earnings'
   if (pathname === '/dashboard/earn') return 'Earn'
-  if (pathname === '/dashboard' || pathname.startsWith('/dashboard/analytics')) return 'Insights'
+  if (pathname === '/dashboard') return 'Overview'
+  if (pathname.startsWith('/dashboard/analytics')) return 'Insights'
   if (pathname.startsWith('/dashboard/calendar')) return 'Calendar'
   if (pathname.startsWith('/dashboard/automations')) return 'Automations'
   if (pathname.startsWith('/dashboard/payments')) return 'Payments'
@@ -560,8 +564,8 @@ function GlobalTopBar({ me, onOpenPricing }) {
 
 function DashboardBootFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#FBFAF9] text-[#1F1F1F]">
-      <Loader2 className="h-8 w-8 animate-spin text-[#1F1F1F]" />
+    <div className="flex min-h-screen items-center justify-center bg-[#F7F7F7] text-[#222222]">
+      <Loader2 className="h-8 w-8 animate-spin text-[#222222]" />
     </div>
   )
 }
@@ -570,9 +574,11 @@ export default function DashboardLayout({ children }) {
   return (
     <DashboardProvider>
       <HeaderProvider>
-        <Suspense fallback={<DashboardBootFallback />}>
-          <DashboardContent>{children}</DashboardContent>
-        </Suspense>
+        <NotificationProvider>
+          <Suspense fallback={<DashboardBootFallback />}>
+            <DashboardContent>{children}</DashboardContent>
+          </Suspense>
+        </NotificationProvider>
       </HeaderProvider>
     </DashboardProvider>
   )
