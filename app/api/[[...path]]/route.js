@@ -4,7 +4,7 @@ import { Readable } from 'stream'
 import { supabaseAdmin, ensureBucket, resolveDigitalProductStoragePath } from '@/lib/supabase'
 import { SESSION_COOKIE } from '@/lib/auth'
 import { dodoProvider } from '@/lib/dodo'
-import { productsRepo, ordersRepo, customersRepo, lessonsRepo, coursesRepo, entitlementsRepo, webhookEventsRepo, automationEventsRepo, profilesRepo, storesRepo, creatorSubscriptionsRepo, usersRepo, subscriptionInvoicesRepo } from '@/lib/repos'
+import { productsRepo, ordersRepo, customersRepo, lessonsRepo, coursesRepo, entitlementsRepo, webhookEventsRepo, automationEventsRepo, profilesRepo, storesRepo, creatorSubscriptionsRepo, usersRepo, subscriptionInvoicesRepo, autoDmQueueRepo, autoDmRateLimitsRepo, instagramRepo } from '@/lib/repos'
 import { isValidCountryCode, normalizeCountryCode } from '@/lib/countries'
 import { auditCustomerSubscriptions } from '@/lib/subscription-reconciliation'
 import { razorpaySubscriptionLifecycleService } from '@/lib/razorpay-subscription-lifecycle'
@@ -721,6 +721,63 @@ async function processRoute(request, context = {}) {
         const offset = parseInt(url.searchParams.get('offset') || '0', 10)
         return json(await automationService.getAutomationEvents(path[1], user.id, { limit, offset }))
       }
+      // GET /api/automations/queue
+      if (path.length === 2 && path[1] === 'queue' && method === 'GET') {
+        const status = url.searchParams.get('status') || null
+        const limit = parseInt(url.searchParams.get('limit') || '50', 10)
+        const offset = parseInt(url.searchParams.get('offset') || '0', 10)
+        const [jobsResult, stats] = await Promise.all([
+          autoDmQueueRepo.listJobsForCreator(user.id, { status, limit, offset }),
+          autoDmQueueRepo.getStatsForCreator(user.id),
+        ])
+        const igAcc = await instagramRepo.getByCreatorId(user.id)
+        let rateLimitStatus = null
+        if (igAcc?.id) {
+          rateLimitStatus = await autoDmRateLimitsRepo.getStatus(igAcc.id, user.id)
+        }
+        return json({
+          ...jobsResult,
+          stats,
+          rateLimitStatus,
+        })
+      }
+
+      // POST /api/automations/queue/[id]/retry
+      if (path.length === 4 && path[1] === 'queue' && path[3] === 'retry' && method === 'POST') {
+        const result = await autoDmQueueRepo.retryJob(path[2], user.id)
+        if (!result.success) return json({ error: result.reason }, 400)
+        return json(result)
+      }
+
+      // POST /api/automations/queue/[id]/cancel
+      if (path.length === 4 && path[1] === 'queue' && path[3] === 'cancel' && method === 'POST') {
+        const result = await autoDmQueueRepo.cancelJob(path[2], user.id)
+        if (!result.success) return json({ error: result.reason }, 400)
+        return json(result)
+      }
+
+      // POST /api/automations/queue/account/pause
+      if (path.length === 4 && path[1] === 'queue' && path[2] === 'account' && path[3] === 'pause' && method === 'POST') {
+        const igAcc = await instagramRepo.getByCreatorId(user.id)
+        if (!igAcc?.id) return json({ error: 'No connected Instagram account found' }, 400)
+        const body = await request.json().catch(() => ({}))
+        const pauseMinutes = Number(body.pauseMinutes) || 30
+        const updated = await autoDmRateLimitsRepo.pauseAccount(igAcc.id, {
+          pauseMinutes,
+          reason: body.reason || 'Manually paused by creator from dashboard',
+        })
+        return json({ success: true, rateLimit: updated })
+      }
+
+      // POST /api/automations/queue/account/resume
+      if (path.length === 4 && path[1] === 'queue' && path[2] === 'account' && path[3] === 'resume' && method === 'POST') {
+        const igAcc = await instagramRepo.getByCreatorId(user.id)
+        if (!igAcc?.id) return json({ error: 'No connected Instagram account found' }, 400)
+        const result = await autoDmRateLimitsRepo.resumeAccount(igAcc.id, user.id)
+        if (!result.success) return json({ error: result.reason }, 400)
+        return json({ success: true, rateLimit: result.record })
+      }
+
       // DELETE /api/automations/[id]
       if (path.length === 2 && method === 'DELETE') {
         return json(await automationService.deleteAutomation(path[1], user.id))
