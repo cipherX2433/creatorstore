@@ -2440,7 +2440,7 @@ async function processRoute(request, context = {}) {
       if (!user || user.emailVerified === false) {
         return json({ user: null, profile: null, store: null })
       }
-      const me = await meService.getMe(user.id)
+      const me = await meService.getMe(user.id, { user })
       return json({ user, ...me })
     }
 

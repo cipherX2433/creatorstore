@@ -102,6 +102,7 @@ model Customer {
 
   @@unique([creatorId, email])
   @@index([country], map: "idx_customers_country")
+  @@index([creatorId, createdAt(sort: Desc)], map: "idx_customers_creator_created_at")
   @@map("customers")
 }
 
@@ -146,6 +147,7 @@ model StoreSection {
   creator User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
   @@index([creatorId, pageId], map: "idx_store_sections_creator_page")
+  @@index([creatorId, position(sort: Asc)], map: "idx_store_sections_creator_position")
   @@map("store_sections")
 }
 
@@ -250,6 +252,7 @@ model Product {
 
   @@unique([creatorId, slug])
   @@index([creatorId, slug], map: "idx_products_creator_slug")
+  @@index([creatorId, status, createdAt(sort: Desc)], map: "idx_products_creator_status_created")
   @@map("products")
 }
 
@@ -461,6 +464,8 @@ model Order {
   accessTokens ProductAccessToken[]
 
   @@index([creatorId, status], map: "idx_orders_creator_status")
+  @@index([creatorId, createdAt(sort: Desc)], map: "idx_orders_creator_created_at")
+  @@index([creatorId, productId, status], map: "idx_orders_creator_product_status")
   @@index([automationId, status], map: "idx_orders_automation_status")
   @@index([country], map: "idx_orders_country")
   @@map("orders")
