@@ -263,8 +263,11 @@ async function processRoute(request, context = {}) {
 
       const buffer = Buffer.from(arrayBuffer)
       const sanitizedName = (file.name || 'avatar').replace(/[^a-zA-Z0-9._-]/g, '')
+      const ext = sanitizedName.includes('.') ? sanitizedName.split('.').pop() : (mime.split('/')[1] || 'jpg')
+      const baseName = sanitizedName.includes('.') ? sanitizedName.substring(0, sanitizedName.lastIndexOf('.')) : sanitizedName
+      const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
       const userId = user ? user.id : 'pub'
-      const fileKey = `${userId}/media/${Date.now()}_${sanitizedName}`
+      const fileKey = `${userId}/media/${baseName}_${uniqueSuffix}.${ext}`
 
       let bucketName = 'creator-assets'
       let uploadRes = await supabaseAdmin.storage.from(bucketName).upload(fileKey, buffer, { contentType: mime, upsert: true })
@@ -2447,7 +2450,13 @@ async function processRoute(request, context = {}) {
     // ===== Authenticated User Routes (CUSTOMER or CREATOR) =====
     const user = await requireAuth(request)
 
-    if (route === '/me/profile' && method === 'PATCH') {
+    if ((route === '/me/profile' || route === '/creator/profile') && method === 'GET') {
+      const profile = await profilesRepo.getByCreator(user.id).catch(() => null)
+      const store = await storesRepo.getByCreator(user.id).catch(() => null)
+      return json({ profile, store })
+    }
+
+    if ((route === '/me/profile' || route === '/creator/profile') && method === 'PATCH') {
       const body = await request.json()
       const existingStore = await storesRepo.getByCreator(user.id).catch(() => null)
       const profile = await meService.updateProfile(user.id, body)
