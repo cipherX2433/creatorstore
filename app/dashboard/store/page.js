@@ -16,6 +16,7 @@ import { TextInput } from '@/components/ui/text-input'
 import { SelectableCard, SelectableCardGrid } from '@/components/ui/selectable-card'
 import { Switch } from '@/components/ui/switch'
 import { CreatorStoreMark } from '@/components/brand/CreatorStoreBrand'
+import CreatorStoreLoader from '@/components/ui/CreatorStoreLoader'
 import {
   Loader2, Plus, Trash2, Copy, Eye, EyeOff, GripVertical, Smartphone, Monitor,
   User, Type, AlignLeft, MousePointerClick, Image as ImageIcon, Package, Grid3x3,
@@ -3005,7 +3006,14 @@ export default function StoreBuilderPage() {
     toast.success(`Applied ${tmpl.name} template!`)
   }
 
-  if (loading) return <div className="flex h-[60vh] items-center justify-center bg-[var(--bg-page,#1C1C1C)]"><Loader2 className="h-8 w-8 animate-spin text-[var(--accent-primary)]" /></div>
+  if (loading) return (
+    <div className="flex h-[60vh] flex-col items-center justify-center bg-[var(--bg-page,#1C1C1C)] p-8 select-none">
+      <CreatorStoreLoader size="xl" badge badgeBg="#000000" ariaLabel="Loading store builder..." />
+      <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-[#A3A3A3]">
+        Loading store builder...
+      </p>
+    </div>
+  )
 
   const storeSlug = store?.slug || store?.username || me?.store?.slug || me?.store?.username || ''
   const storeUrl = typeof window !== 'undefined' && storeSlug ? `${window.location.origin}/${storeSlug}` : ''
@@ -6258,7 +6266,7 @@ function DesignStudioPage({
               {/* Single Canonical Theme Save Status / Action Control */}
               {themeSaveState === 'saving' ? (
                 <span className="h-9 px-3.5 rounded-full text-xs font-bold text-[#1F1F1F] bg-[#F5F5F3] border border-[#E5E5E3] flex items-center gap-1.5 shrink-0">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving...
+                  <CreatorStoreLoader variant="button" text="Saving..." size="xs" />
                 </span>
               ) : themeSaveState === 'error' ? (
                 <button
@@ -7030,7 +7038,7 @@ function EditDigitalProductForm({ productId, initialProduct = null, onUpdated, o
           disabled={saving}
           className="font-semibold text-xs h-10 px-6 bg-[#1F1F1F] text-[#FFFFFF] hover:bg-[#000000] rounded-full flex items-center gap-2 cursor-pointer shadow-xs"
         >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save changes'}
+          {saving ? <CreatorStoreLoader variant="button" text="Saving..." size="xs" /> : 'Save changes'}
         </Button>
       </div>
     </div>
