@@ -1125,10 +1125,16 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
       const media = leadingMedia({ thumbnail, url, title: label })
 
       if (isFeatured) {
+        const featBg = tokens?.adaptivePalette?.featuredCard?.background || cardBg
+        const featBorder = tokens?.adaptivePalette?.featuredCard?.border || cardBorder
+        const featShadow = tokens?.adaptivePalette?.featuredCard?.shadow || cardShadow
+        const featTitleColor = tokens?.adaptivePalette?.featuredCard?.text || primaryText
+        const featMutedColor = tokens?.adaptivePalette?.featuredCard?.mutedText || mutedText
+
         const card = (
           <div
             className="w-full overflow-hidden space-y-2.5 transition-all duration-200"
-            style={{ borderRadius: cardRadius, border: cardBorder, backgroundColor: cardBg, boxShadow: cardShadow }}
+            style={{ borderRadius: cardRadius, border: featBorder, backgroundColor: featBg, boxShadow: featShadow }}
           >
             <div className="aspect-[2.1/1] w-full overflow-hidden bg-slate-900">
               {media.type === 'image' ? (
@@ -1141,10 +1147,10 @@ function SectionRenderer({ section, tokens, profile, products, username, editor,
             </div>
             <div className="px-4 pb-4 space-y-2.5">
               <div className="space-y-0.5">
-                <h3 className="text-sm sm:text-base font-bold" style={{ color: primaryText }}>{label}</h3>
-                {url && url !== '#' && <p className="text-xs truncate" style={{ color: mutedText }}>{url}</p>}
+                <h3 className="text-sm sm:text-base font-bold" style={{ color: featTitleColor }}>{label}</h3>
+                {url && url !== '#' && <p className="text-xs truncate" style={{ color: featMutedColor }}>{url}</p>}
               </div>
-              <StyledButton label="OPEN →" tokens={tokens} fullWidth />
+              <ProductCtaButton label="OPEN" cardBg={featBg} tokens={tokens} fullWidth />
             </div>
           </div>
         )
@@ -2070,9 +2076,9 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
 
   // 1. MINIMAL CARD (Minimal Theme)
   if (layout.productCardStyle === 'flat-minimal' || tokens.presetId === 'minimal') {
-    const cardBg = tokens?.semantic?.surfaceBackground || cards.bg || '#FFFFFF'
-    const cardTitleColor = tokens?.semantic?.primaryText || getAccessibleTextColor(cardBg, null, 4.5)
-    const cardMutedColor = tokens?.semantic?.mutedText || getAccessibleMutedTextColor(cardBg)
+    const cardBg = tokens?.adaptivePalette?.productCard?.background || tokens?.semantic?.surfaceBackground || cards.bg || '#FFFFFF'
+    const cardTitleColor = tokens?.adaptivePalette?.productCard?.text || tokens?.semantic?.primaryText || getAccessibleTextColor(cardBg, null, 4.5)
+    const cardMutedColor = tokens?.adaptivePalette?.productCard?.mutedText || tokens?.semantic?.mutedText || getAccessibleMutedTextColor(cardBg)
 
     return (
       <Wrapper>
@@ -2327,16 +2333,16 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
   const semantic = tokens?.semantic || {}
   const cardBg = (header?.layout === 'immersive' && tokens?.contrast?.surface)
     ? tokens.contrast.surface
-    : (semantic.surfaceBackground || cards.bg || (isLight ? '#FFFFFF' : '#12141A'))
+    : (tokens?.adaptivePalette?.productCard?.background || semantic.surfaceBackground || cards.bg || (isLight ? '#FFFFFF' : '#12141A'))
   const cardTitleColor = (header?.layout === 'immersive' && tokens?.contrast?.text)
     ? tokens.contrast.text
-    : (semantic.primaryText || getAccessibleTextColor(cardBg, null, 4.5))
+    : (tokens?.adaptivePalette?.productCard?.text || semantic.primaryText || getAccessibleTextColor(cardBg, null, 4.5))
   const cardMutedColor = (header?.layout === 'immersive' && tokens?.contrast?.textSecondary)
     ? tokens.contrast.textSecondary
-    : (semantic.mutedText || getAccessibleMutedTextColor(cardBg))
+    : (tokens?.adaptivePalette?.productCard?.mutedText || semantic.mutedText || getAccessibleMutedTextColor(cardBg))
   const cardBorder = (header?.layout === 'immersive' && tokens?.contrast?.border)
     ? `1px solid ${tokens.contrast.border}`
-    : (semantic.borderColor ? `1px solid ${semantic.borderColor}` : (cards.border || (isLight ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)')))
+    : (tokens?.adaptivePalette?.productCard?.border || (semantic.borderColor ? `1px solid ${semantic.borderColor}` : (cards.border || (isLight ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)'))))
 
   return (
     <Wrapper>
@@ -2366,15 +2372,15 @@ function ProductCard({ product, tokens, username, editor, ctaOverride, onProduct
                 <span
                   className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full"
                   style={{
-                    backgroundColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.12)',
-                    color: isLight ? '#0F172A' : '#F8FAFC',
+                    backgroundColor: tokens?.adaptivePalette?.productCard?.badgeBg || (isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.12)'),
+                    color: tokens?.adaptivePalette?.productCard?.badgeText || (isLight ? '#0F172A' : '#F8FAFC'),
                     border: isLight ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255, 255, 255, 0.16)',
                   }}
                 >
                   <Layers className="h-3 w-3 shrink-0" />
                   Bundle{bundleCount > 0 ? ` · ${bundleCount} ${bundleCount === 1 ? 'product' : 'products'}` : ''}
                 </span>
-                <div className="shrink-0 text-right font-extrabold text-base sm:text-lg tracking-tight" style={{ color: cardTitleColor }}>
+                <div className="shrink-0 text-right font-extrabold text-base sm:text-lg tracking-tight" style={{ color: tokens?.adaptivePalette?.productCard?.priceText || cardTitleColor }}>
                   <div>{priceDisplay}</div>
                   {origPriceDisplay && <div className="text-[11px] font-semibold line-through opacity-60" style={{ color: cardMutedColor }}>{origPriceDisplay}</div>}
                 </div>
