@@ -58,6 +58,7 @@ import TextPanel from '@/components/dashboard/design/TextPanel'
 import ColorsPanel from '@/components/dashboard/design/ColorsPanel'
 import ButtonsPanel from '@/components/dashboard/design/ButtonsPanel'
 import HeaderPanel from '@/components/dashboard/design/HeaderPanel'
+import PanelHeader from '@/components/dashboard/design/PanelHeader'
 import ThemeMatchModal from '@/components/dashboard/design/ThemeMatchModal'
 import { extractImagePalette } from '@/lib/imageContrast'
 import StorefrontStatusCard from '@/components/dashboard/StorefrontStatusCard'
@@ -6249,91 +6250,10 @@ function DesignStudioPage({
       <div className="grid gap-8 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_420px] lg:items-stretch lg:h-full lg:min-h-0 items-start flex-1 min-h-0">
         {/* LEFT COLUMN: CUSTOMIZATION EDITOR */}
         <div className={`w-full max-w-[660px] mx-auto space-y-5 min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto subtle-scrollbar ${mobileViewMode === 'preview' ? 'hidden lg:block' : 'block'}`}>
-          {/* TOP APPEARANCE STATUS BAR */}
-          {activeSection !== 'buttons' && (
-            <div className="p-4 rounded-[24px] border border-[#D8DFFA] bg-white shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-              <div className="flex items-center gap-3.5 min-w-0">
-                <IconBadge color={ICON_BADGE_COLORS.theme}>
-                  <Palette className="h-5 w-5" />
-                </IconBadge>
-                <div className="min-w-0">
-                  <span className="text-xs font-bold text-[#1F1F1F] flex items-center gap-1.5 uppercase tracking-wider">
-                    Storefront Appearance
-                  </span>
-                  <p className="text-[11px] font-medium text-[#6F6F6B] pt-0.5">Customize how your CreatorStore storefront looks to visitors.</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-start sm:justify-end shrink-0">
-                {/* Single Canonical Theme Save Status / Action Control */}
-                {themeSaveState === 'saving' ? (
-                  <span className="h-9 px-3.5 rounded-full text-xs font-bold text-[#1F1F1F] bg-[#F5F5F3] border border-[#E5E5E3] flex items-center gap-1.5 shrink-0">
-                    <CreatorStoreLoader variant="button" text="Saving..." size="xs" />
-                  </span>
-                ) : themeSaveState === 'error' ? (
-                  <button
-                    type="button"
-                    onClick={onSaveTheme}
-                    className="h-9 px-3.5 rounded-full text-xs font-bold text-[#DC2626] bg-[#DC2626]/10 border border-[#DC2626]/20 hover:bg-[#DC2626]/20 flex items-center gap-1.5 shrink-0 cursor-pointer transition-all active:scale-95"
-                    title="Click to retry saving"
-                  >
-                    <AlertCircle className="h-3.5 w-3.5" /> Save failed
-                  </button>
-                ) : hasUnsavedThemeChanges ? (
-                  <button
-                    type="button"
-                    onClick={onSaveTheme}
-                    className="h-9 px-4 rounded-full text-xs font-bold text-white bg-[#1F1F1F] hover:bg-[#000000] active:bg-[#111111] shadow-xs active:scale-95 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
-                  >
-                    Save Changes →
-                  </button>
-                ) : (
-                  <span className="h-9 px-3.5 rounded-full text-xs font-bold text-[#16A34A] bg-[#16A34A]/10 border border-[#16A34A]/20 flex items-center gap-1.5 shrink-0">
-                    <Check className="h-3.5 w-3.5" /> Saved
-                  </span>
-                )}
-
-                {/* Revert Changes Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!hasUnsavedThemeChanges || themeSaveState === 'saving') return
-                    setRevertConfirmOpen(true)
-                  }}
-                  disabled={!hasUnsavedThemeChanges || themeSaveState === 'saving'}
-                  className={`h-9 px-3.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${!hasUnsavedThemeChanges || themeSaveState === 'saving'
-                      ? 'border-[#E5E5E3] bg-[#ECECE9] text-[#A8A8A4] cursor-not-allowed'
-                      : 'border-[#E5E5E3] bg-[#FFFFFF] hover:bg-[#F5F5F3] text-[#1F1F1F] shadow-xs active:scale-95'
-                    }`}
-                  title="Restore last saved theme"
-                >
-                  Revert Changes
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* SECTION DRILL-DOWN OR MAIN 7 ROWS LIST */}
           {activeSection !== null ? (
             <div className="space-y-4">
-              {/* SUB-PANEL NAVIGATION HEADER (only for header & footer, other panels have integrated Linktree-style header) */}
-              {!['buttons', 'theme', 'wallpaper', 'text', 'colors'].includes(activeSection) && (
-                <div className="flex items-center justify-between bg-[#FBFBFB] border border-[#E5E5E3] p-3.5 rounded-[20px]">
-                  <button
-                    type="button"
-                    onClick={() => setActiveSection(null)}
-                    className="flex items-center gap-2 text-xs font-bold text-[#1F1F1F] hover:text-[#000000] transition-colors cursor-pointer"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    <span>All Settings</span>
-                  </button>
-
-                  <h3 className="text-sm font-bold text-[#1F1F1F] capitalize">
-                    {`${activeSection} Customization`}
-                  </h3>
-                  <div className="w-12" />
-                </div>
-              )}
+              {/* Note: Standardized all sub-panels; previously: !['buttons', 'theme', 'wallpaper', 'text', 'colors'].includes(activeSection) */}
 
               {/* ---------------- SUB-PANEL 1: THEME ---------------- */}
               {activeSection === 'theme' && (
@@ -6363,6 +6283,15 @@ function DesignStudioPage({
                   storeSlug={storeSlug}
                   avatarUrl={theme.avatarUrl || store?.avatarUrl || profile?.avatarUrl}
                   onChange={onChange}
+                  onBack={() => setActiveSection(null)}
+                  onSave={onSaveTheme}
+                  onCancel={() => {
+                    if (hasUnsavedThemeChanges && themeSaveState !== 'saving') {
+                      onRevertTheme()
+                    }
+                  }}
+                  hasUnsavedChanges={hasUnsavedThemeChanges}
+                  isSaving={themeSaveState === 'saving'}
                   onUpgrade={() => setPricingModalOpen(true)}
                   onAvatarUpload={handleAvatarUpload}
                   onLogoUpload={handleHeaderLogoUpload}
@@ -6470,10 +6399,21 @@ function DesignStudioPage({
 
               {/* ---------------- SUB-PANEL 7: FOOTER ---------------- */}
               {activeSection === 'footer' && (
-                <div className="space-y-4 bg-[#1A1A1A] border border-[#2E2E2E] rounded-[24px] p-4">
+                <div className="bg-white border border-[#E5E5E3] rounded-[24px] p-5 sm:p-6 shadow-xs space-y-6">
+                  <PanelHeader
+                    title="Footer Customization"
+                    onBack={() => setActiveSection(null)}
+                    onSave={onSaveTheme}
+                    onCancel={() => {
+                      if (hasUnsavedThemeChanges && themeSaveState !== 'saving') {
+                        onRevertTheme()
+                      }
+                    }}
+                    hasUnsavedChanges={hasUnsavedThemeChanges}
+                    isSaving={themeSaveState === 'saving'}
+                  />
                   <div className="space-y-1">
-                    <h4 className="text-sm font-black text-white">Footer Customization</h4>
-                    <p className="text-xs text-[rgba(244,242,236,0.68)]">Control footer branding and links displayed on your public storefront.</p>
+                    <p className="text-xs text-[#6F6F6B]">Control footer branding and links displayed on your public storefront.</p>
                   </div>
 
                   <SwitchToggle

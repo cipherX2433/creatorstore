@@ -11,6 +11,7 @@ import {
 import { formatMoney } from '@/lib/clientApi'
 import { getThemeTokens } from '@/lib/themePresets'
 import { patternPreviewStyle } from '@/lib/storefront-themes'
+import { getThemeArtwork } from '@/lib/storefront-theme-artwork'
 import { ensureGoogleFonts } from '@/lib/storefrontFonts'
 import {
   getPagePillStyles,
@@ -556,6 +557,7 @@ export default function PublicStoreRenderer({
     <div
       className={`min-h-full w-full transition-all duration-300 relative overflow-hidden ${className}`}
       style={{
+        ...(tokens?.cssVariables || {}),
         backgroundColor: isImmersive ? (tokens?.contrast?.bg || colors.background) : undefined,
         color: isImmersive ? (tokens?.contrast?.text || colors.text) : colors.text,
         fontFamily: typography.bodyFont,
@@ -1876,7 +1878,11 @@ function ProfileHeader({ profile, tokens, editor, username, store }) {
   // 4. @handle fallback (never email)
   const name = validHeaderTitle || store?.storeName || profile?.name || (handle ? `@${handle}` : 'Creator Store')
   const bio = header?.bio !== undefined && header?.bio !== null ? header.bio : (profile?.bio || store?.bio || '')
-  const avatarUrl = header?.avatarUrl || store?.avatarUrl || profile?.avatarUrl || ''
+  const themeId = String(tokens?.galleryThemeId || store?.theme?.galleryThemeId || '').toLowerCase().trim()
+  const themeArtwork = getThemeArtwork(themeId)
+  const hasCustomAvatar = Boolean(header?.avatarUrl || store?.avatarUrl || profile?.avatarUrl)
+  const customAvatarUrl = header?.avatarUrl || store?.avatarUrl || profile?.avatarUrl || ''
+  const avatarUrl = hasCustomAvatar ? customAvatarUrl : (store?.theme?.headerImageUrl || themeArtwork?.svgDataUri || '')
   const titleStyle = header?.titleStyle === 'logo' && header?.logoUrl ? 'logo' : 'text'
   const isHero = header?.layout === 'hero'
   const showAvatar = header?.showAvatar !== false
@@ -1993,15 +1999,29 @@ function ProfileHeader({ profile, tokens, editor, username, store }) {
   return (
     <div className="flex flex-col items-center text-center gap-3 pt-2">
       {showAvatar && (
-        <div className="relative overflow-hidden h-20 w-20 sm:h-24 sm:w-24 shadow-xs ring-2 ring-black/5 dark:ring-white/10 bg-slate-100 dark:bg-zinc-800/80 flex items-center justify-center shrink-0 rounded-full">
-          {avatarUrl ? (
+        !hasCustomAvatar && themeId === 'vox' ? (
+          <div className="relative overflow-hidden w-48 h-20 shadow-md ring-2 ring-red-900/30 flex items-center justify-center shrink-0 rounded-xl">
             <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
-          ) : (
-            <span className="text-2xl sm:text-3xl font-extrabold uppercase select-none opacity-70" style={{ color: colors.text }}>
-              {String(name).replace(/^@/, '').slice(0, 1)}
-            </span>
-          )}
-        </div>
+          </div>
+        ) : !hasCustomAvatar && (themeId === 'sweat' || themeId === 'encore') ? (
+          <div className="relative overflow-hidden w-full max-w-[340px] h-36 sm:h-44 shadow-md ring-1 ring-white/10 flex items-center justify-center shrink-0 rounded-2xl">
+            <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
+          </div>
+        ) : !hasCustomAvatar && themeId === 'nourish' ? (
+          <div className="relative overflow-hidden h-24 w-24 sm:h-28 sm:w-28 shadow-sm ring-2 ring-white/20 bg-[#465328] flex items-center justify-center shrink-0 rounded-full">
+            <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
+          </div>
+        ) : (
+          <div className="relative overflow-hidden h-20 w-20 sm:h-24 sm:w-24 shadow-xs ring-2 ring-black/5 dark:ring-white/10 bg-slate-100 dark:bg-zinc-800/80 flex items-center justify-center shrink-0 rounded-full">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-2xl sm:text-3xl font-extrabold uppercase select-none opacity-70" style={{ color: colors.text }}>
+                {String(name).replace(/^@/, '').slice(0, 1)}
+              </span>
+            )}
+          </div>
+        )
       )}
       {(titleNode || bioNode) && (
         <div className="space-y-1 w-full mx-auto">

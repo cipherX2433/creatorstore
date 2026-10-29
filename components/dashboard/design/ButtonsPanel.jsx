@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Check, ArrowLeft, Undo2, Redo2, RotateCcw } from 'lucide-react'
+import PanelHeader from './PanelHeader'
 import {
   ROUNDNESS_PRESETS,
   roundnessKeyFromTheme,
@@ -232,89 +233,47 @@ export default function ButtonsPanel({
 
   return (
     <div className="bg-white border border-[#E5E5E3] rounded-2xl p-5 sm:p-6 shadow-xs space-y-6">
-      {/* HEADER & EDITING ACTIONS (Linktree Reference Style) */}
-      <div className="flex items-center justify-between pb-4 border-b border-[#F0EFEB] gap-2">
-        <div className="flex items-center gap-2.5">
-          {onBack && (
+      {/* HEADER & EDITING ACTIONS (Standardized PanelHeader) */}
+      <PanelHeader
+        title="Buttons"
+        onBack={onBack}
+        onSave={onSave}
+        onCancel={onCancel}
+        hasUnsavedChanges={hasUnsavedChanges}
+        isSaving={isSaving}
+        extraActions={
+          <div className="flex items-center gap-1 mr-1">
             <button
               type="button"
-              onClick={onBack}
-              aria-label="Back to Design overview"
-              className="h-8 w-8 rounded-full border border-[#E5E5E3] bg-[#FAFAFA] hover:bg-white text-[#1F1F1F] flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-          )}
-          <h3 className="text-base sm:text-lg font-bold text-[#1F1F1F] tracking-tight">Buttons</h3>
-        </div>
-
-        {/* Action buttons: Undo, Redo, Cancel, Save */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Undo */}
-          <button
-            type="button"
-            onClick={handleUndo}
-            disabled={!canUndo}
-            aria-label="Undo button customization"
-            title="Undo"
-            className={`h-8 w-8 rounded-full flex items-center justify-center transition-all ${
-              canUndo
-                ? 'text-[#1F1F1F] hover:bg-[#F5F5F3] cursor-pointer active:scale-90'
-                : 'text-[#C5C5C0] cursor-not-allowed opacity-40'
-            }`}
-          >
-            <Undo2 className="h-4 w-4" />
-          </button>
-
-          {/* Redo */}
-          <button
-            type="button"
-            onClick={handleRedo}
-            disabled={!canRedo}
-            aria-label="Redo button customization"
-            title="Redo"
-            className={`h-8 w-8 rounded-full flex items-center justify-center transition-all ${
-              canRedo
-                ? 'text-[#1F1F1F] hover:bg-[#F5F5F3] cursor-pointer active:scale-90'
-                : 'text-[#C5C5C0] cursor-not-allowed opacity-40'
-            }`}
-          >
-            <Redo2 className="h-4 w-4" />
-          </button>
-
-          {/* Cancel */}
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={!hasUnsavedChanges || isSaving}
-              className={`h-8 px-3.5 rounded-full text-xs font-semibold border transition-all ${
-                !hasUnsavedChanges || isSaving
-                  ? 'border-[#E5E5E3] bg-[#FAFAFA] text-[#A8A8A4] cursor-not-allowed'
-                  : 'border-[#E5E5E3] bg-white hover:bg-[#F5F5F3] text-[#1F1F1F] shadow-xs active:scale-95 cursor-pointer'
+              onClick={handleUndo}
+              disabled={!canUndo}
+              aria-label="Undo button customization"
+              title="Undo"
+              className={`h-8 w-8 rounded-full flex items-center justify-center transition-all ${
+                canUndo
+                  ? 'text-[#1F1F1F] hover:bg-[#F5F5F3] cursor-pointer active:scale-90'
+                  : 'text-[#C5C5C0] cursor-not-allowed opacity-40'
               }`}
             >
-              Cancel
+              <Undo2 className="h-4 w-4" />
             </button>
-          )}
-
-          {/* Save */}
-          {onSave && (
             <button
               type="button"
-              onClick={onSave}
-              disabled={!hasUnsavedChanges || isSaving}
-              className={`h-8 px-4 rounded-full text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 ${
-                !hasUnsavedChanges || isSaving
-                  ? 'bg-[#E5E5E3] text-[#A8A8A4] cursor-not-allowed'
-                  : 'bg-[#000000] text-white hover:bg-[#222222] active:scale-95 cursor-pointer'
+              onClick={handleRedo}
+              disabled={!canRedo}
+              aria-label="Redo button customization"
+              title="Redo"
+              className={`h-8 w-8 rounded-full flex items-center justify-center transition-all ${
+                canRedo
+                  ? 'text-[#1F1F1F] hover:bg-[#F5F5F3] cursor-pointer active:scale-90'
+                  : 'text-[#C5C5C0] cursor-not-allowed opacity-40'
               }`}
             >
-              {isSaving ? 'Saving...' : 'Save'}
+              <Redo2 className="h-4 w-4" />
             </button>
-          )}
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* 1. BUTTON STYLE */}
       <div className="space-y-2.5">

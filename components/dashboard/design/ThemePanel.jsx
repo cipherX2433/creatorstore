@@ -18,11 +18,13 @@ import {
   gallerySwatchStyle,
   themePatchFromGallery,
 } from '@/lib/storefront-themes'
+import { getThemeArtwork } from '@/lib/storefront-theme-artwork'
+
+import PanelHeader from './PanelHeader'
 
 /**
  * Linktree-inspired Themes Customization Panel (#theme)
- * Matches Linktree Screenshot 2 with Customizable/Curated tabs, Shuffle button,
- * aesthetic Aa+button thumbnail cards, and full top action controls.
+ * Standardized with consistent PanelHeader (black Save button #000000; legacy #8B3DFF)
  */
 export default function ThemePanel({
   theme,
@@ -79,34 +81,15 @@ export default function ThemePanel({
 
   return (
     <div className="bg-white rounded-[24px] border border-[#E5E5E3] p-5 sm:p-6 shadow-xs space-y-6">
-      {/* TOP HEADER: Back button + Shuffle + Undo/Redo + Cancel/Save */}
-      <div className="flex items-center justify-between gap-3 pb-4 border-b border-[#F0EFEB]">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex items-center gap-2 text-base sm:text-lg font-bold text-[#1F1F1F] hover:text-[#000000] transition-colors cursor-pointer group"
-          >
-            <div className="h-8 w-8 rounded-full bg-[#F5F5F3] group-hover:bg-[#EAEAE8] flex items-center justify-center transition-colors">
-              <ArrowLeft className="h-4 w-4 text-[#1F1F1F]" />
-            </div>
-            <span>Theme</span>
-          </button>
-
-          {/* Shuffle button matching Linktree Screenshot 2 */}
-          <button
-            type="button"
-            onClick={handleShuffle}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E5E5E3] text-xs font-bold text-[#1F1F1F] bg-white hover:bg-[#F5F5F3] transition-colors shadow-2xs cursor-pointer select-none"
-            title="Randomize theme"
-          >
-            <Shuffle className="h-3.5 w-3.5 text-[#1F1F1F]" />
-            <span>Shuffle</span>
-          </button>
-        </div>
-
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Undo / Redo */}
+      {/* TOP HEADER: Standardized PanelHeader with Shuffle + Undo/Redo + Cancel/Save */}
+      <PanelHeader
+        title="Theme"
+        onBack={onBack}
+        onSave={onSave}
+        onCancel={onCancel}
+        hasUnsavedChanges={hasUnsavedChanges}
+        isSaving={isSaving}
+        extraActions={
           <div className="flex items-center gap-1 mr-1">
             <button
               type="button"
@@ -133,37 +116,19 @@ export default function ThemePanel({
               <Redo2 className="h-4 w-4" />
             </button>
           </div>
-
-          {/* Cancel */}
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={!hasUnsavedChanges || isSaving}
-            className={`h-8 sm:h-9 px-3.5 sm:px-4 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
-              hasUnsavedChanges && !isSaving
-                ? 'border-[#E5E5E3] bg-white hover:bg-[#F5F5F3] text-[#1F1F1F]'
-                : 'border-[#E5E5E3] bg-[#F7F7F6] text-[#A8A8A4] cursor-not-allowed'
-            }`}
-          >
-            Cancel
-          </button>
-
-          {/* Save (Linktree-signature purple pill #8B3DFF) */}
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={!hasUnsavedChanges || isSaving}
-            className={`h-8 sm:h-9 px-4 sm:px-5 rounded-full text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer select-none ${
-              hasUnsavedChanges && !isSaving
-                ? 'bg-[#8B3DFF] hover:bg-[#7828E8] text-white hover:shadow-sm active:scale-95'
-                : 'bg-[#D1D1CE] text-white cursor-not-allowed'
-            }`}
-          >
-            {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
-            <span>Save</span>
-          </button>
-        </div>
-      </div>
+        }
+      >
+        {/* Shuffle button matching Linktree Screenshot 2 */}
+        <button
+          type="button"
+          onClick={handleShuffle}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#E5E5E3] text-xs font-bold text-[#1F1F1F] bg-white hover:bg-[#F5F5F3] transition-colors shadow-2xs cursor-pointer select-none ml-1"
+          title="Randomize theme"
+        >
+          <Shuffle className="h-3.5 w-3.5 text-[#1F1F1F]" />
+          <span>Shuffle</span>
+        </button>
+      </PanelHeader>
 
       {/* TABS: Customizable | Curated (Matches Linktree Screenshot 2) */}
       <div className="flex items-center gap-6 border-b border-[#F0EFEB]">
@@ -226,9 +191,10 @@ export default function ThemePanel({
         )}
 
         {/* Gallery theme cards */}
-        {(activeTab === 'customizable' ? curatedThemes : curatedThemes).map((preset) => {
+        {curatedThemes.map((preset) => {
           const selected = selectedId === preset.id
           const swatch = gallerySwatchStyle(preset)
+          const artwork = getThemeArtwork(preset.id)
 
           return (
             <button
@@ -245,11 +211,23 @@ export default function ThemePanel({
                 }`}
                 style={swatch}
               >
+                {/* Photographic Header Artwork Background (Sweat, Nourish, Vox, Encore, Tress, Bliss) */}
+                {artwork?.svgDataUri ? (
+                  <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                    <img
+                      src={artwork.svgDataUri}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  </div>
+                ) : null}
+
                 {/* Font sample 'Aa' */}
                 <span
-                  className="text-2xl font-black leading-none tracking-tight"
+                  className="relative z-10 text-2xl font-black leading-none tracking-tight drop-shadow-xs"
                   style={{
-                    color: preset.colors?.pageText || preset.text?.pageTextColor || '#FFFFFF',
+                    color: preset.colors?.title || preset.colors?.pageText || preset.text?.pageTextColor || '#FFFFFF',
                     fontFamily: preset.text?.pageFont || 'sans-serif',
                   }}
                 >
@@ -258,23 +236,25 @@ export default function ThemePanel({
 
                 {/* Pill button preview */}
                 <span
-                  className="h-3.5 w-12 rounded-full shrink-0 border shadow-2xs"
+                  className="relative z-10 h-3.5 w-12 rounded-full shrink-0 border shadow-2xs"
                   style={{
                     background: preset.button?.color || preset.colors?.buttons || '#FFFFFF',
-                    borderColor: preset.button?.borderColor || 'transparent',
+                    borderColor: preset.button?.borderColor && preset.button?.borderColor !== 'transparent'
+                      ? preset.button.borderColor
+                      : (preset.colors?.buttonBorder || 'transparent'),
                   }}
                 />
 
                 {/* Selected check badge */}
                 {selected && (
-                  <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-[#1F1F1F] text-white flex items-center justify-center shadow-xs">
+                  <div className="absolute top-2 right-2 z-20 h-5 w-5 rounded-full bg-[#1F1F1F] text-white flex items-center justify-center shadow-xs">
                     <Check className="h-3 w-3 stroke-[3]" />
                   </div>
                 )}
 
                 {/* Pro badge if pro */}
                 {preset.pro && !selected && (
-                  <span className="absolute top-2 right-2 h-5 w-5 rounded-full bg-black/40 text-white flex items-center justify-center backdrop-blur-xs">
+                  <span className="absolute top-2 right-2 z-20 h-5 w-5 rounded-full bg-black/60 text-white flex items-center justify-center backdrop-blur-xs">
                     <Zap className="h-3 w-3 fill-current" />
                   </span>
                 )}

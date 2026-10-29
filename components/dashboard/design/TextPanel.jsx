@@ -5,6 +5,7 @@ import { ArrowLeft, Undo2, Redo2, ChevronDown, Zap, Loader2, RotateCcw } from 'l
 import ColorField from './ColorField'
 import FontPickerModal from './FontPickerModal'
 import { STOREFRONT_FONTS } from '@/lib/storefrontFonts'
+import PanelHeader from './PanelHeader'
 
 /**
  * Linktree-inspired Text (Typography) Customization Panel (#text)
@@ -58,21 +59,15 @@ export default function TextPanel({
 
   return (
     <div className="bg-white rounded-[24px] border border-[#E5E5E3] p-5 sm:p-6 shadow-xs space-y-6">
-      {/* TOP HEADER: Back button + Undo/Redo + Cancel/Save */}
-      <div className="flex items-center justify-between gap-3 pb-4 border-b border-[#F0EFEB]">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-2 text-base sm:text-lg font-bold text-[#1F1F1F] hover:text-[#000000] transition-colors cursor-pointer group"
-        >
-          <div className="h-8 w-8 rounded-full bg-[#F5F5F3] group-hover:bg-[#EAEAE8] flex items-center justify-center transition-colors">
-            <ArrowLeft className="h-4 w-4 text-[#1F1F1F]" />
-          </div>
-          <span>Text</span>
-        </button>
-
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Undo / Redo */}
+      {/* TOP HEADER: Standardized PanelHeader with Undo/Redo + Cancel/Save (black Save #000000; legacy #8B3DFF) */}
+      <PanelHeader
+        title="Text"
+        onBack={onBack}
+        onSave={onSave}
+        onCancel={onCancel}
+        hasUnsavedChanges={hasUnsavedChanges}
+        isSaving={isSaving}
+        extraActions={
           <div className="flex items-center gap-1 mr-1">
             <button
               type="button"
@@ -99,37 +94,8 @@ export default function TextPanel({
               <Redo2 className="h-4 w-4" />
             </button>
           </div>
-
-          {/* Cancel */}
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={!hasUnsavedChanges || isSaving}
-            className={`h-8 sm:h-9 px-3.5 sm:px-4 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
-              hasUnsavedChanges && !isSaving
-                ? 'border-[#E5E5E3] bg-white hover:bg-[#F5F5F3] text-[#1F1F1F]'
-                : 'border-[#E5E5E3] bg-[#F7F7F6] text-[#A8A8A4] cursor-not-allowed'
-            }`}
-          >
-            Cancel
-          </button>
-
-          {/* Save (Linktree-signature purple pill #8B3DFF) */}
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={!hasUnsavedChanges || isSaving}
-            className={`h-8 sm:h-9 px-4 sm:px-5 rounded-full text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer select-none ${
-              hasUnsavedChanges && !isSaving
-                ? 'bg-[#8B3DFF] hover:bg-[#7828E8] text-white hover:shadow-sm active:scale-95'
-                : 'bg-[#D1D1CE] text-white cursor-not-allowed'
-            }`}
-          >
-            {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
-            <span>Save</span>
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* TYPOGRAPHY CONTROLS LIST */}
       <div className="space-y-0.5 divide-y divide-[#F0EFEB]">
